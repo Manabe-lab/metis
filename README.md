@@ -195,32 +195,9 @@ streamlit run metis.py
 | **Remove duplicates** | Remove duplicate entries from datasets |
 | **Split data file on key** | Split data files based on key values in another file |
 
-## 🐛 Troubleshooting
-
-### Common Issues
-1. **Memory errors**: Some analyses require substantial memory, especially for large single-cell datasets
-2. **R package dependencies**: Ensure all required R packages are installed
-3. **File format compatibility**: Check that input files match expected formats
-
-### Performance Tips
-- Use filtering options to reduce dataset size before analysis
-- Consider using pseudobulk analysis for very large single-cell datasets
-- Utilize the batch processing features for multiple samples
-
-## 🤝 Contributing
-
-We welcome contributions! Please feel free to submit issues, feature requests, or pull requests.
-
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 📞 Support
-
-If you encounter any issues or have questions, please:
-1. Check the troubleshooting section above
-2. Search existing issues on GitHub
-3. Create a new issue with detailed information about your problem
 
 ## 🙏 Acknowledgments
 

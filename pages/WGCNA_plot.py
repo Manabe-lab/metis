@@ -17,7 +17,7 @@ FA2_METHOD = None
 
 # Try ForceAtlas2Py as primary choice (works with Python 3.11+)
 try:
-    import ForceAtlas2
+    import ForceAtlas2 as FA2Py
     FA2_AVAILABLE = True
     FA2_METHOD = 'ForceAtlas2Py'
 except ImportError:
@@ -26,7 +26,7 @@ except ImportError:
 # Try fa2 as alternative
 if not FA2_AVAILABLE:
     try:
-        from fa2 import ForceAtlas2
+        from fa2 import ForceAtlas2 as FA2Original
         FA2_AVAILABLE = True
         FA2_METHOD = 'fa2'
     except ImportError:
@@ -860,10 +860,8 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
     # Calculate ForceAtlas2 layout
     if FA2_AVAILABLE and FA2_METHOD == 'ForceAtlas2Py':
         try:
-            import ForceAtlas2
-            
-            # Create ForceAtlas2 layout
-            forceatlas2 = ForceAtlas2.ForceAtlas2(
+            # Create ForceAtlas2 layout using ForceAtlas2Py package
+            forceatlas2 = FA2Py.ForceAtlas2(
                 outboundAttractionDistribution=True,
                 linLogMode=False,
                 adjustSizes=False,
@@ -907,7 +905,7 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
                 edge_weights = np.array(edge_weights)
                 
                 # Initialize ForceAtlas2
-                forceatlas2 = ForceAtlas2(
+                forceatlas2 = FA2Original(
                     # Behavior
                     outboundAttractionDistribution=True,
                     linLogMode=False,

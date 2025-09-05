@@ -861,7 +861,11 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
     if FA2_AVAILABLE and FA2_METHOD == 'ForceAtlas2Py':
         try:
             # Create ForceAtlas2 layout using ForceAtlas2Py package
-            forceatlas2 = FA2Py.ForceAtlas2(
+            pos = FA2Py.forceatlas2_networkx_layout(
+                G, 
+                pos=None,
+                iterations=100,
+                # ForceAtlas2 parameters
                 outboundAttractionDistribution=True,
                 linLogMode=False,
                 adjustSizes=False,
@@ -875,8 +879,6 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
                 gravity=1.0,
                 verbose=False
             )
-            
-            pos = forceatlas2.forceatlas2_networkx_layout(G, pos=None, iterations=100)
             st.success("✅ Using ForceAtlas2 algorithm (ForceAtlas2Py)")
             
         except Exception as e:
@@ -925,11 +927,10 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
                     verbose=False
                 )
                 
-                # Run layout algorithm
+                # Run layout algorithm  
                 positions = forceatlas2.forceatlas2(
                     edges, pos=positions, 
-                    iterations=100,
-                    weight_attr=edge_weights
+                    iterations=100
                 )
                 
                 # Convert back to NetworkX format

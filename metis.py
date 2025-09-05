@@ -306,12 +306,6 @@ pg = st.navigation({
         st.Page("pages/cellchat_permutation.py", title="CellChat permutation test"),
         st.Page("pages/cellchatR2py.py", title="CellChat R qs to python"),
     ],
-    "scRNA file operation 🗄": [
-        st.Page("pages/download.py", title="Download public data for SCALA and cellxgene"),
-        st.Page("pages/fileexplorer.py", title="File explorer"),
-        st.Page("pages/ftp.py", title="File uploader"),
-        st.Page("pages/filebrowser.py", title="SCALA file browser"),
-    ],
     "ChIP-seq 🧬": [
         st.Page("pages/bam-sorter.py", title="Sort BAM file"),
         st.Page("pages/bam-merge.py", title="Merge BAM files"),

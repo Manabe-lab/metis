@@ -70,40 +70,40 @@ streamlit run metis.py
 
 ## 🔁 Gene Name Conversion
 
-| Tool | Description |
-|------|-------------|
-| **Update Gene Symbol** | Update gene symbols in Homer output or general data files (first column is Symbol) |
-| **Gene Symbol to Ensembl ID** | Convert gene symbols to Ensembl IDs in Homer output or general data files (for DIANE file creation) |
-| **Ensembl ID to Gene Symbol** | Handle duplicate genes as well |
-| **Mouse Human Symbol Conversion** | Convert between mouse and human gene symbols |
-| **GMT Mouse Human Conversion** | Convert gene symbols in gene set files (gmt files) used in GSEA. Format validation for gmt files is also available |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|--------------|
+| **Update Gene Symbol** | • Automatic symbol updating to latest HGNC/MGI standards<br>• Batch processing of multiple files<br>• Deprecated symbol detection and replacement<br>• Synonym resolution<br>• Quality control reports<br>• Custom symbol mapping support | Input: Homer files, TSV with symbols<br>Output: Updated symbol files |
+| **Gene Symbol to Ensembl ID** | • Human and mouse symbol conversion<br>• Multiple database sources (Ensembl, NCBI)<br>• Version-specific mappings<br>• One-to-many relationship handling<br>• Canonical transcript selection<br>• Missing symbol reporting | Input: Symbol lists, Homer files<br>Output: Ensembl ID mappings |
+| **Ensembl ID to Gene Symbol** | • Reverse ID conversion with validation<br>• Duplicate gene handling strategies<br>• Biotype filtering (protein-coding, lncRNA, etc.)<br>• Version compatibility checking<br>• Bulk conversion processing<br>• Cross-reference validation | Input: Ensembl ID lists<br>Output: Symbol mappings |
+| **Mouse Human Symbol Conversion** | • Ortholog mapping using multiple databases<br>• One-to-one and one-to-many conversions<br>• Confidence score reporting<br>• Evolutionary relationship validation<br>• Batch processing capabilities<br>• Custom ortholog definitions | Input: Mouse/Human symbols<br>Output: Cross-species mappings |
+| **GMT Mouse Human Conversion** | • Gene set file format conversion<br>• Species-specific pathway translation<br>• GMT file validation and repair<br>• Batch processing multiple gene sets<br>• Coverage statistics reporting<br>• Custom gene set creation | Input: GMT files<br>Output: Converted gene sets |
 
 ## 🧮 Data Analysis
 
-| Tool | Description |
-|------|-------------|
-| **DESeq2** | DESeq2, limma-eBayes, Beta regression, GLM group comparisons |
-| **DESeq2-LRT** | ANOVA-like, time series analysis etc. limma-eBayes for non-count data analysis. Beta regression for 0-1 data |
-| **edgeR** | edgeR differential expression analysis |
-| **limma** | limma voom calculation |
-| **DE method comparison** | Compare DEG calculation methods (DESeq2, edgeR, limma) results |
-| **Permutation test** | Freedman-Lane test including batch effects |
-| **Make ranking file for GSEA** | Create GSEA ranking files |
-| **Batch removal by Combat-seq** | Batch removal using Combat-seq |
-| **impulseDE2** | Time course analysis using impulseDE2 |
-| **Mfuzz clustering** | Time course data clustering using Mfuzz |
-| **DEA result comparison** | Compare significantly different genes from DEA results |
-| **Compare ratios** | Statistical analysis of ratio data using t-test and β regression on logit transformed data |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **DESeq2** | • Multiple experimental design support<br>• GLM-based differential analysis<br>• Beta regression for proportion data<br>• Batch effect correction<br>• Multiple testing correction (FDR, Bonferroni)<br>• Interactive parameter tuning<br>• Results filtering and export | Input: Count matrix + metadata<br>Output: DE results, MA plots |
+| **DESeq2-LRT** | • Likelihood ratio tests for complex designs<br>• Time course analysis capabilities<br>• ANOVA-like multi-group comparisons<br>• Model comparison statistics<br>• Trajectory analysis<br>• Custom contrast definitions | Input: Count data + time/group info<br>Output: LRT results, time profiles |
+| **edgeR** | • TMM normalization<br>• Exact tests for small samples<br>• Quasi-likelihood F-tests<br>• Robust dispersion estimation<br>• Multi-dimensional scaling plots<br>• FDR control options | Input: Count matrix<br>Output: DE genes, dispersion plots |
+| **limma** | • Linear modeling framework<br>• Empirical Bayes moderation<br>• Voom transformation for RNA-seq<br>• Duplicate correlation handling<br>• Contrast matrix definitions<br>• Gene set testing integration | Input: Expression matrix<br>Output: Moderated t-statistics |
+| **DE method comparison** | • Side-by-side method evaluation<br>• Concordance analysis<br>• Venn diagram generation<br>• ROC curve analysis<br>• Benchmark statistics<br>• Method recommendation engine | Input: Multiple DE results<br>Output: Comparison reports |
+| **Permutation test** | • Freedman-Lane permutation procedure<br>• Batch-aware randomization<br>• Multiple correction strategies<br>• Bootstrap confidence intervals<br>• Non-parametric hypothesis testing<br>• Custom test statistics | Input: Expression + design matrix<br>Output: Permutation p-values |
+| **Make ranking file for GSEA** | • Multiple ranking metrics (t-stat, log2FC, p-value)<br>• Custom gene filtering<br>• Tie handling strategies<br>• Format validation<br>• Batch processing multiple comparisons | Input: DE results<br>Output: Ranked gene lists (.rnk) |
+| **Batch removal by Combat-seq** | • Count-based batch correction<br>• Biological variation preservation<br>• Multiple batch variables<br>• Before/after visualization<br>• Quality assessment metrics | Input: Count matrix + batch info<br>Output: Batch-corrected counts |
+| **impulseDE2** | • Impulse model fitting<br>• Time course DE detection<br>• Pattern classification<br>• Trajectory clustering<br>• Pseudotime analysis<br>• Model selection criteria | Input: Time course data<br>Output: Impulse model results |
+| **Mfuzz clustering** | • Soft clustering algorithm<br>• Fuzzy membership values<br>• Optimal cluster number determination<br>• Time profile visualization<br>• Cluster validation metrics<br>• Gene annotation integration | Input: Time series expression<br>Output: Cluster assignments |
+| **DEA result comparison** | • Multi-study result integration<br>• Meta-analysis capabilities<br>• Effect size comparisons<br>• Heterogeneity assessment<br>• Publication bias testing<br>• Forest plot generation | Input: Multiple DE result sets<br>Output: Meta-analysis results |
+| **Compare ratios** | • Logit transformation<br>• Beta regression modeling<br>• Proportion data analysis<br>• Confidence interval estimation<br>• Model diagnostics<br>• Effect size calculations | Input: Ratio/proportion data<br>Output: Statistical test results |
 
 ## 🌋 Data Visualization
 
-| Tool | Description |
-|------|-------------|
-| **PCA** | PCA, UMAP, tSNE, MDS |
-| **Volcano plot** | Interactive volcano plots for differential expression results |
-| **Heatmap** | Customizable heatmaps with clustering |
-| **Box/Violin plot** | Box plots and violin plots for expression visualization |
-| **Venn/Upset Plot** | Venn diagram and UpSet plot for set comparisons |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **PCA** | • Multiple dimensionality reduction methods<br>• Interactive 2D/3D plotting<br>• Variance explained calculations<br>• Sample clustering analysis<br>• Batch effect visualization<br>• Custom color/shape mappings<br>• Loading plot generation | Input: Expression matrix<br>Output: PCA plots, coordinates |
+| **Volcano plot** | • Interactive plotly-based visualization<br>• Customizable significance thresholds<br>• Gene label highlighting<br>• Color scheme options<br>• Export to multiple formats<br>• Zoom and pan functionality<br>• Statistical annotation | Input: DE results<br>Output: Interactive volcano plots |
+| **Heatmap** | • Hierarchical clustering options<br>• Multiple distance metrics<br>• Row/column annotations<br>• Color palette customization<br>• Dendrogram display control<br>• Missing value handling<br>• Batch processing capabilities | Input: Expression matrix<br>Output: Clustered heatmaps |
+| **Box/Violin plot** | • Multiple plot types (box, violin, strip)<br>• Statistical significance testing<br>• Group comparison options<br>• Outlier detection and highlighting<br>• Custom color schemes<br>• Batch processing<br>• Export options | Input: Expression + metadata<br>Output: Statistical plots |
+| **Venn/Upset Plot** | • Multi-set intersection analysis<br>• Interactive UpSet plots<br>• Set size statistics<br>• Intersection export<br>• Custom set labeling<br>• Batch processing<br>• Statistical testing of overlaps | Input: Gene/feature lists<br>Output: Intersection visualizations |
 
 ## 🔀 Pathway Analysis
 
@@ -149,14 +149,6 @@ streamlit run metis.py
 | **CellChat permutation test** | Statistical testing of two-condition comparison using permutation test |
 | **CellChat R qs to python** | Convert SCALA CellChat analysis result qs files for use in metis |
 
-## 🗄 scRNA File Operation
-
-| Tool | Description |
-|------|-------------|
-| **Download public data** | Download files analyzable in SCALA/cellxgene. Can download from GEO and other sources if download links are available |
-| **File explorer** | Browse, delete, and download files accessible by SCALA |
-| **File uploader** | Upload files accessible by SCALA/cellxgene |
-| **SCALA file browser** | Browse files accessible by SCALA |
 
 ## 🧬 ChIP-seq Analysis
 

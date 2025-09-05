@@ -1,0 +1,4 @@
+"mouse_gene","original_mapping","corrected_mapping","change_reason","databases_updated"
+"Ccl2","CCL13","CCL2","MCP-1 functional equivalence","consensus + nichenetr"
+"Ccl3","CCL3L3","CCL3","MIP-1α functional equivalence","consensus + nichenetr"
+"Cxcl1","CXCL2","CXCL1","KC/GRO-α functional equivalence","consensus + nichenetr"

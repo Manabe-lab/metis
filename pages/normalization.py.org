@@ -1,0 +1,357 @@
+import streamlit as st
+import pandas as pd
+import csv
+import re
+import os
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+import time
+from helper_func import clear_old_directories
+from helper_func import clear_old_files
+
+st.set_page_config(page_title="Count_normalization", page_icon="√")
+
+def normalize_totalreads(df):
+    return 10**6 * df / df.sum()
+
+@st.cache_data
+def read_excel(file, index_col=None, header = 0):
+    df_xl = pd.read_excel(file, index_col = index_col, header = header)
+    return df_xl
+
+@st.cache_data
+def read_csv(file, index_col=None, sep=','):
+    df_c = pd.read_csv(file, index_col = index_col, header = 0, sep = sep)
+    return df_c
+
+@st.cache_data
+def convert_df(df):
+   return df.to_csv(index=True, sep='\t').encode('utf-8')
+
+def remove_sample_num(i):
+    i = re.sub('[_-][^-_]*\d+$', '', i)
+    i = re.sub('\d+$', '', i)
+    return i
+
+def remove_after_space(i):
+    m = re.match(r'([^\ ]+)(\ )+.+',i)
+    if m is not None:
+        return m.group(1)
+    else:
+        return i
+
+if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+ #   st.write('file name kept')
+    filename_add = ""
+
+
+
+input_file_type = st.radio(
+    "Data format:",
+    ('tsv','csv', 'excel', 'Homer'), key='tsv')
+
+input_file_format = 'row = gene'
+
+if input_file_type != 'Homer':
+    input_file_format = st.radio(
+        "Data structure:",
+        ('row = gene', 'column = gene'))
+
+    if input_file_format == 'row = gene':
+        st.markdown("""
+    row = gene
+    |  | Sample1 | Sample2 |
+    | --- | --- | --- |
+    | Gene1 |  |  |
+    | Gene2 | ||
+
+    """)
+    else:
+        st.markdown("""
+    column = gene
+    |  | Gene1 | Gene2 |
+    | --- | --- | --- |
+    | Sample1 |  |  |
+    | Sample2 | ||
+
+    """)
+
+uploaded_file = st.file_uploader(" ", type=['txt','tsv','csv','xls','xlsx'])
+if uploaded_file is not None:
+    if input_file_type == "csv":
+        df = read_csv(uploaded_file, index_col = 0)
+    elif input_file_type == "excel":
+        df = read_excel(uploaded_file)
+    else:
+        df = read_csv(uploaded_file, sep = '\t', index_col = 0)
+
+
+#    if input_file_type == "Homer":
+#        df = df.iloc[:,7:]
+#        colnames = df.columns.tolist()
+#        colnames[0] = 'Gene'
+
+        # colnamesの変換
+#        search_word = '([^\ \(]*)\ \(.*'
+
+#        for i in range(1, len(colnames)):
+#            match = re.search(search_word, colnames[i])
+#            if match:
+#                colnames[i] = match.group(1).replace(' ', '_')
+
+    content = df.columns.tolist()
+    Gene_column = content[0]
+
+    if "Annotation/Divergence" in content:
+         # colnamesの変換
+        search_word = '([^\ \(]*)\ \(.*'
+
+        for i in range(1, len(content)):
+            match = re.search(search_word, content[i])
+            if match:
+                content[i] = match.group(1).replace(' ', '_')
+        df.columns = content # 一旦名前を変更
+        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+        pattern = "([^|]*)"
+        repatter = re.compile(pattern)
+        f_annotation = lambda x: repatter.match(x).group(1)
+        df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+        # annotation/divergence以前を除く
+        df = df.loc[:,'Annotation/Divergence':]
+        content = df.columns.tolist()
+        content[0] = 'Gene'
+        df.columns = content
+        st.write("Converted Annotation/Divergence to gene symbols.")
+        df.set_index("Gene", inplace = True)
+
+    if input_file_format == 'column = gene':
+        df = df.T
+
+    if df.isnull().values.sum() > 0:
+        st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
+        st.write(df[df.isnull().any(axis=1)])
+        convert_nan = st.radio( "NaN:",
+        ('remove Nan containing genes', 'conver to 0' ), key='remove Nan containing genes')
+        if convert_nan == "conver to 0":
+            df = df.fillna(0)
+        else:
+            df = df.dropna(how='any')
+
+
+    st.write('Original:')
+    st.write(df.iloc[:4,:7])
+    df_sum = pd.DataFrame(df.sum())
+    df_sum.columns = ['Counts']
+    fig, ax = plt.subplots()
+    ax = sns.barplot(data=df_sum.T)
+    ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
+    ax.set_ylabel("Total counts", fontsize = 14)
+    st.pyplot(fig )
+
+    if any(df.sum() == 0): # count 0の列を除く
+        st.markdown('#### There are the samples that have zero counts.')
+        st.write(", ".join(df.columns[df.sum()  == 0].to_list()))
+        st.write('They are removed. Now data are:')
+        df = df.drop(df.columns[df.sum()  == 0].to_list(), axis = 1)
+        st.write(df.iloc[:4,:7])
+
+
+        df_sum = pd.DataFrame(df.sum())
+        df_sum.columns = ['Counts']
+        fig, ax = plt.subplots()
+        ax = sns.barplot(data=df_sum.T)
+        ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
+        ax.set_ylabel("Total counts", fontsize = 14)
+        st.pyplot(fig )
+
+    fig, ax = plt.subplots()
+    ax = sns.boxplot(data = np.log1p(df))
+    ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
+    ax.set_ylabel("ln(x+1)", fontsize = 14)
+    st.pyplot(fig )
+
+
+    show_cor = st.checkbox('Show correlation coeficient matrix?')
+    if show_cor:
+        correlation_coefficients = df.corr()
+        fig_c, ax_c = plt.subplots() #この形式でないとエラーになる
+        ax_c = sns.heatmap(correlation_coefficients, vmax=1, vmin=-1, cmap='seismic', square=True,
+            annot=False, xticklabels=1, yticklabels=1)
+        st.pyplot(fig_c)
+
+    st.write('')
+    convert_to = st.radio(
+    "Convert to:",
+    ('TMM','UQ','CTF', 'CUF', 'CPM', 'rlog', 'RPKM to TPM'), key='TMM')
+    st.write("using rnanorm package: https://rnanorm.readthedocs.io/en/latest/index.html")
+    st.write("For CTF and CUF: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02568-9")
+
+    log_transform = None
+    if convert_to != 'rlog':
+        log_transform = st.radio(
+        "Log transformation:",
+        ('None', 'asinh','log2(x+1)', 'ln(x+1)', 'log10(x+1)'), key='None')
+        st.write("asinh: hyperbolic arcsine transformation")
+
+
+    if convert_to == "CTF":
+        from rnanorm import CTF
+        df_conv = CTF().set_output(transform="pandas").fit_transform(df.T)
+    if convert_to == "TMM":
+        from rnanorm import TMM
+        df_conv = TMM().set_output(transform="pandas").fit_transform(df.T)
+
+    if convert_to == "CUF":
+        from rnanorm import CUF
+        df_conv = CUF().set_output(transform="pandas").fit_transform(df.T)
+
+    if convert_to == "UQ":
+        from rnanorm import UQ
+        df_conv = UQ().set_output(transform="pandas").fit_transform(df.T)
+
+    if convert_to == "CPM":
+        from rnanorm import CPM
+        df_conv = CPM().set_output(transform="pandas").fit_transform(df.T)
+
+    if convert_to == "RPKM to TPM":
+        df_conv = normalize_totalreads(df).T
+
+    if (input_file_format == 'row = gene') and (convert_to != 'rlog'):
+        df_conv = df_conv.T
+
+    rlog_finish = False
+    if convert_to == 'rlog':
+
+        import rpy2.robjects as ro
+        from rpy2.robjects.packages import importr
+        from rpy2.robjects import pandas2ri
+        from rpy2.robjects.vectors import StrVector
+        import pyper
+        r = pyper.R(use_pandas=True)
+        f = ro.r("source('/home/cellxgene/streamlit/pages/deseq2_func.R')") # full pathが必要
+
+        condition = [str(i) for i in df.columns.tolist()] #error防止
+        group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
+        group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+        df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
+#        df_e = pd.DataFrame(df.columns.tolist(), index =df.columns.tolist(), columns = ["Group"]).copy()
+        df = df.astype(float)
+        df = df.round(0)
+      #  df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+        group = st.checkbox('Set groups for rlog?')
+        if group:
+            edited_df_e = st.data_editor(df_e)
+            condition = edited_df_e.iloc[:,0].tolist()
+            st.write('Group: ' + '  '.join(condition))
+        else:
+            condition = df.columns.tolist()
+        if st.button('Run rlog calc'):
+            #r.assign('df',df)
+            #r("saveRDS(df, 'pyper_df.RDS')")
+            #ro.r("cts <- readRDS('pyper_df.RDS')")
+
+
+            temp_dir = "temp/" + str(round(time.time()))
+
+            if not os.path.exists('temp'):
+                os.mkdir('temp')
+            else:
+                clear_old_directories("temp")
+                clear_old_files("temp")
+            os.mkdir(temp_dir)
+
+            r.assign('df',df)
+            pyper_df_path = "saveRDS(df, '" + temp_dir + "/pyper_df.RDS')"
+            r(pyper_df_path)
+            read_pyper_df = "cts <- readRDS('" + temp_dir + "/pyper_df.RDS')"
+            ro.r(read_pyper_df)
+
+
+            #まずベクターに変換
+            r_condition =  ro.StrVector(condition)
+            ro.r.assign('condition', r_condition)
+            ro.r.assign('condition', r_condition)
+            ro.r.assign('temp_dir', temp_dir)
+
+
+            ro.r("make_coldata2()")
+
+            if group:
+                ro.r('calc_rlog()')
+            else:
+                ro.r('calc_rlog_no_group()')
+            # df_conv = ro.conversion.rpy2py(rld) うまくいかない
+            df_conv = pd.read_csv(temp_dir + '/rld.tsv', sep = '\t', header = 0)
+            content = df_conv.columns.tolist()
+            content[0] = 'Gene'
+            df_conv.columns = content
+            df_conv.set_index("Gene", inplace = True)
+            os.unlink(temp_dir + "/rld.tsv")
+
+            rlog_finish = True
+            log_transform = None
+
+    if (convert_to != 'rlog') or (rlog_finish):
+
+        st.write('Converted:')
+        st.write(df_conv.iloc[:4,:7])
+
+
+        log_transform_word = ''
+        if log_transform  != "None":
+            if log_transform == 'asinh':
+                df_conv = np.arcsinh(df_conv)
+                log_transform_word = ".asinh"
+            if log_transform == 'log2(x+1)':
+                df_conv = np.log2(df_conv+1)
+                log_transform_word = ".log2"
+            if log_transform == 'log10(x+1)':
+                df_conv = np.log10(df_conv+1)
+                log_transform_word = ".log10"
+            if log_transform == 'ln(x+1)':
+                df_conv = np.log1p(df_conv)
+                log_transform_word = ".ln"
+
+            st.write('Transformed:')
+            st.write(df_conv.iloc[:4,:7])
+
+
+        fig, ax = plt.subplots()
+        if log_transform != "None":
+            ax = sns.boxplot(data = df_conv)
+            ax.set_ylabel("transformed value", fontsize = 14)
+        else:
+            ax = sns.boxplot(data = np.log1p(df_conv))
+            ax.set_ylabel("ln(x+1)", fontsize = 14)
+        ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
+        st.pyplot(fig )
+
+        if show_cor:
+            correlation_coefficients = df.corr()
+            fig_c, ax_c = plt.subplots() #この形式でないとエラーになる
+            ax_c = sns.heatmap(correlation_coefficients, vmax=1, vmin=-1, cmap='seismic', square=True,
+                annot=False, xticklabels=1, yticklabels=1)
+            st.pyplot(fig_c)
+
+
+        if convert_to == "RPKM to TPM":
+            file_name = os.path.splitext(uploaded_file.name)[0] + log_transform_word +'.TPM.txt'
+            st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + log_transform_word +'.TPM'
+        else:
+            file_name = os.path.splitext(uploaded_file.name)[0] + '.' + convert_to + log_transform_word + '.txt'
+            st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + log_transform_word 
+
+        st.session_state.df = df_conv
+
+
+        csv = convert_df(df_conv)
+        st.download_button(
+           "Press to Download",
+           csv,
+           file_name,
+           "text/csv",
+           key='download-csv'
+        )
+

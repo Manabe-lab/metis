@@ -1,0 +1,623 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import re
+import shutil
+import os
+import sys
+from helper_func import mk_temp_dir
+
+
+st.set_page_config(page_title="Heatmap", page_icon="🌡")
+
+@st.cache_data
+def convert_df(df):
+   return df.to_csv(index=False, sep='\t', header = None).encode('utf-8')
+
+@st.cache_data
+def read_excel(file, index_col=None, header = 0):
+	df_xl = pd.read_excel(file, index_col = index_col, header = header)
+	return df_xl
+
+@st.cache_data
+def read_csv(file, index_col=None, sep=',', header= 0):
+	df_c = pd.read_csv(file, index_col = index_col, header = header, sep = sep)
+	return df_c
+
+if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+ #   st.write('file name kept')
+	filename_add = ""
+
+
+#https://discuss.streamlit.io/t/dynamically-created-multiple-checkbox/18273/2
+def checkbox_container(data):
+#	st.header('Select columns or rows')
+#	new_data = st.text_input('Enter country Code to add')
+	cols = st.columns(5)
+#	if cols[0].button('Add Coutry'):
+#		dummy_data.append(new_data)
+	if cols[0].button('Select All'):
+		for i in data:
+			st.session_state['dynamic_checkbox_' + i] = True
+		st.experimental_rerun()
+	if cols[1].button('UnSelect All'):
+		for i in data:
+			st.session_state['dynamic_checkbox_' + i] = False
+		st.experimental_rerun()
+	for i in data:
+		st.checkbox(i, key='dynamic_checkbox_' + i)
+
+def get_selected_checkboxes():
+	return [i.replace('dynamic_checkbox_','') for i in st.session_state.keys() if i.startswith('dynamic_checkbox_') and st.session_state[i]]
+
+
+# temp内に保存する
+# --- Initialising SessionState ---
+if "temp_dir" not in st.session_state:
+	st.session_state.temp_dir = True
+	temp_dir, res_dir = mk_temp_dir("Heatmap")
+	st.session_state.temp_dir = temp_dir
+else:
+	temp_dir = st.session_state.temp_dir
+	temp_dir, res_dir = mk_temp_dir("Heatmap", temp_dir)
+
+
+use_upload = 'Yes'
+if 'df' in st.session_state:
+	st.write("Data in memory:")
+	st.write(st.session_state.df.head())
+	if st.session_state.df is not None:
+		use_upload = st.radio("Upload new file?", ('Yes','No'), index = 1)
+	if use_upload == "No":
+		df = st.session_state.df
+		input_file_type = 'tsv'
+ #	   st.write(st.session_state.uploaded_file_name)
+		file_name_head = st.session_state.uploaded_file_name
+		# Homer対応
+		if "Transcript/RepeatID" in df.columns[0]:
+			df = df.iloc[:,8:]
+			st.write(df.head())
+		if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+			df = df.set_index('Row_name')
+			df.index.name = "Gene"
+
+
+if use_upload == 'Yes':
+	input_file_type = st.radio(
+		"Data format:",
+		('tsv','csv', 'excel'))
+	#Gene_column = 0
+
+	uploaded_file = st.file_uploader(" ", type=['txt','tsv','csv','xls','xlsx'])
+	genome = st.checkbox("Genome occupancy data (eg., Homer's annotatePeaks.pl output)?")
+	if uploaded_file is not None:
+		if input_file_type == "csv":
+			df = read_csv(uploaded_file, header = None, index_col = None)
+		elif input_file_type == 'tsv':
+			df = read_csv(uploaded_file, sep = '\t', header=None, index_col = None)
+		else:
+			df = read_excel(uploaded_file, index_col = None, header = None)
+		st.write("Uploaded data:")
+		st.write(df.head(3))
+		st.write('Data Dimension: '+str(df.shape))
+
+		st.markdown("###### Data format should be genes as rows and sample as columns.")
+		st.markdown("""
+	|  | Sample1 | Sample2 |
+	| --- | --- | --- |
+	| Gene1 |  |  |
+	| Gene2 | ||
+
+	""")
+		st.write("	")
+
+		transpose_df = st.checkbox('Transpose the data?')
+
+		if transpose_df:
+			df = df.T
+		if not genome:
+			df.columns = df.iloc[0,:].tolist()   # transposeすると狂うので、transposeした後にcolumnsを決める
+		else: # homer annotate に対して登場順で頭に数字をつける
+			st.write(df.columns)
+			org_col = df.iloc[0,:].tolist()
+			new_columns = [org_col[0]]
+			count = 1
+			for col in org_col[1:]:
+				new_columns.append(f"{count}_{col}")
+				count += 1
+			# 新しいカラム名を設定
+			df.columns = new_columns
+		df = df.drop(0, axis = 0) # 1行目を列名にして除く
+		content = df.columns.tolist()
+		Gene_column = content[0]
+		if "Annotation/Divergence" in content:
+			  # colnamesの変換
+			search_word = '([^\ \(]*)\ \(.*'
+
+			for i in range(1, len(content)):
+				match = re.search(search_word, content[i])
+				if match:
+					content[i] = match.group(1).replace(' ', '_')
+			df.columns = content # 一旦名前を変更
+			df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+
+			pattern = "([^|]*)"
+			repatter = re.compile(pattern)
+			f_annotation = lambda x: repatter.match(x).group(1)
+			df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+	#		df.loc[:,'Annotation/Divergence'] = df.apply(lambda x: re.sub(r'([^|]*).*', r'\1', x['Annotation/Divergence']), axis=1)
+			# annotation/divergence以前を除く
+			df = df.loc[:,'Annotation/Divergence':]
+			content = df.columns.tolist()
+			content[0] = 'Gene'
+			df.columns = content
+			Gene_column = "Gene"
+			st.write("Converted Annotation/Divergence to gene symbols.")
+
+		elif "Gene" in content:
+			Gene_column =  "Gene"
+		else:
+			Gene_column =  st.selectbox('Select gene name column', content)
+
+		df = df.set_index(Gene_column)
+		file_name_head = os.path.splitext(uploaded_file.name)[0]
+		st.session_state.uploaded_file_name = file_name_head
+		st.session_state.df = df
+
+	else:
+		sys.exit(1)
+   ##### file upload
+
+if df is not None:
+	nonzero = st.checkbox('Remove all zero genes?', value=True)
+	if nonzero:
+		df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+	df = df.dropna(how='any', axis=0)
+	df = df.astype(float) #文字列が残る
+
+	st.write(df.head(3))
+
+	st.markdown('---')
+	st.markdown("##### Filter and transform data?")
+	calc_z = False
+	center0_z = False  # Z-scoreのときはTrueにする
+	howlog = 'No'
+	Manip = st.checkbox('minip', label_visibility = 'collapsed')
+	if Manip:
+		f_inf = -float('inf')
+		p_inf = float('inf')
+		min_val = f_inf
+		max_val = f_inf
+		high_min_val = p_inf
+		high_max_val = p_inf
+		delta_val = 1
+		fold_val = 1
+		min_variance = 0
+		top_n = p_inf
+		more_filt = st.checkbox('Additional filtering options (e.g., minimal values, FC...)')
+		if more_filt:
+			min_val =  float(st.text_input("All values of each gene are larger than",  value=f_inf))
+			max_val =  float(st.text_input("Max value is larger than",  value=f_inf))
+			delta_val =  float(st.text_input("Delta (max - min value) >",  value=0))
+			fold_val =  float(st.text_input("Fold (max / min) >",  value=1))
+			min_variance =  float(st.text_input("Minmum variance across samples > (e.g., 0.3)",  value=0))
+			high_min_val =  float(st.text_input("All values of each gene are smaller than or equal",  value=p_inf))
+			high_max_val =  float(st.text_input("Min value is smaller than or equal",  value=p_inf))
+			top_n =  float(st.text_input("Top n in mean",  value=p_inf))
+
+		st.markdown("######   ")
+		calc_div = st.checkbox('Divided by (e.g., 1000, 1000,000)?', value = False)
+		if calc_div:
+			div_unit =  int(st.text_input("Unit: ",  value=1))
+			df = df/div_unit
+		calc_log = st.checkbox('Log transformation?')
+		if calc_log:
+			howlog = st.radio('Method', ['No', 'log2+1', 'log2', 'loge+1', 'loge','log10+1','log10', 'asinh'])
+
+		st.markdown("######   ")
+
+		if min_val != f_inf:
+			df = df[df.apply(min, axis=1) > min_val]
+
+
+		if max_val != f_inf:
+			df =  df[df.apply(max, axis=1) > max_val] #ここがminだと、0が一つでもあれば削除される。
+
+		if delta_val > 1:
+			df = df[df.apply(max, axis=1) > df.apply(min, axis=1) + delta_val]
+
+
+		if fold_val > 1:
+			df = df[df.apply(max, axis=1) > df.apply(min, axis=1) * fold_val]
+
+		if min_variance > 0:
+			df = df.loc[(df.index[(df.var(axis=1) > min_variance)]),:]
+
+		if high_min_val != p_inf:
+			df = df[df.apply(max, axis=1) <= high_min_val]
+
+		if high_max_val != p_inf:
+			df =  df[df.apply(min, axis=1) <= high_max_val] #ここがminだと、0が一つでもあれば削除される。
+
+		if top_n != p_inf:
+			top_ix = df.mean(axis = 1).sort_values(ascending=False).head(10).index
+			new_index = [x for x in df.index.to_list() if x in top_ix]
+			df = df.loc[new_index,:]
+
+		df = df.astype('float')
+
+		if howlog == 'log2+1':
+			df = np.log2(df+1)
+		elif howlog == 'log2':
+			df = np.log2(df)
+		elif howlog == 'loge+1':
+			df = np.log1p(df)
+		elif howlog == 'loge':
+			df = np.log(df)
+		elif howlog == 'log10+1':
+			df = np.log10(df+1)
+		elif howlog == 'log10':
+			df = np.log10(df)
+		elif howlog == 'asinh':
+			df = np.arcsinh(df)
+
+
+
+	st.markdown("##### Z-score?")
+	calc_z = st.checkbox('Z-score?', label_visibility =  'collapsed')
+	if calc_z:
+		center0_z= True
+		df_z = df.copy()
+		m = df_z.mean(1)
+		s = df_z.std(1)
+		df_z = df_z.sub(m, axis=0).div(s, axis = 0)
+		df_z = np.round(df_z, decimals=10)
+		df_z = df_z.loc[~(df_z==0).all(axis=1)] #すべて0のrowを除く
+		df_z = df_z.dropna(how='any', axis=0) #エラー対応
+		df = df_z
+
+
+	st.markdown('---')
+
+
+	st.markdown("##### Use subset of genes (or rows)?")
+	subset_gene = st.checkbox('Use subset of genes (rows)?',label_visibility =  'collapsed')
+	if subset_gene:
+		st.markdown("##### Genes (comma, semicolon, space, CR separated):")
+		genes = st.text_input("genes",label_visibility = 'collapsed')
+		gene_list = []
+		if len(genes) > 0:
+			genes = genes.replace("'","")
+			genes = genes.replace('"',"")
+			gene_list = genes.split(' ') #まず空白で分離
+			gene_list = list(filter(lambda a: a != '', gene_list)) #空白のみを除く
+			if ',' in genes:
+				gene_list = sum([x.split(',') for x in gene_list],[]) #sumで平坦化 sum(x, [])
+			if ';' in genes:
+				gene_list = sum([x.split(';') for x in gene_list],[]) #sumで平坦化 sum(x, [])
+			if '\t' in genes:
+				gene_list = sum([x.split('\t') for x in gene_list],[])
+			if '\n' in genes:
+				gene_list = sum([x.split('\n') for x in gene_list],[])
+
+			# すべて小文字で比較して、caseは関係なく見つけるようにする
+			gene_set_lower = [x.lower() for x in set(gene_list)]
+			df_index_set = set(df.index.tolist())
+			gene_subset = [x for x in df_index_set if (x.lower() in gene_set_lower)]
+			df = df.loc[list(gene_subset),:]
+
+	st.markdown('---')
+
+	df = df.astype(float)
+	st.markdown("##### Cleaned data:")
+ #   df.iloc[:3,:]
+	st.write(df.head())
+	st.write('Data Dimension: '+str(df.shape))
+	st.markdown('---')
+
+	with st.sidebar:
+		st.markdown("##### Change plot attributes (range, color etc.) ?")
+
+		v_min = None
+		v_max = None
+		if calc_z:
+			v_center = 0
+		else:
+			v_center = None
+
+		c_cmap = 'bwr'
+		cmap = 'bwr'
+		annot  = False
+		fmt = None
+		linewidths= 0
+		Plot_attr = st.checkbox('Plot attribute', label_visibility = 'collapsed')
+		if Plot_attr:
+			st.markdown("###### Plot range")
+			center0 = st.checkbox('Set center as 0?', value = center0_z)
+			if center0:
+				v_center = 0
+			else:
+				v_center = None
+			minmax = st.checkbox('Change min/center/max?')
+			if minmax:
+				st.write('min: ' + str(df.to_numpy().min()) + '	mean: ' + str(df.to_numpy().mean()) + "	max: " + str(df.to_numpy().max()) )
+				only_minmax = st.checkbox('Only min and max?')
+				if only_minmax:
+					v_min =  float(st.text_input("Min value",  value=df.to_numpy().min()))
+					v_max =  float(st.text_input("Max value",  value=df.to_numpy().max()))
+					v_center = None
+				else:
+					v_min =  float(st.text_input("Min value",  value=df.to_numpy().min()))
+					v_center = float(st.text_input("Center",  value=df.to_numpy().mean()))
+					v_max =  float(st.text_input("Max value",  value=df.to_numpy().max()))
+
+				st.markdown('---')
+			st.markdown("###### Change color map?")
+			change_c = st.checkbox('Change color map?', label_visibility = 'collapsed')
+			if change_c:
+				c_cmap = st.text_input("Color map",  value='bwr')
+				inv_c = st.checkbox('Inverse color map?')
+				if inv_c:
+					c_cmap = c_cmap + "_r"
+				show_color = st.checkbox('Show color maps?')
+				if show_color:
+					st.image('/home/cellxgene/streamlit/data/colormaps_reference.png')
+
+				create_c = st.checkbox('Create color map?')
+				from matplotlib.colors import ListedColormap
+				if create_c:
+					two_c = st.checkbox('Two colors?')
+					if two_c:
+						min_c = st.color_picker('Min color:', '#0096FF')
+						max_c = st.color_picker('Max color:', '#EE4B2B')
+						colors = [min_c, max_c]
+					else:
+						min_c = st.color_picker('Min color:', '#0096FF')
+						center_c = st.color_picker('Center color:', '#ffffff')
+						max_c = st.color_picker('Max color:', '#EE4B2B')
+						colors = [min_c, center_c, max_c]
+					c_cmap = ListedColormap(colors, name="custom")
+				st.write(c_cmap)
+				cmap = c_cmap
+	 #   st.markdown('---')
+
+			st.markdown("###### Show value on each cell?")
+			annot_on = st.checkbox('annot', label_visibility = 'collapsed')
+			if annot_on:
+				annot = True
+				annot_digit = st.text_input("Number of decimal palces",  value=0)
+				annot_digit = int(annot_digit)
+		#		if annot_digit == 0:
+		#			fmt = "d" #"d"はうまくいかない
+		#		else:
+				fmt = "." + str(annot_digit) + 'f'
+		#		st.write(fmt)
+
+
+			st.markdown("###### Show glid lines?")
+			grid_on = st.checkbox('grid', label_visibility = 'collapsed')
+			if grid_on:
+				linewidths = st.text_input("Grid line width",  value=0.5)
+
+			st.markdown('---')
+
+
+	###### 現状plot sizeを変えられない
+		py_x_size = 8
+		py_y_size = 8
+
+		st.markdown('##### Plot size')
+		py_x_size = float(st.text_input("Plot x size:", value = 8))
+		py_y_size = float(st.text_input("Plot y size:", value = 8))
+		st.markdown('##### Font size')
+	#	sns_font_scale = float(st.text_input("Font scale:", value = 1))
+		x_font_size = float(st.text_input("Sample name (column) font size:", value = 12))
+		y_font_size = float(st.text_input("Gene name (row) font size:", value = 12))
+
+		xticklabels= "auto"
+		yticklabels= "auto"
+		x_all = st.checkbox("Show all sample (column) names?", value = False)
+		y_all = st.checkbox("Show all gene (row) names? !!!Do not check this for a large number of genes!!!", value = False)
+		if x_all:
+			xticklabels=1
+
+		if y_all:
+			yticklabels=1
+
+	st.markdown('##### Clustering:')
+	clustering_type = st.radio("Clustering:", ('Nonclustering','Hierarchical','k-means','x-means', 'g-means'), label_visibility='collapsed')
+	st.markdown('##### k-means options:')
+	elbow = st.checkbox("Draw elbow plot and determine K automaticllay?", value = False)
+	k_number = float(st.text_input("K clusters:", value = 3))
+#	save_cluster = st.checkbox("Save cluster info?", value = False)
+	st.markdown('---')
+
+	if clustering_type == 'Hierarchical':
+		import fastcluster
+		y_c = st.checkbox("Cluster rows (Y axis)?", value = True)
+		x_c = st.checkbox("Cluster colums (X axis)?", value = True)
+		st.markdown('---')
+		method_type = st.radio("Clustering method:", ('average','weighted', 'ward', 'median','single','centroid'))
+		metric_type = st.radio("Clustering metric:", ('euclidean', 'seuclidean', 'sqeuclidean', 'minkowski', 'correlation', 'mahalanobis', 'cityblock', 'jaccard', 'jensenshannon'))
+		st.markdown('---')
+
+
+	save_type = st.radio("Save heatmap as: (Preparing PDF may take a time.)", ('png','pdf'))
+
+	show_cor = st.checkbox('Show correlation coeficient matrix?')
+
+	if st.button('Make plot'):
+
+		if show_cor:
+			correlation_coefficients = df.corr()
+			fig_c, ax_c = plt.subplots() #この形式でないとエラーになる
+			ax_c = sns.heatmap(correlation_coefficients, vmax=1, vmin=-1, cmap='seismic', square=True,
+				annot=False, xticklabels=1, yticklabels=1)
+			st.pyplot(fig_c)
+			fig_c.savefig(res_dir + "/corrlation." + save_type, format=save_type)
+		df_file_name = file_name_head + '.Data4Heatmap.tsv'
+
+		df.to_csv(res_dir + "/" + df_file_name,sep= '\t')
+		if clustering_type =="Nonclustering":
+			#fig = plt.figure(figsize=(py_x_size, py_y_size))
+#			sns.set(rc={'figure.figsize':(py_x_size, py_y_size)})
+#			sns.set(font_scale=sns_font_scale)
+#			fig = plt.figure()
+#			g = sns.heatmap(df, cmap = cmap, center = v_center, vmin= v_min, vmax = v_max)
+			g = sns.clustermap(df, center = v_center, cmap = cmap,
+					vmin= v_min, vmax = v_max, row_cluster= False, col_cluster = False,
+					xticklabels=xticklabels, yticklabels=yticklabels, annot = annot, fmt = fmt, linewidths= linewidths,
+					 figsize = (py_x_size,py_y_size))
+			g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xmajorticklabels(), fontsize = x_font_size)
+			g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_ymajorticklabels(), fontsize = y_font_size)
+			st.pyplot(g)
+
+			st.markdown('---')
+
+		elif clustering_type == 'Hierarchical':
+#			sns.set(rc={'figure.figsize':(py_x_size, py_y_size)})
+			with st.spinner(''):
+				g = sns.clustermap(df, method=method_type, metric=metric_type,center = v_center, cmap = cmap,
+					vmin= v_min, vmax = v_max, row_cluster= y_c, col_cluster = x_c,
+					xticklabels=xticklabels, yticklabels=yticklabels, annot = annot, fmt = fmt, linewidths= linewidths,
+					 figsize = (py_x_size,py_y_size))
+				g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xmajorticklabels(), fontsize = x_font_size)
+				g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_ymajorticklabels(), fontsize = y_font_size)
+			st.pyplot(g)
+
+		elif clustering_type == 'k-means':
+			from kneed import KneeLocator
+			from sklearn.cluster import KMeans
+			from sklearn.metrics import silhouette_score
+			from sklearn.preprocessing import StandardScaler
+
+			if elbow:
+				sse = list()
+				with st.spinner('Generating elbow plot'):
+					for i in range(1, 11):
+						km = KMeans(n_clusters=i, init ='k-means++', n_init='auto', random_state=42).fit(df)
+						sse.append(km.inertia_)
+				e = plt.figure(figsize=(6,4))
+	#			plt.style.use("fivethirtyeight")
+				plt.plot(range(1, 11), sse)
+				plt.xticks(range(1, 11))
+				plt.xlabel("Number of Clusters")
+				plt.ylabel("SSE")
+				st.pyplot(e)
+				kl = KneeLocator(range(1, 11), sse, curve="convex", direction="decreasing")
+				st.write("K predicted from the elbow plot is: " + str(kl.elbow))
+				k_number = kl.elbow
+				st.markdown('---')
+			#if st.button('Calculate k-means'):
+			kmeans = KMeans(n_clusters=int(k_number), init ='k-means++', n_init='auto', random_state=42)
+			clusters = kmeans.fit_predict(df)
+			df2 = df.copy()
+			df2["cluster"] = clusters
+			df3 = pd.DataFrame(df2['cluster'], index = df2.index)
+			st.dataframe(df3)
+
+			cluster_file_name = file_name_head + '.k-' + str(k_number) + '.tsv'
+
+			df3.sort_values('cluster').to_csv(res_dir + "/" + cluster_file_name,sep= '\t')
+			df2 = df2.sort_values('cluster')
+			df2 = df2.drop('cluster', axis =1)
+			g = sns.clustermap(df2, center = v_center, cmap = cmap,
+			vmin= v_min, vmax = v_max, row_cluster= False, col_cluster = False,
+			xticklabels=xticklabels, yticklabels=yticklabels, annot = annot, fmt = fmt, linewidths= linewidths,
+					 figsize = (py_x_size,py_y_size))
+			g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xmajorticklabels(), fontsize = x_font_size)
+			g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_ymajorticklabels(), fontsize = y_font_size)
+			st.pyplot(g)
+
+			st.markdown('---')
+
+		elif clustering_type == 'x-means':
+			from pyclustering.cluster import xmeans
+			initial_centers = xmeans.kmeans_plusplus_initializer(df, 2).initialize() # k=2以上で探索
+			xm = xmeans.xmeans(df, initial_centers=initial_centers, )
+			xm.process()
+			clusters = xm.predict(df)
+			df2 = df.copy()
+			df2["cluster"] = clusters
+			df3 = pd.DataFrame(df2['cluster'], index = df2.index)
+			st.dataframe(df3)
+
+			cluster_file_name = file_name_head + '.xmeans.tsv'
+
+			df3.sort_values('cluster').to_csv(res_dir  + "/" + cluster_file_name,sep= '\t')
+			df2 = df2.sort_values('cluster')
+			df2 = df2.drop('cluster', axis =1)
+			g = sns.clustermap(df2, center = v_center, cmap = cmap,
+			vmin= v_min, vmax = v_max, row_cluster= False, col_cluster = False,
+			xticklabels=xticklabels, yticklabels=yticklabels, annot = annot, fmt = fmt, linewidths= linewidths,
+					 figsize = (py_x_size,py_y_size))
+			g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xmajorticklabels(), fontsize = x_font_size)
+			g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_ymajorticklabels(), fontsize = y_font_size)
+			st.pyplot(g)
+
+			st.markdown('---')
+
+		elif clustering_type == 'g-means':
+			from pyclustering.cluster import gmeans
+			ar = df.to_numpy()
+			with st.spinner('This takes a long time...'):
+				initial_centers = gmeans.kmeans_plusplus_initializer(ar, 2).initialize() # k=2以上で探索
+				gm = gmeans.gmeans(ar, initial_centers=initial_centers, )
+				gm.process()
+				clusters = gm.predict(ar)
+			df2 = df.copy()
+			df2["cluster"] = clusters
+			df3 = pd.DataFrame(df2['cluster'], index = df2.index)
+			st.dataframe(df3)
+
+			cluster_file_name = file_name_head +  '.gmeans.tsv'
+
+			df3.sort_values('cluster').to_csv(res_dir  + "/" + cluster_file_name,sep= '\t')
+			df2 = df2.sort_values('cluster')
+			df2 = df2.drop('cluster', axis =1)
+			g = sns.clustermap(df2, center = v_center, cmap = cmap,
+			vmin= v_min, vmax = v_max, row_cluster= False, col_cluster = False,
+			xticklabels=xticklabels, yticklabels=yticklabels, annot = annot, fmt = fmt, linewidths= linewidths,
+					 figsize = (py_x_size,py_y_size))
+			g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xmajorticklabels(), fontsize = x_font_size)
+			g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_ymajorticklabels(), fontsize = y_font_size)
+			st.pyplot(g)
+
+			st.markdown('---')
+
+
+		if howlog == "No":
+			logmethod = ""
+		else:
+			logmethod = "_" + howlog
+		if calc_z:
+			logmethod = logmethod + '.Z'
+		if save_type == 'pdf':
+			if clustering_type == 'k-means':
+				file_name = file_name_head + logmethod +  '.k-' + str(k_number) + '.heatmap.pdf'
+			else:
+				file_name = file_name_head + logmethod + '.heatmap.pdf'
+		else:
+			if clustering_type == 'k-means':
+				file_name = file_name_head + logmethod +  '.k-' + str(k_number) + '.heatmap.png'
+			else:
+				file_name = file_name_head + logmethod + '.heatmap.png'
+		try:
+			with st.spinner('Generating PDF figure file may take a time...'):
+				g.savefig(res_dir  + "/" + file_name, format=save_type)
+		except:
+			pass
+		else:
+			shutil.make_archive(temp_dir + "/Heatmap", format='zip',root_dir= res_dir)
+			with open(temp_dir + "/Heatmap.zip", "rb") as fp:
+				btn = st.download_button(
+					label="Download Results?",
+				data=fp,
+				file_name= file_name_head  + logmethod + '_' + clustering_type + ".Heatmap.zip",
+				mime = "zip"
+				)
+			shutil.rmtree(temp_dir)
+			os.mkdir(temp_dir)
+

@@ -11,12 +11,35 @@ import io
 from adjustText import adjust_text
 import math
 
-# ForceAtlas2 layout implementation
+# ForceAtlas2 layout implementation - try multiple packages
+FA2_AVAILABLE = False
+FA2_METHOD = None
+
+# Try ForceAtlas2 package
 try:
     from fa2 import ForceAtlas2
     FA2_AVAILABLE = True
+    FA2_METHOD = 'fa2'
 except ImportError:
-    FA2_AVAILABLE = False
+    pass
+
+# Try ForceAtlas2Py as alternative
+if not FA2_AVAILABLE:
+    try:
+        import ForceAtlas2
+        FA2_AVAILABLE = True
+        FA2_METHOD = 'ForceAtlas2Py'
+    except ImportError:
+        pass
+
+# Try python-igraph as last resort
+if not FA2_AVAILABLE:
+    try:
+        import igraph as ig
+        FA2_AVAILABLE = True
+        FA2_METHOD = 'igraph'
+    except ImportError:
+        pass
 
 # Matplotlib用のエッジカラー（タプル形式）
 EDGE_COLORS = {
@@ -835,7 +858,7 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
     ax.set_facecolor('white')
     
     # Calculate ForceAtlas2 layout
-    if FA2_AVAILABLE:
+    if FA2_AVAILABLE and FA2_METHOD == 'fa2':
         try:
             # Convert to format suitable for ForceAtlas2
             nodes = list(G.nodes())
@@ -886,19 +909,78 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
                 # Convert back to NetworkX format
                 pos = {node: positions[node_to_idx[node]] for node in nodes}
                 
-                st.success("✅ Using ForceAtlas2 algorithm")
+                st.success("✅ Using ForceAtlas2 algorithm (fa2)")
             else:
                 # Fallback to spring layout if no edges
                 pos = nx.spring_layout(G, seed=42)
                 st.info("ℹ️ No edges found, using spring layout")
                 
         except Exception as e:
-            st.warning(f"⚠️ ForceAtlas2 failed ({str(e)}), using spring layout approximation")
+            st.warning(f"⚠️ ForceAtlas2 (fa2) failed ({str(e)}), using spring layout approximation")
+            pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
+                                  iterations=100, seed=42)
+    elif FA2_AVAILABLE and FA2_METHOD == 'ForceAtlas2Py':
+        try:
+            import ForceAtlas2
+            nodes = list(G.nodes())
+            edges = list(G.edges(data=True))
+            
+            # Create ForceAtlas2 layout
+            forceatlas2 = ForceAtlas2.ForceAtlas2(
+                outboundAttractionDistribution=True,
+                linLogMode=False,
+                adjustSizes=False,
+                edgeWeightInfluence=1.0,
+                jitterTolerance=1.0,
+                barnesHutOptimize=True,
+                barnesHutTheta=1.2,
+                multiThreaded=False,
+                scalingRatio=2.0,
+                strongGravityMode=False,
+                gravity=1.0,
+                verbose=False
+            )
+            
+            pos = forceatlas2.forceatlas2_networkx_layout(G, pos=None, iterations=100)
+            st.success("✅ Using ForceAtlas2 algorithm (ForceAtlas2Py)")
+            
+        except Exception as e:
+            st.warning(f"⚠️ ForceAtlas2Py failed ({str(e)}), using spring layout approximation")
+            pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
+                                  iterations=100, seed=42)
+                                  
+    elif FA2_AVAILABLE and FA2_METHOD == 'igraph':
+        try:
+            import igraph as ig
+            nodes = list(G.nodes())
+            edges = [(nodes.index(u), nodes.index(v)) for u, v in G.edges()]
+            weights = [data['weight'] for u, v, data in G.edges(data=True)]
+            
+            # Create igraph graph
+            ig_graph = ig.Graph(n=len(nodes), edges=edges)
+            ig_graph.es['weight'] = weights
+            
+            # Use igraph's forceatlas2 layout
+            layout = ig_graph.layout_forceatlas2(
+                iterations=100,
+                linlog=False,
+                pos=None,
+                nohubs=False,
+                weight_attr='weight'
+            )
+            
+            # Convert to networkx format
+            pos = {nodes[i]: (layout[i][0], layout[i][1]) for i in range(len(nodes))}
+            st.success("✅ Using ForceAtlas2 algorithm (igraph)")
+            
+        except Exception as e:
+            st.warning(f"⚠️ igraph ForceAtlas2 failed ({str(e)}), using spring layout approximation")
             pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
                                   iterations=100, seed=42)
     else:
         # Use spring layout as ForceAtlas2 approximation
         st.info("📦 ForceAtlas2 package not available, using spring layout approximation")
+        st.info("💡 Install with: pip install ForceAtlas2 or pip install python-igraph")
         pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
                               iterations=100, seed=42)
     
@@ -1200,7 +1282,8 @@ def main():
                         key="vis_type_select",index=2
                     )
                     if not FA2_AVAILABLE and vis_type == "ForceAtlas2":
-                        st.warning("📝 **ForceAtlas2 Note**: Using networkx spring_layout approximation. Install `fa2` package for true ForceAtlas2 algorithm.")
+                        st.warning("📝 **ForceAtlas2 Note**: Using spring_layout approximation.")
+                        st.info("💡 For true ForceAtlas2, install: `pip install ForceAtlas2` or `pip install python-igraph`")
                     st.write("Hive plot is extremely slow....")
 
                     submitted = st.form_submit_button("Update Network")

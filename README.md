@@ -134,7 +134,7 @@ METIS includes **67 specialized applications** organized into 9 functional categ
 | Tool | Features & Parameters | Input/Output |
 |------|---------------------|-------------|
 | **WGCNA** | **Analysis:** PyWGCNA and R-WGCNA co-expression network analysis<br>**Key Features:** Module detection, trait correlation, hub gene identification | Input: Expression matrix + traits<br>Output: Modules, networks, correlations |
-| **WGCNA network plot** | **Analysis:** WGCNA module network visualization<br>**Key Features:** Interactive networks, dendrograms, trait-module heatmaps | Input: WGCNA results<br>Output: Network visualizations |
+| **WGCNA network plot** | **Analysis:** WGCNA module network visualization<br>**Key Features:** ForceAtlas2 layout, interactive networks, dendrograms, trait-module heatmaps | Input: WGCNA results<br>Output: Network visualizations |
 | **WGCNA hub UMAP** | **Analysis:** UMAP visualization of WGCNA module genes<br>**Key Features:** Hub gene highlighting, module-specific plots, gene annotations | Input: WGCNA modules + expression<br>Output: UMAP plots, hub gene lists |
 | **WGCNA objects comparison** | **Analysis:** Compare WGCNA modules between conditions/studies<br>**Key Features:** Module preservation, consensus modules, statistical testing | Input: Multiple WGCNA objects<br>Output: Preservation statistics, plots |
 | **Generate gmt from cluster info** | **Analysis:** Convert clustering results to GMT gene sets<br>**Key Features:** WGCNA module conversion, format validation, batch processing | Input: Cluster assignments<br>Output: GMT gene set files |

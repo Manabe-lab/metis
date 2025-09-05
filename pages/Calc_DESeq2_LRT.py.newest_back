@@ -1,0 +1,1246 @@
+#!!!!!!!!!!!!!! pip install rpy2==3.5.1  新しいバージョンはエラーが出る
+
+# 基本的にglobal変数で計算する。
+# pythonからassgnされるのはglobal変数
+
+
+import streamlit as st
+import rpy2
+import csv
+import re
+import os
+import numpy as np
+import pandas as pd
+import rpy2.robjects as ro
+from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
+from rpy2.robjects.vectors import StrVector
+import pyper
+import shutil
+from PIL import Image
+import itertools
+from helper_func import clear_old_directories, clear_old_files, remove_after_space, remove_sample_num
+import time
+import sys
+from collections import Counter
+
+def remove_common_suffix(strings):
+    if not strings or len(strings) == 0:
+        return []    
+    # 最も短い文字列の長さを取得
+    min_length = min(len(s) for s in strings)
+    # 共通の末尾部分の長さを見つける
+    suffix_length = 0
+    for i in range(1, min_length + 1):
+        suffix = strings[0][-i:]
+        if all(s.endswith(suffix) for s in strings):
+            suffix_length = i
+        else:
+            break            
+    # 共通の末尾部分が見つからない場合は元のリストを返す
+    if suffix_length == 0:
+        return strings        
+    # 共通の末尾部分を削除して新しいリストを作成
+    return [s[:-suffix_length] for s in strings]
+
+
+def rename_duplicates(df):
+    """
+    Rename duplicate indices by adding _2, _3, etc. to subsequent occurrences   
+    Args:
+        df: pandas DataFrame
+    Returns:
+        DataFrame with renamed indices
+    """
+    # Get current index values
+    lis = df.index.values
+    
+    # Count occurrences of each value
+    counts = Counter()
+    new_indices = []
+    
+    for x in lis:
+        counts[x] += 1
+        if counts[x] == 1:
+            new_indices.append(x)
+        else:
+            new_indices.append(f"{x}_{counts[x]}")
+    
+    # Check if there were any duplicates
+    if len(lis) != len(set(lis)):
+        st.markdown("#### There are duplicated rows. Converting the names...")
+        st.write("The gene names of subsequent occurrences have _2, _3, etc. at the end.")
+        
+        # Display which names were changed
+        for name, count in counts.items():
+            if count > 1:
+                st.write(f"'{name}' appears {count} times → {name}, " + 
+                        ", ".join([f"{name}_{i}" for i in range(2, count + 1)]))
+    
+    # Set new index
+    df.index = new_indices
+    return df
+
+@st.cache_data
+def check_excel_autoconversion(dfx):
+    p = re.compile(r'(\d+)\-(Mar|Sep|Oct|Dec|Feb|Nov)')
+    index_name = dfx.index.values
+    j = 0
+    k = 0
+    for i in df.index.values:
+        x = p.match(i)
+        if x:
+            if k == 0:
+                st.markdown("#### There are Excel-autoconverted gene names")
+                st.write("Gene names are not converted.")
+                k = 1
+            autoconvert_flag = True
+            st.write(i)
+
+
+r = pyper.R(use_pandas=True)
+f = ro.r("source('pages/deseq2_func.R')") # full pathが必要
+
+st.set_page_config(page_title="Calculate DESeq2.", page_icon="📃")
+
+@st.cache_data
+def read_csv(file, index_col=None, sep=',', header = 0):
+    df_c = pd.read_csv(file, index_col = index_col, header = header, sep = sep)
+    return df_c
+
+
+@st.cache_data
+def convert_df(df):
+   return df.to_csv(index=True, sep='\t').encode('utf-8')
+
+@st.cache_data
+def read_excel(file, index_col=None, header = 0):
+    df_xl = pd.read_excel(file, index_col = index_col, header = header)
+    return df_xl
+
+@st.cache_data
+def calc_barplot(data, ylabel):
+    fig, ax = plt.subplots()
+    ax = sns.barplot(data=data)
+    ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
+    ax.set_ylabel(ylabel, fontsize = 14)
+    return fig
+
+
+# temp内に保存する
+# --- Initialising SessionState ---
+if "temp_dir" not in st.session_state:
+    st.session_state.temp_dir = True
+    #古いdirecotryとファイルを削除する
+    temp_dir = "temp/" + str(round(time.time()))
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
+    else:
+        clear_old_directories("temp")
+        clear_old_files("temp")
+    os.mkdir(temp_dir)
+    st.session_state.temp_dir = temp_dir
+    res_dir = temp_dir + '/res_LRT'
+    st.session_state.res_dir = res_dir
+    os.mkdir(res_dir)
+
+else:
+    temp_dir = st.session_state.temp_dir
+    res_dir = temp_dir + '/res_LRT'
+    st.session_state.res_dir = res_dir
+    if not os.path.exists(temp_dir):
+        os.mkdir(temp_dir)
+        os.mkdir(res_dir)
+    if not os.path.exists(res_dir):
+        os.mkdir(res_dir)
+
+st.sidebar.title("Options")
+with st.sidebar:
+    st.markdown("#### Test medhod:")
+    test_method = st.radio("Test method:", 
+                         ["DESeq2-LRT", "limma eBays", "Beta Regression", 
+                          "GAM Beta Regression", "maSigPro"], 
+                         index=0, label_visibility = 'collapsed')
+
+    st.markdown("##### limma eBays with ligit transformation and beta regression are for proportion data.")
+
+    if test_method == 'limma eBays':
+        limma_data = st.radio("Data type:",
+            ["RNA-seq count", "Non-count data", "0-1 data (proportion, AUC etc) to logit transformation"],
+            index = 1)
+
+        if limma_data == "RNA-seq count":
+            apply_logit = False
+            limma_count = True
+        elif limma_data == "Non-count data":
+            apply_logit = False
+            limma_count = False
+        else:
+            apply_logit = True
+            limma_count = False            
+            
+    # ベータ回帰特有のオプション
+    if test_method in ['Beta Regression', 'GAM Beta Regression']:
+        st.markdown("#### Beta Regression Options:")
+        epsilon = st.number_input("Epsilon for boundary adjustment (0-1 data)", 
+                                min_value=0.0000001, max_value=0.01, value=0.000001, format="%.7f")
+        add_higher = st.checkbox("Add polynomial terms?", value=False, help="非線形的な変化を捉えるため多項項を加える")
+        beta_polynomial_degree = 1
+        if add_higher:
+            polynomial_term = st.radio("Degree", ['2:Quadratic term','3:Cubic term'], index = 0, help = "2次の項を加えるとU-shaped/inverted U-shaped patternsが捉えられる。3次の項を追加することで、より複雑な発現パターンを捉える。例えば：急上昇後に横ばいになり、その後低下するパターン、波形パターン。")
+            st.markdown("#### The first item in full model will be used for polynominal term.")
+            if polynomial_term == "2:Quadratic term":
+                beta_polynomial_degree = 2
+            else:
+                beta_polynomial_degree = 3
+
+        
+    # GAM特有のオプション
+    if test_method == 'GAM Beta Regression':
+        st.markdown("##### GAM Options:")
+        gam_k = st.slider("Spline basis dimension (k)", min_value=3, max_value=20, value=5)
+        gam_method = st.radio("Smoothing parameter estimation method", 
+                            ["REML", "GCV.Cp", "ML"], index=0)
+
+    if test_method in ['Beta Regression', 'GAM Beta Regression']:
+        n_cores = st.slider("Parallel cores", min_value=1, 
+                           max_value=os.cpu_count()-1, 
+                           value=max(1, os.cpu_count()//2))
+
+
+    if test_method == 'maSigPro':
+        st.markdown("##### maSigPro Options:")
+        
+        # データタイプの選択
+        data_type = st.radio(
+            "Data type:",
+            ["RNA-seq count data (GLM)", "0-1 data (logit transformation)"],
+            index=0
+        )
+        
+        # データタイプに応じたパラメータ設定
+        if data_type == "0-1 data (logit transformation)":
+            st.markdown("##### Boundary adjustment for 0-1 data:")
+            epsilon = st.number_input("Epsilon", 
+                                    min_value=1e-8, 
+                                    max_value=0.01, 
+                                    value=1e-6,
+                                    format="%.8f")
+        
+        # 共通のパラメータ
+        degree = st.slider("Polynomial degree", min_value=1, max_value=3, value=2)
+        rsq = st.number_input("R-squared cutoff", min_value=0.1, max_value=0.9, value=0.7, step=0.05)
+        q_value = st.number_input("Q-value (FDR)", min_value=0.001, max_value=0.5, value=0.05, step=0.01)
+        
+        # クラスタリングオプション
+        st.markdown("##### Clustering options:")
+        cluster_method = st.radio("Clustering method", 
+                                ["hclust", "kmeans", "clara"], index=0)
+        k = st.slider("Number of clusters", min_value=2, max_value=15, value=9)
+        
+        # 可視化オプション
+        st.markdown("##### Visualization:")
+        plot_top_n = st.slider("Number of genes to plot", min_value=5, max_value=50, value=20)
+
+    st.markdown("---")
+
+st.markdown("## DESeq2 likelihood-ratio test (LRT) and limma eBays test for time-course and ANOVA-like test")
+st.markdown("#### limma eBays can be used with non-count data, including AUC")
+st.write(" ")
+use_upload = 'Yes'
+if 'df' in st.session_state:
+    if st.session_state.df is not None:
+        use_upload = st.radio("Upload new file?", ('Yes','No'), index = 1)
+    if use_upload == "No":
+        df = st.session_state.df
+        input_file_type = 'tsv'
+        file_name_head = st.session_state.uploaded_file_name
+        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+            df = df.set_index('Row_name')
+            df.index.name = "Gene"
+
+
+
+if use_upload == 'Yes':
+    st.markdown("##### Data format:")
+    file_type = st.radio(
+        "",    ('Homer','tsv','csv','excel'), index = 1, label_visibility = 'collapsed')
+
+
+    uploaded_file = st.file_uploader("Choose a file", type=['txt','tsv', 'csv', 'xls','xlsx'])
+    if uploaded_file is not None:
+        if file_type is not 'excel':
+            if file_type == 'csv':
+                df = read_csv(uploaded_file)
+            else:
+                df = read_csv(uploaded_file, sep = '\t')
+            st.write("Original:")
+            st.write(df.head())
+            if file_type == 'Homer':
+                df = df.iloc[:,7:]
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                # colnamesの変換
+                search_word = '([^\ \(]*)\ \(.*'
+                for i in range(1, len(colnames)):
+                    match = re.search(search_word, colnames[i])
+                    if match:
+                        colnames[i] = match.group(1).replace(' ', '_')
+                pattern = "([^|]*)"
+                repatter = re.compile(pattern)
+                f_annotation = lambda x: repatter.match(x).group(1)
+                try:
+                    df.iloc[:,0] = df.iloc[:,0].apply(f_annotation)
+                    df.columns = colnames
+                except:
+                    st.markdown("### File format error. Non-Homer file?")
+
+            else:
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                df.columns = colnames
+        else: # excel
+            df = read_excel(uploaded_file, index_col = 0)
+            content = df.columns.tolist()
+            if "Annotation/Divergence" in content:
+                 # colnamesの変換
+                search_word = '([^\ \(]*)\ \(.*'
+
+                for i in range(1, len(content)):
+                    match = re.search(search_word, content[i])
+                    if match:
+                        content[i] = match.group(1).replace(' ', '_')
+                df.columns = content # 一旦名前を変更
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                pattern = "([^|]*)"
+                repatter = re.compile(pattern)
+                f_annotation = lambda x: repatter.match(x).group(1)
+                df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+                # annotation/divergence以前を除く
+                df = df.loc[:,'Annotation/Divergence':]
+                content = df.columns.tolist()
+                content[0] = 'Gene'
+                df.columns = content
+                st.write("Converted Annotation/Divergence to gene symbols.")
+            else:
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                df.columns = colnames
+
+        df = df.set_index('Gene')
+        file_name_head = os.path.splitext(uploaded_file.name)[0]
+    else:
+        sys.exit(1)
+
+if df is not None:
+
+############ sample名に-がある場合はunderscoreへ Rでエラーになる
+    if "-" in "".join(df.columns.values):
+        st.write("Minus in sample name will be converted to _.")
+        new_columns = [x.replace('-','_') for x in df.columns.values]
+        df.columns = new_columns
+############
+
+    # 先頭が数字の場合の対応
+    #先頭文字の変更
+    numericstart = False
+    colnames = df.columns.to_list()
+    for i in range(len(colnames)):
+        if re.search('^\d+', colnames[i]) is not None:
+            numericstart = True
+            colnames[i] = "X" + colnames[i]
+    if numericstart:
+        df.columns = colnames
+        st.write("Some sample names start with numbers. They will be converted to X...")
+
+    st.write('Original gene number:  ' + str(len(df)))
+
+    # floatに変換 誤射悟入
+    df = df.astype(float)
+
+    if not float.is_integer(df.iloc[:,0].sum()*1000):
+        if test_method == "DESeq2-LRT":
+            st.markdown("## It is likely that your data are normalized. Please upload unnormalized raw count data.")
+
+    if test_method == "DESeq2-LRT": #DESeq2は整数化
+        df = df.round(0)
+
+    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+
+########## excel対応?
+    st.write("All zero count genes are removed.")
+    if df.isnull().values.sum() > 0:
+        st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
+        st.write(df[df.isnull().any(axis=1)])
+        convert_nan = st.radio( "NaN:",
+        ('remove Nan containing genes', 'conver to 0' ), key='remove Nan containing genes')
+        if convert_nan == "conver to 0":
+            df = df.fillna(0)
+        else:
+            df = df.dropna(how='any')
+############ sample名に-がある場合はunderscoreへ Rでエラーになる
+    if "-" in "".join(df.columns.values):
+        st.write("Minus in sample name will be converted to _.")
+        new_columns = [x.replace('-','_') for x in df.columns.values]
+        df.columns = new_columns
+############
+
+
+  #  st.write(df.head())
+    total_count = pd.DataFrame(df.sum()[1:])
+    total_count.columns= ['Total counts']
+    large_var = False
+    if max(total_count['Total counts']) > min(total_count['Total counts']) * 2:
+        large_var = True
+        st.markdown("### Large difference (>2x) in counts")
+        st.write(f"Minimum total counts: {min(total_count['Total counts'])}")
+        st.markdown("##### Low count samples can be filtered on the side panel.")
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        df_sum = pd.DataFrame(df.sum())
+        df_sum.columns = ['Counts']
+
+
+        f1 = calc_barplot(df_sum.T, ylabel = "Total counts")
+        st.pyplot(f1)
+
+        f2 = calc_barplot(np.log1p(df), ylabel = "ln(x+1)")
+        st.pyplot(f2)
+
+    with st.sidebar:
+        st.markdown("##### Filter out weakly-expressed genes:")
+        independentFiltering = st.checkbox('Yes', value= True)
+        st.markdown("""低発現遺伝子の除外はFDRの計算を改善する。
+        filtered outされた遺伝子が多い場合、GSEA用に全遺伝子をランキングするためにはチェックを外す。""")
+
+        st.markdown("##### Filter the genes > counts in all samples:")
+        min_threshold = st.number_input("count minimum", value = 0, label_visibility = 'collapsed')
+        min_threshold = int(min_threshold)
+        st.markdown("##### Filter the genes > counts in at least one sample:")
+        max_threshold = st.number_input("count max", value = 0, label_visibility = 'collapsed')
+        max_threshold = int(max_threshold)
+
+        sample_threshold = 0
+
+        if large_var:
+            st.markdown("##### Filter the samples <= counts:")
+            sample_threshold = st.number_input("Minimum total cout", value = 0, label_visibility = 'collapsed')
+        st.markdown("---")
+
+        if test_method == 'DESeq2-LRT':
+            st.markdown("### Batch correction:")
+            sva = st.checkbox('SVA batch removal?')
+            sva_calc = True
+            if sva:
+                sva_calc = st.checkbox('Calculate only 2 surrogate variables? Deselect if want to calculate up to the recommended number.', value = True)
+                st.markdown("---")
+
+    if any(df.sum() <= sample_threshold): # count 0の列を除く
+        st.markdown('#### There are the samples that have counts <= ' + str(sample_threshold))
+        st.write(", ".join(df.columns[df.sum() <= sample_threshold].to_list()))
+        st.markdown('##### They are removed. Now data are:')
+        df = df.drop(df.columns[df.sum() <= sample_threshold].to_list(), axis = 1)
+
+    st.write(df.head())
+
+    if min_threshold > 0:
+        df = df[df.apply(min, axis=1) > min_threshold]
+    if max_threshold > 0:
+        df = df[df.apply(max, axis=1) > max_threshold]
+
+    st.markdown(f'#### Filtered gene number: {str(len(df))}')
+
+
+    condition = [str(i) for i in df.columns.tolist()[:]] #error防止
+    group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
+  #  group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
+    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+
+
+    st.markdown("##### Add conditions other than group, such as genotype (comma, space, CR separated):")
+    genes = st.text_input("genes",label_visibility = 'collapsed')
+    gene_list = []
+    if len(genes) > 0:
+        gene_list = genes.split(' ') #まず空白で分離
+        gene_list = list(filter(lambda a: a != '', gene_list)) #空白のみを除く
+        if ',' in genes:
+            gene_list = sum([x.split(',') for x in gene_list],[]) #sumで平坦化 sum(x, [])
+        if '\t' in genes:
+            gene_list = sum([x.split('\t') for x in gene_list],[])
+        if '\n' in genes:
+            gene_list = sum([x.split('\n') for x in gene_list],[])
+        gene_list = [a for a in gene_list if a != ''] #空を除く
+    condition_col = sum([['Group'], gene_list], [] )
+
+    with st.form("input_groups and batch"):
+        df_e = pd.DataFrame(index = condition, columns = condition_col)
+        for i in df_e.columns.values:
+            df_e[i] = group_condition
+        st.write('Set conditions:')
+    #    edited_df_e = st.experimental_data_editor(df_e)
+        df_e = st.data_editor(df_e)
+        submitted = st.form_submit_button("Submit")
+
+    condition = df_e.iloc[:,0].tolist()
+
+    for i in df_e.columns.values:
+        st.write(' '.join(df_e.loc[:,i].tolist()))
+
+    # 多項式次数が1より大きい場合の時間変数チェック
+    if test_method == 'Beta Regression' and 'beta_polynomial_degree' in locals() and beta_polynomial_degree > 1:
+        if full and len(full) > 0:
+            try:
+                coldata = pd.read_table(coldata_file)
+                if full[0] in coldata.columns:
+                    # 時間変数の型チェック
+                    time_col = coldata[full[0]]
+                    is_numeric = pd.api.types.is_numeric_dtype(time_col)
+                    
+                    if not is_numeric:
+                        # 数値に変換可能かチェック
+                        try:
+                            # 数字だけを抽出する正規表現パターン
+                            numeric_values = time_col.str.extract(r'(\d+\.?\d*)')[0].astype(float)
+                            st.info(f"情報: 時間変数 '{full[0]}' は文字列ですが、数値として抽出できます。解析時に自動的に変換されます。")
+                        except:
+                            st.warning(f"警告: 時間変数 '{full[0]}' は数値ではありません。多項式モデル（次数{beta_polynomial_degree}）を使用するには数値が必要です。モデルが収束しない可能性があります。")
+                else:
+                    st.warning(f"警告: 時間変数 '{full[0]}' が実験デザインファイルに見つかりません。")
+            except Exception as e:
+                st.warning(f"実験デザインファイルの読み込み中にエラーが発生しました: {str(e)}")
+
+
+# modelを作るための要素をリストにする
+    comb = [':'.join(x) for x in  list(itertools.combinations(condition_col, 2))]
+#ここで ':'.joint(x)とすると、このあと、モデルを作るときに:以降が除かれる
+    selections = selections = sum([condition_col, comb],[])
+    st.markdown("##### Select conditions for full model:")
+    full = st.multiselect('fullmodel',selections, label_visibility = 'collapsed')
+
+    st.markdown("##### Select conditions for reduced model:")
+    reduced = st.multiselect('reducedmodel',selections, label_visibility = 'collapsed')
+    full = [x.replace(':','\:') for x in full] # :のままだと文字列が消失する
+    reduced = [x.replace(':','\:') for x in reduced]
+    if len(reduced) == 0:
+        null_model = st.checkbox("Null model as reduced model?", value = False, help="帰無モデルをreduced modelにする。つまりfull modelに設定した要因のいずれか／すべてに関連した発現変動を検出。")
+    else:
+        null_model = False
+
+    full_model = "~ " + " + ".join(full)
+    if null_model:
+        reduced_model = "~ 1"
+    elif len(reduced) == 0: #reducedを指定していないときはnull modelにする
+        reduced_model = "~ 1"
+        st.write("Null model is uses ad reduced model.")
+    else:
+        reduced_model = "~ " + " + ".join(reduced)
+    st.markdown("##### Full model:  " + full_model)
+    st.markdown("##### Reduced model:  " + reduced_model)
+    st.markdown("""
+Full modelとReduced modelとの違いが検定される。
+例えばgenotypと時系列のデータのときにgenptypeは関係なく、時系列変化をする遺伝子を検出する場合は
+~ genotype + time と ~ genotype の比較となる。\n
+もし、genotype特異的で時間で変化する遺伝子を検出する場合は
+~ genotype + time + genotype\:time と ~ genotype + time の比較となる。\n
+\n
+Reduced modelにnull modelを設定するとFull modelの要因で変化する遺伝子を検出する。\n
+例えばWTの細胞の時系列データだけの場合、timeをFull modelにNull modelをReduced modelにする。
+        """)
+
+    if (len(condition) != len(df.columns)):
+            st.write("The number of group name does not match the data.")
+
+#    df_condition = pd.DataFrame(condition)
+#    df_batch = pd.DataFrame(batch)
+
+# 1-Marなどの誤変換への対応
+    check_excel_autoconversion(df)
+
+    if len(df.index.values) != len(set(df.index.values)):
+#        st.markdown("#### There are duplicated rows. Converting the names...")
+#        st.write("The gene name of the second occurrence has _2 at the end.")
+#        lis = df.index.values
+#        df.index = [x + ['', '_2'][x in lis[0:i]] for i, x in enumerate(lis)]
+        df = rename_duplicates(df)
+
+    st.markdown("""
+--------------------------------------------------------------------------
+        """)
+    if st.button('Run analysis'):
+        #まずRのdfに変換
+        if test_method == 'DESeq2-LRT':
+    #        ro.r.assign('cts',cts) # エラーが出るのでファイルに一旦保存する
+            r.assign('df',df)
+            r.assign('df_e',df_e)
+            pyper_df_path = "saveRDS(df, '" + temp_dir + "/pyper_df.RDS')"
+            r(pyper_df_path)
+            pyper_df_e_path = "saveRDS(df_e, '" + temp_dir + "/pyper_df_e.RDS')"
+            r(pyper_df_e_path)
+            read_pyper_df = "cts <- readRDS('" + temp_dir + "/pyper_df.RDS')"
+            read_pyper_df_e = "coldata <- readRDS('" + temp_dir + "/pyper_df_e.RDS')"
+            ro.r(read_pyper_df)
+            ro.r(read_pyper_df_e)
+            #まずベクターに変換
+            r_condition =  ro.StrVector(condition)
+            ro.r.assign('condition', r_condition)
+            full_model = full_model.replace('\:',':')
+            reduced_model = reduced_model.replace('\:',':')
+            ro.r.assign('full_model', full_model)
+            ro.r.assign('reduced_model', reduced_model)
+            ro.r.assign('sva',sva)
+            ro.r.assign('sva_calc', sva_calc)
+            ro.r.assign('independentFiltering', independentFiltering)
+            ro.r.assign('res_dir', res_dir)
+            ro.r.assign('temp_dir', temp_dir)
+
+            with st.spinner('Calculating DESeq2...'):
+                ro.r('calc_dds_LRT()')
+
+
+            image = Image.open(res_dir + '/DispersionEstimates.png')
+            st.image(image, caption='Despersion Estimates')
+
+            res_df = pd.read_csv(res_dir + '/DESeq2_LRT_res.tsv', sep = '\t', index_col= 0)
+            st.write("FDR < 0.05: " + str(len(res_df.loc[(res_df['padj']<0.05),])))
+
+            res_df= res_df.loc[(res_df['padj']<0.1),'padj']
+            st.dataframe(res_df)
+            if sva:
+                st.markdown("#### =======SVA=======")
+                with st.spinner('Preparing SVAseq...'):
+                    sva_n = ro.r("sv_n <- calc_sva_n()")
+                st.write("Recommended number of SVA covariates: " + str(int(sva_n[0])))
+                with st.spinner('Calculating SVAseq...'):
+                    ro.r("calc_svseq_LRT()")
+
+            if sva:
+                st.session_state.deseq2lrt = read_csv(res_dir + "/SVA_LRT_res.tsv", sep = '\t', index_col=0)
+            else:
+                st.session_state.deseq2lrt = read_csv(res_dir + "/DESeq2_LRT_res.tsv", sep = '\t', index_col=0)
+
+
+            file_name = file_name_head + full_model.replace(" + ", "_").replace(" ", "") + "_vs_" + reduced_model.replace(" + ", "_").replace(" ", "")
+
+            shutil.make_archive("res", format='zip',root_dir= res_dir)
+
+        elif test_method == 'limma eBays':
+            # Save input to files for R import
+            counts_file = os.path.join(temp_dir, 'counts.tsv')
+            df.to_csv(counts_file, sep='\t')
+            coldata_file = os.path.join(temp_dir, 'coldata.tsv')
+            df_e.to_csv(coldata_file, sep='\t', index=False)
+
+            voom_plot_path = os.path.join(res_dir, 'voom_plot.png')
+            if os.path.exists(voom_plot_path):
+                os.remove(voom_plot_path)
+            
+            if apply_logit:
+                # For logit-transformed data, use this R code
+                r_code = f"""
+                library(limma)
+                counts <- read.table('{counts_file}', header=TRUE, row.names=1, sep='\t')
+                coldata <- read.table('{coldata_file}', header=TRUE, sep='\t')
+                
+                # For logit transformed data, apply the transformation in R instead
+                eps <- 1e-6
+                counts <- pmax(counts, eps)
+                counts <- pmin(counts, 1-eps)
+                counts <- log(counts/(1-counts))
+                
+                # Create design matrices
+                design_full <- model.matrix(as.formula('{full_model}'), data=coldata)
+                design_reduced <- model.matrix(as.formula('{reduced_model}'), data=coldata)
+                
+                # Identify coefficients specific to the full model
+                add_coefs <- setdiff(colnames(design_full), colnames(design_reduced))
+                
+                # For logit-transformed data, skip voom and directly fit with limma
+                fit_full <- lmFit(counts, design_full)
+                fit_full <- eBayes(fit_full)
+                
+                if (length(add_coefs) == 1) {{
+                  res <- topTable(fit_full, coef=add_coefs, number=Inf, adjust.method='fdr')
+                }} else {{
+                  cm <- matrix(0, nrow=ncol(design_full), ncol=length(add_coefs))
+                  colnames(cm) <- add_coefs
+                  for (i in 1:length(add_coefs)) {{
+                    cm[which(colnames(design_full) == add_coefs[i]), i] <- 1
+                  }}
+                  
+                  fit_contrast <- contrasts.fit(fit_full, cm)
+                  fit_contrast <- eBayes(fit_contrast)
+                  
+                  res <- topTable(fit_contrast, number=Inf, sort.by='F', adjust.method='fdr')
+                }}
+                write.table(res, file='{res_dir}/limma_res.tsv', sep='\t', quote=FALSE, col.names=NA)
+                """
+            elif limma_count:
+                # For regular count data, use the original approach
+                r_code = f"""
+                library(edgeR); library(limma)
+                counts <- read.table('{counts_file}', header=TRUE, row.names=1, sep='\t')
+                coldata <- read.table('{coldata_file}', header=TRUE, sep='\t')
+                y <- DGEList(counts=counts); y <- calcNormFactors(y)
+                
+                design_full <- model.matrix(as.formula('{full_model}'), data=coldata)
+                design_reduced <- model.matrix(as.formula('{reduced_model}'), data=coldata)
+                
+                add_coefs <- setdiff(colnames(design_full), colnames(design_reduced))
+                
+                png('{res_dir}/voom_plot.png')
+                v <- voom(y, design_full, plot=TRUE)
+                dev.off()
+                
+                fit_full <- lmFit(v, design_full)
+                fit_full <- eBayes(fit_full)
+                
+                if (length(add_coefs) == 1) {{
+                  res <- topTable(fit_full, coef=add_coefs, number=Inf, adjust.method='fdr')
+                }} else {{
+                  cm <- matrix(0, nrow=ncol(design_full), ncol=length(add_coefs))
+                  colnames(cm) <- add_coefs
+                  for (i in 1:length(add_coefs)) {{
+                    cm[which(colnames(design_full) == add_coefs[i]), i] <- 1
+                  }}
+                  
+                  fit_contrast <- contrasts.fit(fit_full, cm)
+                  fit_contrast <- eBayes(fit_contrast)
+                  
+                  res <- topTable(fit_contrast, number=Inf, sort.by='F', adjust.method='fdr')
+                }}
+                write.table(res, file='{res_dir}/limma_res.tsv', sep='\t', quote=FALSE,  col.names=NA)
+                """
+                st.image(f"{res_dir}/voom_plot.png", caption='Voom mean-variance trend')
+            else:
+                r_code = f"""
+                library(limma)
+                counts <- read.table('{counts_file}', header=TRUE, row.names=1, sep='\t')
+                coldata <- read.table('{coldata_file}', header=TRUE, sep='\t')
+
+                design_full <- model.matrix(as.formula('{full_model}'), data=coldata)
+                design_reduced <- model.matrix(as.formula('{reduced_model}'), data=coldata)
+
+                add_coefs <- setdiff(colnames(design_full), colnames(design_reduced))
+
+                # 非カウントデータなのでvoomはスキップ
+                fit_full <- lmFit(counts, design_full)
+                fit_full <- eBayes(fit_full)
+
+                if (length(add_coefs) == 1) {{
+                  res <- topTable(fit_full, coef=add_coefs, number=Inf, adjust.method='fdr')
+                }} else {{
+                  cm <- matrix(0, nrow=ncol(design_full), ncol=length(add_coefs))
+                  colnames(cm) <- add_coefs
+                  for (i in 1:length(add_coefs)) {{
+                    cm[which(colnames(design_full) == add_coefs[i]), i] <- 1
+                  }}
+                  
+                  fit_contrast <- contrasts.fit(fit_full, cm)
+                  fit_contrast <- eBayes(fit_contrast)
+                  
+                  res <- topTable(fit_contrast, number=Inf, sort.by='F', adjust.method='fdr')
+                }}
+                write.table(res, file='{res_dir}/limma_res.tsv', sep='\t', quote=FALSE, col.names=NA)
+                """
+
+            ro.r(r_code)
+            res_df = pd.read_csv(os.path.join(res_dir, 'limma_res.tsv'), sep='\t', index_col=0)
+            st.write(f"Significant (FDR<0.05): {(res_df['adj.P.Val']<0.05).sum()}")
+            st.dataframe(res_df)
+
+            file_name = file_name_head + "_limma_" + full_model.replace(" + ", "_").replace(" ", "") + "_vs_" + reduced_model.replace(" + ", "_").replace(" ", "")
+
+            shutil.make_archive("res", format='zip',root_dir= res_dir)
+
+
+        elif test_method == 'Beta Regression':
+            # ファイルの保存と設定は同じ
+            counts_file = os.path.join(temp_dir, 'counts.tsv')
+            df.to_csv(counts_file, sep='\t')
+            coldata_file = os.path.join(temp_dir, 'coldata.tsv')
+            df_e.to_csv(coldata_file, sep='\t', index=False)
+
+
+            r_code = f"""
+            library(betareg)
+            library(lmtest)
+            library(parallel)
+
+            counts <- read.table('{counts_file}', header=TRUE, row.names=1, sep='\t')
+            coldata <- read.table('{coldata_file}', header=TRUE, sep='\t')
+
+            # 0-1の境界の調整
+            eps <- {epsilon}
+            counts <- pmax(pmin(counts, 1-eps), eps)
+
+            # 並列処理クラスターの設定
+            n_cores <- {n_cores}
+            cl <- makeCluster(n_cores)
+
+            # 並列処理に必要なパッケージをクラスターに読み込み
+            clusterEvalQ(cl, {{
+              library(betareg)
+              library(lmtest)
+            }})
+
+            time_var <- "{full[0]}"
+            cat("time_var")
+            cat(time_var)
+
+            # 時間変数の確認と変換
+            if(time_var %in% colnames(coldata)) {{
+              cat("Time variable exists in coldata. Values:", "\\n")
+              print(coldata[[time_var]])
+              
+              # 時間変数が数値でない場合は変換
+              if(!is.numeric(coldata[[time_var]])) {{
+                cat("Converting time variable to numeric\\n")
+                # 数値抽出と変換
+                coldata[[time_var]] <- as.numeric(gsub("[^0-9.]", "", as.character(coldata[[time_var]])))
+                cat("After conversion:", "\\n")
+                print(coldata[[time_var]])
+              }}
+            }} else {{
+              cat("WARNING: Time variable not found in coldata!\\n")
+            }}
+
+            # 多項式の次数に基づく項を構築
+            polynomial_terms <- ""
+            if ({beta_polynomial_degree} >= 2) {{
+              polynomial_terms <- paste0(polynomial_terms, " + I(", time_var, "^2)")
+            }}
+            if ({beta_polynomial_degree} >= 3) {{
+              polynomial_terms <- paste0(polynomial_terms, " + I(", time_var, "^3)")
+            }}
+
+            # 変数をクラスターに送信
+            clusterExport(cl, c("counts", "coldata", "eps", "time_var", "polynomial_terms"))
+
+            # 処理開始メッセージ
+            cat("Starting parallel beta regression on", n_cores, "cores for", nrow(counts), "genes\\n")
+
+            # テストモデル実行
+            test_model_result <- tryCatch({{
+              # テスト用のデータ
+              test_gene_data <- data.frame(y=as.numeric(counts[1,]), coldata)
+              
+              # フォーミュラを構築
+              full_formula <- paste("{full_model.replace('~', '')}", polynomial_terms)
+              
+              # モデル適合を試行
+              test_fit <- betareg(as.formula(paste("y ~", full_formula)), data=test_gene_data)
+              "success"
+            }}, error=function(e) {{
+              # エラーメッセージを返す
+              return(conditionMessage(e))
+            }})
+
+            # エラーカウンター初期化
+            error_counter <- 0
+            error_message <- ""
+
+            # 並列処理関数
+            process_gene <- function(i) {{
+              gene_data <- data.frame(y=as.numeric(counts[i,]), coldata)
+              
+              full_formula <- paste("{full_model.replace('~', '')}", polynomial_terms)
+              reduced_formula <- "{reduced_model.replace('~', '')}"
+              
+              tryCatch({{
+                # フルモデルとリデュースドモデルのフィッティング
+                full_fit <- betareg(as.formula(paste("y ~", full_formula)), data=gene_data)
+                reduced_fit <- betareg(as.formula(paste("y ~", reduced_formula)), data=gene_data)
+                
+                # 尤度比検定
+                lr_test <- lrtest(reduced_fit, full_fit)
+                
+                # 結果を返す
+                c(statistic = lr_test$Chisq[2],
+                  df = lr_test$Df[2],
+                  p_value = lr_test$`Pr(>Chisq)`[2],
+                  logLik_diff = lr_test$LogLik[2] - lr_test$LogLik[1])
+              }}, error=function(e) {{
+                # エラーが発生した場合はNAを返す
+                if (i <= 5) cat("Gene", i, "Error:", conditionMessage(e), "\\n")
+                c(statistic = NA, df = NA, p_value = NA, logLik_diff = NA)
+              }})
+            }}
+
+            # 並列処理の実行
+            system.time(
+              results_list <- parLapply(cl, 1:nrow(counts), process_gene)
+            )
+
+            # クラスターの終了
+            stopCluster(cl)
+
+            # 結果をマトリックスに変換
+            results_matrix <- do.call(rbind, results_list)
+            rownames(results_matrix) <- rownames(counts)
+
+            # NULLの数をカウント
+            na_count <- sum(is.na(results_matrix[, "statistic"]))
+            total_genes <- nrow(results_matrix)
+            na_percent <- round(100 * na_count / total_genes, 2)
+
+            # 結果ファイルにモデル情報を追加
+            cat("\\n### モデル収束情報 ###\\n", file='{res_dir}/model_convergence_info.txt')
+            cat("多項式次数:", {beta_polynomial_degree}, "\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+            cat("フルモデル式:", paste("y ~", paste("{full_model.replace('~', '')}", polynomial_terms)), "\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+            cat("縮小モデル式:", paste("y ~", "{reduced_model.replace('~', '')}"), "\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+
+            if (na_count > 0) {{
+              cat("警告: ", na_count, " 個の遺伝子 (", na_percent, "%) でモデルが収束しませんでした。\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+              
+              if (na_count == total_genes) {{
+                cat("すべての遺伝子でモデルが収束しませんでした。多項式次数を下げるか、時間変数をスケーリングすることを検討してください。\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+                cat("テストモデルのエラー: ", test_model_result, "\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+              }} else {{
+                cat(total_genes - na_count, " 個の遺伝子 (", 100 - na_percent, "%) で正常に解析できました。\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+              }}
+            }} else {{
+              cat("すべての遺伝子で正常にモデルが収束しました。\\n", file='{res_dir}/model_convergence_info.txt', append=TRUE)
+            }}
+
+            # 多重検定補正
+            results_matrix <- cbind(results_matrix, 
+                                  adj.P.Val = p.adjust(results_matrix[, "p_value"], method="BH"))
+
+            # 結果の保存
+            res_df <- as.data.frame(results_matrix)
+            res_df <- res_df[order(res_df$p_value), ]
+            write.table(res_df, file='{res_dir}/betareg_res.tsv', sep='\\t', quote=FALSE, col.names=NA)
+            """
+
+        elif test_method == 'GAM Beta Regression':
+            # Save input to files for R import
+            counts_file = os.path.join(temp_dir, 'counts.tsv')
+            df.to_csv(counts_file, sep='\t')
+            coldata_file = os.path.join(temp_dir, 'coldata.tsv')
+            df_e.to_csv(coldata_file, sep='\t', index=False)
+            
+            # GAMベータ回帰（並列処理版）
+            r_code = f"""
+            library(mgcv)
+            library(lmtest)
+            library(parallel)
+
+            counts <- read.table('{counts_file}', header=TRUE, row.names=1, sep='\t')
+            coldata <- read.table('{coldata_file}', header=TRUE, sep='\t')
+
+            # 0-1の境界の調整
+            eps <- {epsilon}
+            counts <- pmax(pmin(counts, 1-eps), eps)
+
+            # 時間変数の特定
+            time_vars <- colnames(coldata)[grep("time|Time|day|Day|week|Week", colnames(coldata))]
+
+            # 各変数の一意な値の数を確認
+            n_unique_values <- sapply(coldata, function(x) length(unique(x)))
+
+            # GAMモデル式の作成 - 前述と同様の関数
+            # ...
+
+            # 並列クラスターの設定
+            n_cores <- {n_cores}
+            cl <- makeCluster(n_cores)
+
+            # クラスターに必要なパッケージとデータを送信
+            clusterEvalQ(cl, {{
+              library(mgcv)
+              library(lmtest)
+            }})
+
+            clusterExport(cl, c("counts", "coldata", "eps", "gam_full_formula", 
+                                "gam_reduced_formula", "time_vars"))
+
+            # 処理関数
+            process_gene <- function(i) {{
+              gene_data <- data.frame(y=as.numeric(counts[i,]), coldata)
+              
+              result <- tryCatch({{
+                # フルモデルと縮小モデルのフィッティング
+                full_fit <- gam(as.formula(paste("y", gam_full_formula)), 
+                                family=betar(), data=gene_data, method="{gam_method}")
+                
+                reduced_fit <- gam(as.formula(paste("y", gam_reduced_formula)), 
+                                   family=betar(), data=gene_data, method="{gam_method}")
+                
+                # 尤度比検定
+                lr_test <- lrtest(reduced_fit, full_fit)
+                
+                # 結果を返す
+                c(statistic = lr_test$Chisq[2],
+                  df = lr_test$Df[2],
+                  p_value = lr_test$`Pr(>Chisq)`[2],
+                  logLik_diff = lr_test$LogLik[2] - lr_test$LogLik[1])
+              }}, error=function(e) {{
+                # エラーの場合はNAを返す
+                c(statistic = NA, df = NA, p_value = NA, logLik_diff = NA)
+              }})
+              
+              return(result)
+            }}
+
+            # 並列処理の実行
+            system.time(
+              results_list <- parLapply(cl, 1:nrow(counts), process_gene)
+            )
+
+            # クラスターの終了
+            stopCluster(cl)
+
+            # 結果をデータフレームに変換
+            results_matrix <- do.call(rbind, results_list)
+            results <- as.data.frame(results_matrix)
+            rownames(results) <- rownames(counts)
+
+            # 多重検定補正
+            results$adj.P.Val <- p.adjust(results$p_value, method="BH")
+
+            # 結果の保存
+            write.table(results[order(results$p_value), ], file='{res_dir}/gam_betareg_parallel.tsv', sep='\\t', quote=FALSE, col.names=NA)
+            """
+
+
+        elif test_method == 'maSigPro':
+            # ファイル保存設定
+            counts_file = os.path.join(temp_dir, 'counts.tsv')
+            df.to_csv(counts_file, sep='\t')
+            coldata_file = os.path.join(temp_dir, 'coldata.tsv')
+            df_e.to_csv(coldata_file, sep='\t', index=False)
+
+
+            # 時間情報を含む適切なedesignデータフレームを作成するRコード
+            r_code = f"""
+            library(maSigPro)
+            
+            # データの読み込み
+            cat("Loading data...\\n")
+            counts <- read.table("{counts_file}", header=TRUE, row.names=1, sep="\\t")
+            coldata <- read.table("{coldata_file}", header=TRUE, sep="\\t")
+            print(coldata)
+
+            # maSigPro用の適切なデザインデータフレームを作成
+            cat("Creating proper design matrix for maSigPro...\\n")
+            
+            # グループ情報を取得（"Group"列）
+            time_col <- as.character(coldata${full[0]})
+            
+
+            # 時間情報を抽出（例："0w", "1w", "4w"から数値に変換）
+            time_values <- as.numeric(gsub("[^0-9.]", "", time_col))
+            cat("time_values")
+            cat(time_values)
+            
+            # レプリケート情報を作成
+            # 同じ時間値を持つサンプルにユニークな番号を割り当て
+            replicates <- numeric(length(time_values))
+            for (t in unique(time_values)) {{
+                idx <- which(time_values == t)
+                replicates[idx] <- 1:length(idx)
+            }}
+            
+            # maSigPro用の正しいedesignデータフレームを作成
+            edesign <- data.frame(
+                Time = time_values,
+                Replicate = replicates
+            )
+            rownames(edesign) <- colnames(counts)
+            
+      #      # 他の実験条件があれば追加
+      #      if (ncol(coldata) > 1) {{
+      #          for (i in 2:ncol(coldata)) {{
+      #              col_name <- colnames(coldata)[i]
+      #              edesign[[col_name]] <- coldata[[i]]
+      #          }}
+      #      }}
+
+            # Add Group column (all 1s for single condition)
+            edesign$Group <- rep(1, nrow(edesign)) #tutorialに合わせて全部1にする
+            
+            # データ型の確認
+            cat("Time values:", paste(time_values, collapse=", "), "\\n")
+            cat("Time values are numeric:", is.numeric(edesign$Time), "\\n")
+            cat("edesign")
+            print(edesign)
+            
+            # 前処理
+            """
+            
+            # データタイプに応じた処理の追加
+            if data_type == "0-1 data (logit transformation)":
+                r_code += f"""
+            # 0-1データの処理
+            eps <- {epsilon}
+            counts <- pmax(pmin(counts, 1-eps), eps)
+            counts <- log(counts/(1-counts))
+            use_counts_param <- FALSE
+            cat("Applied logit transformation\\n")
+            """
+            else:  # RNA-seq count data
+                r_code += """
+            # RNA-seqデータの処理
+            use_counts_param <- TRUE
+            cat("Using GLM for count data\\n")
+            """
+            
+            # デザイン行列を使用した分析
+            r_code += f"""
+            # デザイン行列を使用して分析
+            cat("Running maSigPro analysis...\\n")
+            
+            # 指定された次数でデザイン行列を作成
+            design <- make.design.matrix(edesign, degree={degree})
+            
+            # 回帰分析の実行
+            cat("Running p.vector...\\n")
+            fit <- p.vector(counts, design$edesign, Q={q_value}, MT.adjust="none", counts=use_counts_param)
+           # fit <- p.vector(counts, design$edesign, Q={q_value}, MT.adjust="BH", counts=use_counts_param)
+            
+            # 有意な遺伝子数の確認
+            sig_count <- sum(fit$p < {q_value}, na.rm=TRUE)
+            cat("Genes with p <", {q_value}, ":", sig_count, "\\n")
+
+            # After running p.vector() and finding no significant genes
+
+            
+            # 有意な遺伝子がある場合のみ次のステップへ
+            if (sig_count > 0) {{
+                cat("Running T.fit...\\n")
+                tstep <- T.fit(fit, step.method="backward", alfa={q_value})
+                
+                cat("Getting significant genes...\\n")
+                sigs <- get.siggenes(tstep, rsq={rsq}, vars="each")
+                
+                # 結果を保存
+                if (!is.null(sigs) && !is.null(sigs$sig.genes) && !is.null(sigs$sig.genes$sig.profiles) && nrow(sigs$sig.genes$sig.profiles) > 0) {{
+                    cat("Found", nrow(sigs$sig.genes$sig.profiles), "significant genes\\n")
+                    
+                    # プロファイルと係数を保存
+                    write.table(sigs$sig.genes$sig.profiles, file="{res_dir}/maSigPro_sig_profiles.tsv", sep="\\t", quote=FALSE)
+                    write.table(sigs$coefficients, file="{res_dir}/maSigPro_coefficients.tsv", sep="\\t", quote=FALSE)
+                    
+                    # 要約情報の保存
+                    cat("maSigPro Analysis Results\\n",
+                        "------------------------\\n",
+                        "Total genes analyzed: ", nrow(counts), "\\n",
+                        "Significant genes (p <", {q_value}, "): ", sig_count, "\\n",
+                        "Significant genes (rsq >", {rsq}, "): ", nrow(sigs$sig.genes$sig.profiles), "\\n",
+                        file="{res_dir}/maSigPro_summary.txt")
+                }} else {{
+                    cat("No genes passed R-squared threshold\\n")
+                    cat("No genes passed R-squared threshold of", {rsq}, "\\n", file="{res_dir}/maSigPro_summary.txt")
+                }}
+            }} else {{
+                cat("No significant genes found\\n")
+                cat("No significant genes found at Q-value", {q_value}, "\\n", file="{res_dir}/maSigPro_summary.txt")
+            }}
+            """
+            
+            # Rコードを実行
+            with st.spinner('Calculating maSigPro... This may take a while.'):
+                try:
+                    # Rコードをデバッグ用に保存
+                    with open(os.path.join(temp_dir, 'debug_maSigPro.R'), 'w') as f:
+                        f.write(r_code)
+                    
+                    # Rコード実行
+                    ro.r(r_code)
+                    
+                    # 結果用の空データフレームを作成（エラー回避用）
+                    res_df = pd.DataFrame()
+                    
+                    # 結果の表示
+                    st.markdown("### maSigPro Analysis Results")
+                    
+                    # 結果ファイルの確認と表示
+                    summary_file = os.path.join(res_dir, 'maSigPro_summary.txt')
+                    if os.path.exists(summary_file):
+                        with open(summary_file, 'r') as f:
+                            summary = f.read()
+                        st.text(summary)
+                    
+                    # 有意な遺伝子の結果を表示
+                    sig_profiles_file = os.path.join(res_dir, 'maSigPro_sig_profiles.tsv')
+                    if os.path.exists(sig_profiles_file):
+                        res_df = pd.read_csv(sig_profiles_file, sep='\t', index_col=0)
+                        if not res_df.empty:
+                            st.write("### Top significant genes:")
+                            st.dataframe(res_df.head(10))
+                            
+                            # 係数の表示
+                            coef_file = os.path.join(res_dir, 'maSigPro_coefficients.tsv')
+                            if os.path.exists(coef_file):
+                                st.write("### Regression coefficients:")
+                                coef = pd.read_csv(coef_file, sep='\t', index_col=0)
+                                st.dataframe(coef.head(10))
+                            
+                            # 結果のダウンロード
+                            file_name = file_name_head + "_maSigPro"
+                            shutil.make_archive("res", format='zip', root_dir=res_dir)
+                    else:
+                        st.info("No significant genes were found. Try adjusting the Q-value or R-squared threshold.")
+                
+                except Exception as e:
+                    st.error(f"Error executing R code: {str(e)}")
+                    # エラー時にも空のDataFrameを作成
+                    res_df = pd.DataFrame()
+            
+     
+            
+            # 結果のZIP生成
+            file_name = file_name_head + "_maSigPro"
+            shutil.make_archive("res", format='zip', root_dir=res_dir)
+
+        # 結果の表示と保存
+        if test_method == 'Beta Regression':
+            ro.r(r_code)
+            res_df = pd.read_csv(os.path.join(res_dir, 'betareg_res.tsv'), sep='\t', index_col=0)
+            st.write(f"Significant (FDR<0.05): {(res_df['adj.P.Val']<0.05).sum()}")
+            st.dataframe(res_df)
+
+            # モデル収束情報の確認と表示
+            convergence_file = os.path.join(res_dir, 'model_convergence_info.txt')
+            if os.path.exists(convergence_file):
+                with open(convergence_file, 'r') as f:
+                    convergence_info = f.read()
+        
+            # 収束に問題があるかチェック
+            if "警告" in convergence_info:
+                st.warning(convergence_info)
+            else:
+                st.success(convergence_info)
+                
+                file_name = file_name_head + "_betareg_" + full_model.replace(" + ", "_").replace(" ", "") + "_vs_" + reduced_model.replace(" + ", "_").replace(" ", "")
+                shutil.make_archive("res", format='zip',root_dir= res_dir)
+
+        elif test_method == 'GAM Beta Regression':
+            ro.r(r_code)
+            res_df = pd.read_csv(os.path.join(res_dir, 'gam_betareg_res.tsv'), sep='\t', index_col=0)
+            st.write(f"Significant (FDR<0.05): {(res_df['adj.P.Val']<0.05).sum()}")
+            st.dataframe(res_df)
+            
+            file_name = file_name_head + "_gam_betareg_" + full_model.replace(" + ", "_").replace(" ", "") + "_vs_" + reduced_model.replace(" + ", "_").replace(" ", "")
+            shutil.make_archive("res", format='zip',root_dir= res_dir)
+
+        if res_df is not None:
+            with open("res.zip", "rb") as fp:
+                btn = st.download_button(
+                    label="Download Results",
+                data=fp,
+                file_name=file_name + "_DESeq2-LRT.zip",
+                mime = "zip"
+                )
+            try:
+                os.remove(file_name + "_DESeq2-LRT.zip")
+                shutil.rmtree(temp_dir)
+                os.mkdir(temp_dir)
+            except:
+                pass
+
+
+#　データを送る前にすべてゼロのデータは除くべき
+
+
+# refが指定されているときはファイル名を調整する?

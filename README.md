@@ -55,31 +55,18 @@ streamlit run metis.py
 - **pysam** - SAM/BAM file processing
 - **pybedtools** - BED file manipulation
 
-## 🧬 RNA-seq Workflow
-
-### Standard Analysis Pipeline
-1. **Count Data Normalization** → PCA, Heatmap (QC and data distribution check)
-2. **DESeq2** → Volcano plot
-3. **Gene set analysis**: DESeq2 → GSEApy, decoupleR
-   - Alternatively, over-representation analysis using DEG lists (GSEApy, decoupleR)
-
-### Usage Examples
-- **Creating data for Heatmap**: Count Data Normalization. Or extract rlog data using "Homer to Data" from DESeq2 results. Filter by expression levels or changes using "Filter Log Z-score". Basic filtering can also be done in Heatmap.
-- **Updating gene names from Homer etc**: Use "Update Gene Symbol". Since many gene names are updated, it's better to update depending on downstream analysis methods.
-- **Converting gene names to Ensembl ID**: Use "Homer to Ensembl". For example, DIANE uses Ensembl IDs, so convert using this tool.
-- **Data file organization**: Remove unnecessary columns/rows. Extract only needed columns. Change row/column names, reorder columns, transpose rows and columns using "Manipulate Data Table".
 
 ## 📝 Data Normalization/Manipulation
 
-| Tool | Description |
-|------|-------------|
-| **Count Data Normalization** | RNA-seq count data normalization, QC PCA, heatmap, box plot and other preprocessing |
-| **Homer or DESeq2 to Data** | Convert Homer output files to data-only files; Extract only rlog data from DESeq2 |
-| **Count to TPM** | Convert raw count data to TPM |
-| **Manipulate Data Table** | Delete/extract rows/columns from data table. Change column order, row names, column names |
-| **Merge Data Files** | Merge data files |
-| **Filter and Transform Data** | Data filtering. Data XY transposition |
-| **Spread Sheet** | Spreadsheet editor |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|--------------|
+| **Count Data Normalization** | • Multiple normalization methods (TPM, FPKM, CPM, log2)<br>• QC metrics calculation<br>• PCA analysis with customizable components<br>• Interactive heatmaps with clustering options<br>• Box plots for sample comparison<br>• Batch effect visualization | Input: Raw count matrix<br>Output: Normalized data, QC plots |
+| **Homer or DESeq2 to Data** | • Extract data from Homer differential analysis results<br>• Convert DESeq2 results to clean matrices<br>• Extract rlog/vst transformed data<br>• Automated column filtering and renaming<br>• Support for multiple comparison extractions | Input: Homer/DESeq2 files<br>Output: Clean data matrices |
+| **Count to TPM** | • Transcript length-based normalization<br>• Built-in transcript length databases<br>• Custom length file support<br>• Batch processing capabilities<br>• Quality control metrics | Input: Count matrix + lengths<br>Output: TPM normalized data |
+| **Manipulate Data Table** | • Advanced row/column operations<br>• Regular expression filtering<br>• Data type conversions<br>• Missing value handling<br>• Custom sorting and indexing<br>• Batch rename operations | Input: Any tabular data<br>Output: Processed data table |
+| **Merge Data Files** | • Multi-file merging with flexible join types<br>• Automatic column alignment<br>• Duplicate handling strategies<br>• Missing data interpolation<br>• Memory-efficient processing | Input: Multiple data files<br>Output: Merged dataset |
+| **Filter and Transform Data** | • Expression threshold filtering<br>• Variance-based feature selection<br>• Log transformations<br>• Z-score standardization<br>• Data transposition<br>• Outlier detection and removal | Input: Expression matrix<br>Output: Filtered/transformed data |
+| **Spread Sheet** | • Excel-like interface for data editing<br>• Real-time data validation<br>• Formula calculations<br>• Import/export multiple formats<br>• Undo/redo functionality | Input: Various formats<br>Output: Edited data files |
 
 ## 🔁 Gene Name Conversion
 

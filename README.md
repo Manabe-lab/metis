@@ -72,28 +72,6 @@ METIS includes **67 specialized applications** organized into 9 functional categ
 | **🧬 ChIP-seq** | 11 apps | Peak calling, annotation, BAM processing, quality control |
 | **Ⓜ Miscellaneous** | 3 apps | File operations, data cleaning, utility functions |
 
-### 🎯 Key Application Highlights
-
-**Most Popular Tools:**
-- **DESeq2** - Industry-standard differential expression analysis
-- **GSEApy** - Comprehensive gene set enrichment analysis
-- **CellChat** - Advanced cell-cell communication analysis
-- **SCENIC** - Gene regulatory network reconstruction
-- **PyWGCNA** - Co-expression network analysis
-
-**Data Processing Pipeline:**
-1. **Import & Normalize** → Count Data Normalization, TPM conversion
-2. **Quality Control** → PCA, heatmaps, filtering
-3. **Statistical Analysis** → DESeq2, edgeR, limma comparisons
-4. **Pathway Analysis** → GSEA, decoupleR enrichment
-5. **Visualization** → Publication-ready plots and figures
-
-**Specialized Workflows:**
-- **Single-cell RNA-seq**: Complete pipeline from raw counts to cell communication
-- **ChIP-seq/CUT&RUN**: Peak calling to differential binding analysis
-- **Time-course**: impulseDE2 and Mfuzz clustering analysis
-- **Multi-omics**: Integration tools for diverse data types
-
 ## 📝 Data Normalization/Manipulation
 
 | Tool | Features & Parameters | Input/Output |

@@ -107,72 +107,72 @@ streamlit run metis.py
 
 ## 🔀 Pathway Analysis
 
-| Tool | Description |
-|------|-------------|
-| **decoupleR** | Signal pathway, TF activity analysis, and GSEA using mSigDB. Can create publication quality enrichment plots |
-| **GSEApy** | Gene Set Enrichment Analysis |
-| **PPI analysis** | Protein-protein interaction analysis using STRING-db |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **decoupleR** | • Multi-omics pathway activity inference<br>• TF activity estimation from expression<br>• Multiple statistical methods (mlm, norm, gsva)<br>• mSigDB integration<br>• Custom gene set support<br>• Publication-quality enrichment plots<br>• Batch processing capabilities | Input: Expression matrix + gene sets<br>Output: Activity scores, plots |
+| **GSEApy** | • Pre-ranked and standard GSEA<br>• Multiple gene set databases<br>• Enrichment plot generation<br>• Leading edge gene identification<br>• Multiple testing correction<br>• Custom ranking metrics<br>• Batch processing support | Input: Gene lists/expression + gene sets<br>Output: Enrichment results, plots |
+| **PPI analysis** | • STRING-db protein interaction networks<br>• Confidence score filtering<br>• Network visualization<br>• Functional annotation mapping<br>• Cluster detection algorithms<br>• Export to Cytoscape format<br>• Batch gene list processing | Input: Gene/protein lists<br>Output: Interaction networks, annotations |
 
 ## 🥅 WGCNA (Weighted Gene Co-expression Network Analysis)
 
-| Tool | Description |
-|------|-------------|
-| **WGCNA** | WGCNA analysis using WGCNApy or R WGCNA |
-| **WGCNA network plot** | Network visualization of WGCNA modules |
-| **WGCNA hub UMAP** | UMAP visualization of WGCNA module genes |
-| **WGCNA objects comparison** | Display relationships between WGCNA modules |
-| **Generate gmt from cluster info** | Create gmt files from cluster results or WGCNA module genes |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **WGCNA** | • Scale-free network construction<br>• Soft thresholding power optimization<br>• Module detection algorithms<br>• Trait correlation analysis<br>• Hub gene identification<br>• Both PyWGCNA and R-WGCNA support<br>• Parameter optimization guidance | Input: Expression matrix + traits<br>Output: Modules, networks, correlations |
+| **WGCNA network plot** | • Interactive module network visualization<br>• Hierarchical clustering dendrograms<br>• Module-trait relationship heatmaps<br>• Gene connectivity plots<br>• Customizable layout algorithms<br>• Export to multiple formats | Input: WGCNA results<br>Output: Network visualizations |
+| **WGCNA hub UMAP** | • UMAP dimensionality reduction<br>• Hub gene highlighting<br>• Module-specific visualizations<br>• Interactive plotting<br>• Gene annotation overlay<br>• Batch processing multiple modules | Input: WGCNA modules + expression<br>Output: UMAP plots, hub gene lists |
+| **WGCNA objects comparison** | • Cross-study module preservation<br>• Module similarity metrics<br>• Consensus module identification<br>• Statistical significance testing<br>• Visualization of comparisons<br>• Batch comparison capabilities | Input: Multiple WGCNA objects<br>Output: Preservation statistics, plots |
+| **Generate gmt from cluster info** | • Convert cluster results to GMT format<br>• WGCNA module to gene set conversion<br>• Custom gene set creation<br>• Multiple clustering method support<br>• Batch processing<br>• Format validation | Input: Cluster assignments<br>Output: GMT gene set files |
 
 ## 🎡 Single-cell RNA-seq (scRNA-seq)
 
-| Tool | Description |
-|------|-------------|
-| **Pseudobulk** | Create pseudobulk data from anndata (h5ad) |
-| **Metacells by SEACells** | Create metacells using SEACells |
-| **Random pseudo-replicates** | Create pseudo-replicates by random cell splitting |
-| **memento DE analysis** | Differential expression analysis using memento |
-| **memento 2D analysis** | Two-dimensional analysis using memento |
-| **SCENIC heatmap** | Heatmap visualization of SCENIC gene regulatory networks |
-| **Prepare regulon data for heatmap** | Prepare SCENIC regulon data for visualization |
-| **SCENIC CSI** | Calculate connection specificity index (CSI) of SCENIC regulons |
-| **SCENIC network analysis** | Network visualization of SCENIC regulons centered on transcription factors or their targets |
-| **SCENIC multinetwork analysis** | Network visualization of SCENIC regulons centered on multiple transcription factors and targets |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **Pseudobulk** | • Cell type-specific aggregation<br>• Multiple aggregation methods (sum, mean, median)<br>• Minimum cell count filtering<br>• Metadata preservation<br>• Quality control metrics<br>• Batch processing<br>• Export to bulk analysis formats | Input: AnnData (h5ad)<br>Output: Pseudobulk expression matrices |
+| **Metacells by SEACells** | • Metacell construction algorithm<br>• Cell similarity-based grouping<br>• Size-balanced metacells<br>• Parameter optimization<br>• Quality assessment metrics<br>• Visualization tools<br>• Integration with downstream analysis | Input: AnnData with embeddings<br>Output: Metacell assignments, objects |
+| **Random pseudo-replicates** | • Statistical power enhancement<br>• Random cell sampling strategies<br>• Replicate balance optimization<br>• Bootstrap-based approaches<br>• Multiple splitting methods<br>• Quality control assessment | Input: Single-cell data<br>Output: Pseudo-replicated datasets |
+| **memento DE analysis** | • Single-cell differential expression<br>• Multi-condition comparisons<br>• Batch effect handling<br>• Statistical modeling<br>• Multiple testing correction<br>• Effect size estimation | Input: AnnData + conditions<br>Output: DE results, statistics |
+| **memento 2D analysis** | • Two-dimensional trajectory analysis<br>• Spatial expression patterns<br>• Gradient-based testing<br>• Pseudotime integration<br>• Multi-modal analysis<br>• Visualization tools | Input: Spatial/trajectory data<br>Output: 2D analysis results |
+| **SCENIC heatmap** | • Regulon activity heatmaps<br>• Hierarchical clustering<br>• Cell type annotation<br>• Interactive visualization<br>• Export capabilities<br>• Batch processing | Input: SCENIC regulon activities<br>Output: Activity heatmaps |
+| **Prepare regulon data for heatmap** | • Data preprocessing for visualization<br>• Activity score calculation<br>• Normalization options<br>• Filtering parameters<br>• Format conversion<br>• Quality control | Input: Raw SCENIC results<br>Output: Processed regulon data |
+| **SCENIC CSI** | • Connection Specificity Index calculation<br>• Regulon connectivity metrics<br>• Statistical significance testing<br>• Comparative analysis<br>• Visualization tools<br>• Batch processing | Input: SCENIC network data<br>Output: CSI scores, statistics |
+| **SCENIC network analysis** | • TF-target network visualization<br>• Interactive network plots<br>• Centrality measures<br>• Community detection<br>• Export to Cytoscape<br>• Custom layout algorithms | Input: SCENIC regulons<br>Output: Network visualizations |
+| **SCENIC multinetwork analysis** | • Multi-TF network integration<br>• Comparative network analysis<br>• Regulatory cascade identification<br>• Cross-condition comparisons<br>• Advanced visualization<br>• Statistical testing | Input: Multiple regulon sets<br>Output: Integrated network analysis |
 
 ## 💬 Cell Communication
 
-| Tool | Description |
-|------|-------------|
-| **LIANA LR analysis** | Ligand-receptor analysis using LIANA+ |
-| **LIANA comparison** | Compare LIANA results between conditions |
-| **CellChat** | CellChat analysis from h5ad files - faithful Python implementation of R version |
-| **CellChat comparison** | Two-condition comparison from h5ad files containing both conditions |
-| **CellChat permutation test** | Statistical testing of two-condition comparison using permutation test |
-| **CellChat R qs to python** | Convert SCALA CellChat analysis result qs files for use in metis |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **LIANA LR analysis** | • Multiple ligand-receptor databases<br>• Statistical method integration<br>• Cell type-specific analysis<br>• Confidence scoring<br>• Batch processing<br>• Custom L-R pair support<br>• Visualization tools | Input: AnnData with cell types<br>Output: L-R interaction results |
+| **LIANA comparison** | • Cross-condition comparisons<br>• Statistical significance testing<br>• Effect size calculations<br>• Visualization of differences<br>• Multiple comparison correction<br>• Export capabilities | Input: Multiple LIANA results<br>Output: Comparative analysis |
+| **CellChat** | • Comprehensive cell communication analysis<br>• Signaling pathway database integration<br>• Network centrality analysis<br>• Pattern recognition<br>• Statistical testing<br>• Python implementation of R CellChat<br>• Batch processing support | Input: AnnData (h5ad)<br>Output: Communication networks, plots |
+| **CellChat comparison** | • Two-condition differential analysis<br>• Network topology changes<br>• Pathway-specific comparisons<br>• Statistical significance testing<br>• Visualization of differences<br>• Effect size quantification | Input: Dual-condition h5ad<br>Output: Differential communication |
+| **CellChat permutation test** | • Permutation-based significance testing<br>• Multiple testing correction<br>• Bootstrap confidence intervals<br>• Custom test statistics<br>• Batch processing<br>• Result validation | Input: CellChat comparison results<br>Output: Statistical significance |
+| **CellChat R qs to python** | • Cross-platform compatibility<br>• SCALA result integration<br>• Format conversion<br>• Data validation<br>• Batch conversion<br>• Quality control | Input: R CellChat .qs files<br>Output: Python-compatible data |
 
 
 ## 🧬 ChIP-seq Analysis
 
-| Tool | Description |
-|------|-------------|
-| **Sort BAM file** | Sort BAM files in METIS_data directory |
-| **Merge BAM files** | Merge BAM files in METIS_data directory |
-| **Bam to bedGraph for SEACR** | Convert BAM files to bedGraph format for SEACR |
-| **SEACR peak calling** | Peak calling using SEACR algorithm |
-| **Macs3 peak calling** | Peak calling using MACS3 |
-| **Annotating and filtering peaks** | Annotation and annotation-based filtering of peak files and bed files |
-| **Bed length/score filter** | Filtering by peak length and score. Peak length distribution is also displayed |
-| **Bam to DESeq2** | Normalize CUT&RUN peak counts based on greenlist counts for DESeq2 analysis |
-| **Blacklist filter** | Filter peaks overlapping with blacklist regions |
-| **Bed to fasta** | Can also handle MACS peak files |
-| **Denoise bedgraph bigwig** | Denoise bedGraph and bigWig files |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **Sort BAM file** | • Coordinate-based sorting<br>• Memory optimization<br>• Multi-threading support<br>• Quality control metrics<br>• Batch processing<br>• Index generation | Input: Unsorted BAM files<br>Output: Sorted, indexed BAM |
+| **Merge BAM files** | • Multiple file merging<br>• Header compatibility checking<br>• Quality score preservation<br>• Memory-efficient processing<br>• Batch operations<br>• Duplicate marking | Input: Multiple BAM files<br>Output: Merged BAM file |
+| **Bam to bedGraph for SEACR** | • SEACR-compatible format conversion<br>• Normalization options<br>• Fragment extension<br>• Strand-specific processing<br>• Quality filtering<br>• Batch conversion | Input: BAM files<br>Output: bedGraph files |
+| **SEACR peak calling** | • CUT&RUN optimized algorithm<br>• Stringent/relaxed modes<br>• Control sample integration<br>• FDR-based thresholding<br>• Batch processing<br>• Quality metrics | Input: bedGraph + control<br>Output: Peak files |
+| **Macs3 peak calling** | • Model-based peak calling<br>• Multiple experimental designs<br>• Statistical significance testing<br>• Multiple output formats<br>• Parameter optimization<br>• Broad/narrow peak modes | Input: BAM/bedGraph files<br>Output: Peak calls, summits |
+| **Annotating and filtering peaks** | • Genomic feature annotation<br>• Distance-based filtering<br>• Functional annotation<br>• Custom annotation databases<br>• Statistical enrichment<br>• Batch processing | Input: Peak files (BED)<br>Output: Annotated peaks |
+| **Bed length/score filter** | • Size-based filtering<br>• Score threshold application<br>• Distribution visualization<br>• Quality control metrics<br>• Batch processing<br>• Custom criteria support | Input: Peak/BED files<br>Output: Filtered peaks, plots |
+| **Bam to DESeq2** | • CUT&RUN specific normalization<br>• Greenlist region counting<br>• DESeq2-compatible output<br>• Quality control integration<br>• Batch processing<br>• Statistical modeling prep | Input: BAM + peak files<br>Output: Count matrices |
+| **Blacklist filter** | • Genome blacklist integration<br>• Artifact region removal<br>• Custom blacklist support<br>• Overlap statistics<br>• Batch processing<br>• Quality assessment | Input: Peak/BED files<br>Output: Filtered peak files |
+| **Bed to fasta** | • Sequence extraction<br>• Multiple genome support<br>• Custom flanking regions<br>• Batch processing<br>• Quality control<br>• Format validation | Input: BED files + genome<br>Output: FASTA sequences |
+| **Denoise bedgraph bigwig** | • Signal smoothing algorithms<br>• Noise reduction techniques<br>• Multiple filtering methods<br>• Quality assessment<br>• Batch processing<br>• Format conversion | Input: bedGraph/bigWig<br>Output: Denoised signal files |
 
 ## Ⓜ Miscellaneous Tools
 
-| Tool | Description |
-|------|-------------|
-| **Merge excel files** | Combine multiple Excel files |
-| **Remove duplicates** | Remove duplicate entries from datasets |
-| **Split data file on key** | Split data files based on key values in another file |
+| Tool | Features & Parameters | Input/Output |
+|------|---------------------|-------------|
+| **Merge excel files** | • Multi-sheet processing<br>• Flexible merging strategies<br>• Header alignment<br>• Data type preservation<br>• Batch processing<br>• Quality control checks | Input: Multiple Excel files<br>Output: Merged Excel/CSV |
+| **Remove duplicates** | • Multiple deduplication criteria<br>• Configurable matching rules<br>• Statistics reporting<br>• Memory-efficient processing<br>• Batch operations<br>• Quality assessment | Input: Any tabular data<br>Output: Deduplicated datasets |
+| **Split data file on key** | • Key-based file splitting<br>• Custom splitting criteria<br>• Metadata preservation<br>• Batch processing<br>• Quality control<br>• Multiple output formats | Input: Data file + key file<br>Output: Split data files |
 
 ## 📜 License
 

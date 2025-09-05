@@ -8,11 +8,15 @@ import seaborn as sns
 from pathlib import Path
 import tempfile
 import io
-from adjustText import adjust_text  # この行を追加
-import networkx as nx
-import matplotlib.pyplot as plt
-import numpy as np
+from adjustText import adjust_text
 import math
+
+# ForceAtlas2 layout implementation
+try:
+    from fa2 import ForceAtlas2
+    FA2_AVAILABLE = True
+except ImportError:
+    FA2_AVAILABLE = False
 
 # Matplotlib用のエッジカラー（タプル形式）
 EDGE_COLORS = {
@@ -181,6 +185,14 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
     elif plot_type == "Force-Directed":
         # Force-directedプロット生成
         fig = plot_network(
+            tom_array, gene_names, module_colors, threshold,
+            selected_modules, n_hubs, highlight_indices, minimum_component_size
+        )
+        return fig
+    
+    elif plot_type == "ForceAtlas2":
+        # ForceAtlas2プロット生成
+        fig = plot_network_forceatlas2(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
         )
@@ -775,6 +787,266 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
     return fig
 
 
+def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshold=0.1, 
+                             selected_modules=None, n_hubs=10, highlight_nodes=None,
+                             minimum_component_size=20):
+    """Plot network visualization using ForceAtlas2 layout"""
+    if tom_array is None:
+        return None
+    
+    # Create graph
+    G = nx.Graph()
+    
+    # Get hub genes before filtering nodes
+    hub_indices = get_hub_genes(tom_array, module_colors, selected_modules, n_hubs)
+    
+    # Filter nodes by module if specified
+    if selected_modules is not None and module_colors is not None:
+        nodes_to_keep = [i for i, color in enumerate(module_colors) 
+                        if color in selected_modules]
+    else:
+        nodes_to_keep = range(len(tom_array))
+    
+    # Add edges that meet the threshold with weights
+    for i in nodes_to_keep:
+        for j in nodes_to_keep:
+            if i < j and tom_array[i,j] > threshold:
+                # ForceAtlas2では重みが大きいほど強い引力を表すため、TOM値をそのまま使用
+                G.add_edge(i, j, weight=tom_array[i,j], tom_value=tom_array[i,j])
+    
+    # Process components
+    components = list(nx.connected_components(G))
+    if components:
+        significant_components = [comp for comp in components 
+                               if len(comp) >= minimum_component_size]
+        
+        if significant_components:
+            largest_component = max(significant_components, key=len)
+            G = G.subgraph(largest_component).copy()
+            
+            st.write(f"Original network size: {len(nodes_to_keep)} nodes")
+            st.write(f"Largest component size: {len(largest_component)} nodes")
+        else:
+            st.warning(f"No components with size >= {minimum_component_size} nodes found.")
+            return None
+    
+    # Create plot with white background
+    fig, ax = plt.subplots(figsize=(15, 15), facecolor='white')
+    ax.set_facecolor('white')
+    
+    # Calculate ForceAtlas2 layout
+    if FA2_AVAILABLE:
+        try:
+            # Convert to format suitable for ForceAtlas2
+            nodes = list(G.nodes())
+            node_to_idx = {node: i for i, node in enumerate(nodes)}
+            
+            # Create position matrix
+            positions = np.random.random((len(nodes), 2)) * 100
+            
+            # Create edge list with weights
+            edges = []
+            edge_weights = []
+            for u, v, data in G.edges(data=True):
+                edges.append([node_to_idx[u], node_to_idx[v]])
+                edge_weights.append(data['weight'])
+            
+            if edges:  # Only run ForceAtlas2 if there are edges
+                edges = np.array(edges)
+                edge_weights = np.array(edge_weights)
+                
+                # Initialize ForceAtlas2
+                forceatlas2 = ForceAtlas2(
+                    # Behavior
+                    outboundAttractionDistribution=True,
+                    linLogMode=False,
+                    adjustSizes=False,
+                    edgeWeightInfluence=2.0,
+                    
+                    # Performance
+                    jitterTolerance=1.0,
+                    barnesHutOptimize=True,
+                    barnesHutTheta=1.2,
+                    multiThreaded=False,
+                    
+                    # Tuning
+                    scalingRatio=2.0,
+                    strongGravityMode=False,
+                    gravity=1.0,
+                    verbose=False
+                )
+                
+                # Run layout algorithm
+                positions = forceatlas2.forceatlas2(
+                    edges, pos=positions, 
+                    iterations=100,
+                    weight_attr=edge_weights
+                )
+                
+                # Convert back to NetworkX format
+                pos = {node: positions[node_to_idx[node]] for node in nodes}
+                
+                st.success("✅ Using ForceAtlas2 algorithm")
+            else:
+                # Fallback to spring layout if no edges
+                pos = nx.spring_layout(G, seed=42)
+                st.info("ℹ️ No edges found, using spring layout")
+                
+        except Exception as e:
+            st.warning(f"⚠️ ForceAtlas2 failed ({str(e)}), using spring layout approximation")
+            pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
+                                  iterations=100, seed=42)
+    else:
+        # Use spring layout as ForceAtlas2 approximation
+        st.info("📦 ForceAtlas2 package not available, using spring layout approximation")
+        pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
+                              iterations=100, seed=42)
+    
+    # Draw nodes (same as regular plot_network function)
+    nodes = list(G.nodes())
+    if module_colors is not None:
+        colors = [get_color(module_colors[n]) for n in nodes]
+    else:
+        colors = ['skyblue'] * len(nodes)
+
+    # Node classification
+    regular_nodes = []
+    important_nodes = []
+    regular_colors = []
+    important_colors = []
+    regular_sizes = []
+    important_sizes = []
+    important_edges = []
+
+    # Size settings
+    REGULAR_SIZE = 30
+    HIGHLIGHT_SIZE = 45
+    HUB_SIZE = 60
+
+    # Categorize nodes
+    for node in nodes:
+        if node in hub_indices:
+            important_nodes.append(node)
+            important_colors.append(colors[nodes.index(node)])
+            important_sizes.append(HUB_SIZE)
+            important_edges.append(EDGE_COLORS['hub'])
+        elif highlight_nodes and node in highlight_nodes:
+            important_nodes.append(node)
+            important_colors.append(colors[nodes.index(node)])
+            important_sizes.append(HIGHLIGHT_SIZE)
+            important_edges.append(EDGE_COLORS['highlight'])
+        else:
+            regular_nodes.append(node)
+            regular_colors.append(colors[nodes.index(node)])
+            regular_sizes.append(REGULAR_SIZE)
+
+    # Draw edges with classification (same as regular plot)
+    regular_edge_list = []
+    hub_edge_list = []
+    highlight_edge_list = []
+    
+    regular_widths = []
+    hub_widths = []
+    highlight_widths = []
+    
+    for (u, v, data) in G.edges(data=True):
+        tom_value = data['tom_value']
+        edge_width = tom_value * 5
+        
+        if u in hub_indices or v in hub_indices:
+            hub_edge_list.append((u, v))
+            hub_widths.append(edge_width)
+        elif (highlight_nodes and 
+             (u in highlight_nodes or v in highlight_nodes)):
+            highlight_edge_list.append((u, v))
+            highlight_widths.append(edge_width)
+        else:
+            regular_edge_list.append((u, v))
+            regular_widths.append(edge_width)
+
+    # Draw edges
+    if regular_edge_list:
+        nx.draw_networkx_edges(G, pos,
+                            edgelist=regular_edge_list,
+                            width=regular_widths,
+                            edge_color=[EDGE_COLORS['regular'][:3]] * len(regular_edge_list),
+                            alpha=EDGE_COLORS['regular'][3])
+
+    if hub_edge_list:
+        nx.draw_networkx_edges(G, pos,
+                            edgelist=hub_edge_list,
+                            width=hub_widths,
+                            edge_color=[EDGE_COLORS['hub'][:3]] * len(hub_edge_list),
+                            alpha=EDGE_COLORS['hub'][3])
+
+    if highlight_edge_list:
+        nx.draw_networkx_edges(G, pos,
+                            edgelist=highlight_edge_list,
+                            width=highlight_widths,
+                            edge_color=[EDGE_COLORS['highlight'][:3]] * len(highlight_edge_list),
+                            alpha=EDGE_COLORS['highlight'][3])
+
+    # Draw regular nodes first
+    nx.draw_networkx_nodes(G, pos,
+                        nodelist=regular_nodes,
+                        node_color=regular_colors,
+                        node_size=regular_sizes,
+                        edgecolors='none',
+                        linewidths=0)
+
+    # Draw important nodes with border
+    if important_nodes:
+        edge_colors = []
+        for node in important_nodes:
+            if node in hub_indices:
+                edge_colors.append(EDGE_COLORS['hub'])
+            else:
+                edge_colors.append(EDGE_COLORS['highlight'])
+                
+        nx.draw_networkx_nodes(G, pos,
+                           nodelist=important_nodes,
+                           node_color=important_colors,
+                           node_size=important_sizes,
+                           edgecolors=edge_colors,
+                           linewidths=2)
+
+    # Add labels for important nodes
+    texts = []
+    for node in important_nodes:
+        x, y = pos[node]
+        texts.append(plt.text(x, y, gene_names[node],
+                    bbox=dict(facecolor='white',
+                           edgecolor='none',
+                           alpha=0.7,
+                           pad=0.5),
+                    fontsize=10))
+
+    # Adjust label positions
+    if texts:  # Only adjust if there are labels
+        adjust_text(texts,
+                   arrowprops=dict(arrowstyle='-', color='gray', alpha=0.5),
+                   expand_points=(1.5, 1.5))
+    
+    # Title and info
+    layout_info = "ForceAtlas2" if FA2_AVAILABLE else "Spring Layout (ForceAtlas2 approximation)"
+    
+    if hub_indices:
+        connected_hubs = [i for i in hub_indices if i in nodes]
+        if connected_hubs:
+            hub_info = "\nHub genes:\n" + ", ".join([gene_names[i] for i in connected_hubs])
+        else:
+            hub_info = "\nNo connected hub genes"
+    else:
+        hub_info = ""
+    
+    plt.title(f'Network Visualization - {layout_info} (threshold > {threshold:.3f})\n'
+            f'Showing modules: {", ".join(selected_modules) if selected_modules else "all"}\n'
+            f'{len(G.nodes())} nodes, {len(G.edges())} edges'
+            f'{hub_info}')
+    
+    plt.axis('off')
+    return fig
+
 
 def main():
     st.title('WGCNA Network Visualization')
@@ -924,9 +1196,11 @@ def main():
                                                                 # Visualization type selection
                     vis_type = st.selectbox(
                         "Select Network Visualization Type",
-                        ["Force-Directed", "Interactive", "Circular Layout", "Hive Plot"],
-                        key="vis_type_select",index=1
+                        ["Force-Directed", "ForceAtlas2", "Interactive", "Circular Layout", "Hive Plot"],
+                        key="vis_type_select",index=2
                     )
+                    if not FA2_AVAILABLE and vis_type == "ForceAtlas2":
+                        st.warning("📝 **ForceAtlas2 Note**: Using networkx spring_layout approximation. Install `fa2` package for true ForceAtlas2 algorithm.")
                     st.write("Hive plot is extremely slow....")
 
                     submitted = st.form_submit_button("Update Network")
@@ -976,7 +1250,7 @@ def main():
                                     "image/png"
                                 )
                     
-                    else:  # その他のプロットタイプ
+                    else:  # その他のプロットタイプ (ForceAtlas2, Circular Layout, Hive Plot など)
                         fig = generate_network_plots(
                             tom_array, gene_names, module_colors, threshold,
                             selected_modules, n_hubs, highlight_indices,

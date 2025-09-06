@@ -190,15 +190,6 @@ METIS includes **67 specialized applications** organized into 9 functional categ
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-### SCALA Attribution
-
-This project contains modified code from [SCALA](https://github.com/PavlopoulosLab/SCALA):
-- **Original Authors**: Pavlopoulos Lab
-- **Original License**: GPL-3.0
-- **Publication**: "SCALA: A complete solution for multimodal analysis of single-cell Next Generation Sequencing data" (Computational and Structural Biotechnology Journal, 2023)
-
-Modifications and extensions in METIS are also licensed under GPL-3.0 to comply with the original license requirements.
-
 ## 🙏 Acknowledgments
 
 METIS integrates many excellent bioinformatics tools and libraries. We thank all the developers and researchers who created these foundational tools that make METIS possible.

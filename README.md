@@ -1,5 +1,5 @@
 <div align="center">
-<img src="Metis_logo.png" alt="METIS Logo" width="200">
+<img src="Metis_favicon.png" alt="METIS Favicon" width="120">
 </div>
 
 ## **M**olecular **E**xploration and **T**ranscriptomic **I**nvestigation **S**uite

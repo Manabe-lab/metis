@@ -1763,6 +1763,77 @@ def get_edge_color(source_node, node_categories, color_scheme, target, ppi_tfs=N
    return color_scheme['target_genes']  # デフォルト色
 
 
+def create_hierarchical_layout(tf_network: nx.DiGraph, target_gene: str, scale: float = 3.0) -> Dict[str, np.ndarray]:
+    """
+    転写因子ネットワーク用のカスタム階層レイアウト
+    トポロジカルソートを使用して階層構造を作成
+    """
+    pos = {}
+    
+    try:
+        # 循環検出とトポロジカル層の生成
+        if nx.is_directed_acyclic_graph(tf_network):
+            # DAGの場合：トポロジカル層を使用
+            layers = list(nx.topological_generations(tf_network))
+        else:
+            # 循環がある場合：強連結成分を使用
+            scc = nx.strongly_connected_components(tf_network)
+            condensed = nx.condensation(tf_network, scc)
+            layers = list(nx.topological_generations(condensed))
+            
+            # 元のノードに戻す
+            node_layers = []
+            for layer in layers:
+                current_layer = []
+                for comp_id in layer:
+                    # condensedグラフの各ノードは強連結成分ID
+                    for orig_node in tf_network.nodes():
+                        if orig_node in condensed.nodes[comp_id]['members']:
+                            current_layer.append(orig_node)
+                node_layers.append(current_layer)
+            layers = node_layers
+    except:
+        # フォールバック：ターゲット遺伝子からの距離ベース
+        layers = []
+        if target_gene in tf_network:
+            # BFSでレベル分け
+            distances = nx.single_source_shortest_path_length(tf_network.reverse(), target_gene)
+            max_dist = max(distances.values()) if distances else 0
+            
+            for level in range(max_dist + 1):
+                layer = [node for node, dist in distances.items() if dist == level]
+                if layer:
+                    layers.append(layer)
+        else:
+            # 全ノードを1層に
+            layers = [list(tf_network.nodes())]
+    
+    # 階層座標の計算
+    layer_height = scale * 2.0 / max(len(layers) - 1, 1)
+    
+    for i, layer in enumerate(layers):
+        y_pos = scale - (i * layer_height)  # 上から下へ
+        
+        if len(layer) == 1:
+            # 単一ノードは中央に
+            pos[layer[0]] = np.array([0.0, y_pos])
+        else:
+            # 複数ノードは水平に配置
+            layer_width = scale * 1.8
+            x_spacing = layer_width / (len(layer) - 1) if len(layer) > 1 else 0
+            
+            for j, node in enumerate(layer):
+                x_pos = -layer_width/2 + (j * x_spacing)
+                pos[node] = np.array([x_pos, y_pos])
+    
+    # ターゲット遺伝子を強調位置に
+    if target_gene in pos:
+        # ターゲット遺伝子の層でのx座標を中央寄りに調整
+        target_y = pos[target_gene][1]
+        pos[target_gene] = np.array([0.0, target_y])
+    
+    return pos
+
 def adjust_node_positions(pos: Dict[str, np.ndarray], min_dist: float = 0.2) -> Dict[str, np.ndarray]:
     """
     ノードの位置を調整して重なりを防ぐ
@@ -1844,6 +1915,9 @@ def get_network_layout(tf_network: nx.DiGraph,
             pos = nx.spring_layout(tf_network, k=k, scale=scale)
     elif layout_type == "shell":
         pos = nx.shell_layout(tf_network, scale=scale)
+    elif layout_type == "hierarchical_topological":
+        # カスタム階層レイアウト（トポロジカル階層）
+        pos = create_hierarchical_layout(tf_network, target_gene, scale=scale)
     else:
         pos = nx.spring_layout(tf_network, k=k, scale=scale)
 
@@ -1895,13 +1969,13 @@ def add_visualization_settings(st):
     with col1:
         static_layout = st.selectbox(
             "Static network layout type",
-            ["spring", "kamada_kawai", "fruchterman_reingold", "spectral", "shell"],
+            ["spring", "kamada_kawai", "fruchterman_reingold", "spectral", "shell", "hierarchical_topological"],
             help="Choose the layout algorithm for static visualization"
         )
     with col2:    
         interactive_layout = st.selectbox(
             "Interactive network layout type",
-            ["static_spring", "barnes_hut", "hierarchical", "force_atlas2", "repulsion"],
+            ["static_spring", "barnes_hut", "hierarchical", "hierarchical_sugiyama", "force_atlas2", "repulsion"],
             help="Choose the layout algorithm for interactive visualization"
         )
     
@@ -2211,10 +2285,10 @@ def create_interactive_network(tf_network: nx.DiGraph,
         "hierarchical": {
             "enabled": True,
             "direction": "UD",
-            "sortMethod": "hubsize",    # hubsizeに変更
-            "levelSeparation": 75,      # 適度な縦間隔
-            "nodeSpacing": 100,         # 水平間隔は維持
-            "treeSpacing": 100,         # 水平間隔は維持
+            "sortMethod": "directed",   # 有方向グラフ最適化
+            "levelSeparation": 120,     # 階層間隔拡大
+            "nodeSpacing": 150,         # 水平間隔拡大
+            "treeSpacing": 200,         # ツリー間隔拡大
             "blockShifting": True,
             "edgeMinimization": True,
             "parentCentralization": True,
@@ -2265,6 +2339,36 @@ def create_interactive_network(tf_network: nx.DiGraph,
                 "springLength": 200,
                 "springConstant": 0.05
             }
+        }
+    },
+    "hierarchical_sugiyama": {
+        "layout": {
+            "hierarchical": {
+                "enabled": True,
+                "direction": "UD",
+                "sortMethod": "directed",
+                "levelSeparation": 150,     # より大きな階層間隔
+                "nodeSpacing": 200,         # ノード間隔拡大  
+                "treeSpacing": 300,         # ツリー間隔拡大
+                "blockShifting": True,
+                "edgeMinimization": True,
+                "parentCentralization": False,  # 中央化無効
+                "improvedLayout": True,
+                "shakeTowards": "roots"     # ルートノード寄り
+            }
+        },
+        "edges": {
+            "smooth": {
+                "enabled": True,
+                "type": "straightCross",    # 直線エッジで方向明確化
+                "forceDirection": "horizontal"
+            },
+            "arrows": {
+                "to": {"enabled": True, "scaleFactor": 1.2}  # 矢印強調
+            }
+        },
+        "physics": {
+            "enabled": False  # 物理シミュレーション無効で階層固定
         }
     }
     }
@@ -2597,10 +2701,10 @@ def save_interactive_network(tf_network: nx.DiGraph,
         "hierarchical": {
             "enabled": True,
             "direction": "UD",
-            "sortMethod": "hubsize",    # hubsizeに変更
-            "levelSeparation": 75,      # 適度な縦間隔
-            "nodeSpacing": 100,         # 水平間隔は維持
-            "treeSpacing": 100,         # 水平間隔は維持
+            "sortMethod": "directed",   # 有方向グラフ最適化
+            "levelSeparation": 120,     # 階層間隔拡大
+            "nodeSpacing": 150,         # 水平間隔拡大
+            "treeSpacing": 200,         # ツリー間隔拡大
             "blockShifting": True,
             "edgeMinimization": True,
             "parentCentralization": True,

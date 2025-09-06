@@ -11,24 +11,19 @@ import io
 from adjustText import adjust_text
 import math
 
-# ForceAtlas2 layout implementation - use ForceAtlas2 package only
+# ForceAtlas2 layout implementation - use fa2 package
 FA2_AVAILABLE = False
+fa2_ForceAtlas2 = None
 
-# Try ForceAtlas2Py package (works with Python 3.11+)
+# Try fa2 package
 try:
-    import ForceAtlas2 as FA2Py
+    from fa2 import ForceAtlas2
+    fa2_ForceAtlas2 = ForceAtlas2
     FA2_AVAILABLE = True
-except ImportError:
-    FA2Py = None
-
-# Try python-igraph as fallback
-IGRAPH_AVAILABLE = False
-if not FA2_AVAILABLE:
-    try:
-        import igraph as ig
-        IGRAPH_AVAILABLE = True
-    except ImportError:
-        pass
+    print("fa2 package imported successfully")
+except ImportError as e:
+    print(f"fa2 import failed: {e}")
+    FA2_AVAILABLE = False
 
 # Matplotlib用のエッジカラー（タプル形式）
 EDGE_COLORS = {
@@ -193,6 +188,18 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
         )
         return html_content, fig_static
+    elif plot_type == "Interactive ForceAtlas2":
+        # インタラクティブForceAtlas2プロット生成
+        html_content = plot_network_svg_forceatlas2(
+            tom_array, gene_names, module_colors, threshold,
+            selected_modules, n_hubs, highlight_indices, minimum_component_size
+        )
+        # 静的プロット生成（PDFとPNG用）
+        fig_static = plot_network_forceatlas2(
+            tom_array, gene_names, module_colors, threshold,
+            selected_modules, n_hubs, highlight_indices, minimum_component_size
+        )
+        return html_content, fig_static
     
     elif plot_type == "Force-Directed":
         # Force-directedプロット生成
@@ -226,6 +233,340 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
             max_nodes=500
         )
         return fig
+
+def plot_hive_layout(tom_array, gene_names, module_colors=None, selected_modules=None, threshold=0.1, max_nodes=500):
+    """
+    Create a Hive Plot visualization of the network
+    
+    Parameters:
+    - tom_array: Topological Overlap Matrix
+    - gene_names: List of gene names
+    - module_colors: List of module colors for each gene
+    - selected_modules: List of modules to visualize
+    - threshold: Minimum TOM value to create an edge
+    - max_nodes: Maximum number of nodes to process
+    """
+    # Create graph
+    G = nx.Graph()
+    
+    # Add nodes and edges based on TOM threshold
+    for i in range(min(len(tom_array), max_nodes)):
+        for j in range(i+1, min(len(tom_array), max_nodes)):
+            if tom_array[i,j] > threshold:
+                G.add_edge(i, j, weight=tom_array[i,j])
+    
+    # Filter nodes by module if specified
+    if selected_modules is not None and module_colors is not None:
+        nodes_to_keep = [i for i, color in enumerate(module_colors) 
+                         if color in selected_modules][:max_nodes]
+        G = G.subgraph(nodes_to_keep).copy()
+    
+    # Check if graph has nodes and edges
+    if len(G.nodes()) == 0:
+        st.warning("No nodes found with the current settings.")
+        return None
+    
+    if len(G.edges()) == 0:
+        st.warning("No edges found with the current threshold. Try lowering the threshold.")
+        return None
+    
+    # Compute node properties
+    degrees = dict(G.degree())
+    
+    # Organize nodes into different axes based on node degree
+    node_axes = {}
+    max_degree = max(degrees.values()) if degrees else 0
+    
+    for node in G.nodes():
+        degree = degrees[node]
+        # Categorize nodes into 3 axes based on their degree
+        if degree <= max_degree / 3:
+            axis = 0
+        elif degree <= 2 * max_degree / 3:
+            axis = 1
+        else:
+            axis = 2
+        node_axes[node] = axis
+    
+    # Create plot
+    fig, ax = plt.subplots(figsize=(12, 12), subplot_kw=dict(projection='polar'), facecolor='white')
+    ax.set_facecolor('white')
+    
+    # Prepare axes
+    axes_angles = [0, 2*np.pi/3, 4*np.pi/3]
+    axes_colors = ['red', 'green', 'blue']
+    
+    # Draw axes
+    for angle, color in zip(axes_angles, axes_colors):
+        ax.plot([angle, angle], [0, 1], color=color, linestyle='--', alpha=0.5)
+    
+    # Compute centrality once for all nodes
+    try:
+        centrality = nx.betweenness_centrality(G)
+    except:
+        # Fallback to degree centrality if betweenness fails
+        centrality = {node: degrees[node] / max_degree for node in G.nodes()}
+    
+    # Draw nodes
+    for node in G.nodes():
+        axis = node_axes[node]
+        
+        # Compute radial position based on centrality
+        radius = max(0.1, centrality[node])  # Ensure minimum radius
+        
+        # Compute angle
+        angle = axes_angles[axis]
+        
+        # Color nodes based on module (if available)
+        if module_colors is not None and node < len(module_colors):
+            node_color = get_color(module_colors[node])
+        else:
+            node_color = 'grey'
+        
+        # Plot node
+        ax.scatter(angle, radius, 
+                   color=node_color, 
+                   alpha=0.7, 
+                   s=50)
+        
+        # Optionally add labels for some nodes
+        if centrality[node] > 0.1:
+            ax.text(angle, radius*1.1, gene_names[node], 
+                    rotation=np.degrees(angle), 
+                    ha='center', va='center', 
+                    fontsize=8)
+    
+    # Draw edges
+    for u, v in G.edges():
+        u_axis = node_axes[u]
+        v_axis = node_axes[v]
+        
+        # Only draw edges between nodes on different axes
+        if u_axis != v_axis:
+            u_centrality = max(0.1, centrality[u])
+            v_centrality = max(0.1, centrality[v])
+            
+            u_angle = axes_angles[u_axis]
+            v_angle = axes_angles[v_axis]
+            
+            # Plot curved edge
+            ax.plot([u_angle, v_angle], 
+                    [u_centrality, v_centrality], 
+                    color='grey', 
+                    alpha=0.2,
+                    linewidth=tom_array[u,v]*2)
+    
+    ax.set_title('WGCNA Network - Hive Plot Layout', fontsize=14, pad=20)
+    plt.tight_layout()
+    return fig
+
+def plot_network_svg_forceatlas2(tom_array, gene_names, module_colors=None, threshold=0.1, 
+                                  selected_modules=None, n_hubs=10, highlight_nodes=None,
+                                  minimum_component_size=20):
+    """Create interactive ForceAtlas2 network visualization with hover"""
+    if tom_array is None:
+        return None
+    
+    # Create graph
+    G = nx.Graph()
+    
+    # Get hub genes before filtering nodes
+    hub_indices = get_hub_genes(tom_array, module_colors, selected_modules, n_hubs)
+    
+    # Filter nodes by module if specified
+    if selected_modules is not None and module_colors is not None:
+        nodes_to_keep = [i for i, color in enumerate(module_colors) 
+                        if color in selected_modules]
+    else:
+        nodes_to_keep = range(len(tom_array))
+    
+    # Add edges that meet the threshold with weights
+    for i in nodes_to_keep:
+        for j in nodes_to_keep:
+            if i < j and tom_array[i,j] > threshold:
+                G.add_edge(i, j, weight=tom_array[i,j], tom_value=tom_array[i,j])
+    
+    # Process components
+    components = list(nx.connected_components(G))
+    if components:
+        significant_components = [comp for comp in components 
+                               if len(comp) >= minimum_component_size]
+        if significant_components:
+            largest_component = max(significant_components, key=len)
+            G = G.subgraph(largest_component).copy()
+            st.write(f"Original network size: {len(nodes_to_keep)} nodes")
+            st.write(f"Largest component size: {len(largest_component)} nodes")
+        else:
+            st.warning(f"No components with size >= {minimum_component_size} nodes found.")
+            return None
+    
+    # Calculate ForceAtlas2 layout - fa2 package only
+    if FA2_AVAILABLE:
+        # Convert NetworkX graph to fa2 format
+        nodes_list = list(G.nodes())
+        edges = list(G.edges(data=True))
+        
+        # Create adjacency matrix for fa2
+        n_nodes = len(nodes_list)
+        node_to_idx = {node: i for i, node in enumerate(nodes_list)}
+        
+        # Create adjacency matrix with weights
+        import numpy as np
+        adj_matrix = np.zeros((n_nodes, n_nodes))
+        for u, v, data in edges:
+            i, j = node_to_idx[u], node_to_idx[v]
+            weight = data.get('weight', 1.0)
+            adj_matrix[i][j] = weight
+            adj_matrix[j][i] = weight  # Symmetric for undirected graph
+        
+        # Initialize ForceAtlas2
+        forceatlas2 = fa2_ForceAtlas2(
+            outboundAttractionDistribution=True,
+            linLogMode=False,
+            adjustSizes=False,
+            edgeWeightInfluence=1.0,
+            jitterTolerance=1.0,
+            barnesHutOptimize=True,
+            barnesHutTheta=1.2,
+            multiThreaded=False,
+            scalingRatio=2.0,
+            strongGravityMode=False,
+            gravity=1.0,
+            verbose=False
+        )
+        
+        # Run ForceAtlas2 layout
+        positions = forceatlas2.forceatlas2(adj_matrix, pos=None, iterations=100)
+        
+        # Convert back to NetworkX format
+        pos = {nodes_list[i]: (positions[i][0], positions[i][1]) for i in range(len(nodes_list))}
+        st.success("✅ Using ForceAtlas2 algorithm for interactive layout")
+            
+    else:
+        # fa2 package required
+        st.error("❌ fa2 package is required for ForceAtlas2 interactive layout")
+        return None
+    
+    # Scale positions to SVG size
+    scale = 700  # Slightly smaller than 800 to leave margin
+    margin = 50
+    
+    # Find position ranges
+    pos_array = np.array(list(pos.values()))
+    x_min, y_min = pos_array.min(axis=0)
+    x_max, y_max = pos_array.max(axis=0)
+    
+    def scale_pos(pos_coord):
+        x = (pos_coord[0] - x_min) / (x_max - x_min) * scale + margin
+        y = (pos_coord[1] - y_min) / (y_max - y_min) * scale + margin
+        return x, y
+
+    # Create HTML content with white background
+    html_content = f'''
+    <div id="network-container" style="position: relative; width: 800px; height: 800px;">
+        <div id="tooltip" style="display: none; position: absolute; background: white; 
+             padding: 5px; border: 1px solid black; border-radius: 5px; pointer-events: none;"></div>
+        <svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">
+        <rect width="800" height="800" fill="white"/>
+    '''
+
+    # Prepare nodes and edges like force-directed
+    nodes = list(G.nodes())
+    if module_colors is not None:
+        colors = [get_color(module_colors[n]) for n in nodes]
+    else:
+        colors = ['skyblue'] * len(nodes)
+
+    # Node classification
+    regular_nodes = []
+    important_nodes = []
+    regular_colors = []
+    important_colors = []
+    regular_sizes = []
+    important_sizes = []
+    important_edges = []
+
+    # Size settings (match force-directed)
+    REGULAR_SIZE = 7     # 通常のノード
+    HIGHLIGHT_SIZE = 12   # ハイライトされたノード
+    HUB_SIZE = 16        # ハブノード
+
+    # Categorize nodes
+    for node in nodes:
+        if node in hub_indices:
+            important_nodes.append(node)
+            important_colors.append(colors[nodes.index(node)])
+            important_sizes.append(HUB_SIZE)
+            important_edges.append(EDGE_COLORS['hub'])
+        elif highlight_nodes and node in highlight_nodes:
+            important_nodes.append(node)
+            important_colors.append(colors[nodes.index(node)])
+            important_sizes.append(HIGHLIGHT_SIZE)
+            important_edges.append(EDGE_COLORS['highlight'])
+        else:
+            regular_nodes.append(node)
+            regular_colors.append(colors[nodes.index(node)])
+            regular_sizes.append(REGULAR_SIZE)
+
+    # Draw edges first (behind nodes)
+    for edge in G.edges(data=True):
+        node1, node2 = edge[0], edge[1]
+        x1, y1 = scale_pos(pos[node1])
+        x2, y2 = scale_pos(pos[node2])
+        
+        # Determine edge color
+        if node1 in hub_indices or node2 in hub_indices:
+            edge_color = SVG_EDGE_COLORS['hub']
+        elif (highlight_nodes and node1 in highlight_nodes) or (highlight_nodes and node2 in highlight_nodes):
+            edge_color = SVG_EDGE_COLORS['highlight']
+        else:
+            edge_color = SVG_EDGE_COLORS['regular']
+        
+        html_content += f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{edge_color}" stroke-width="1"/>\n'
+
+    # Draw regular nodes
+    for i, node in enumerate(regular_nodes):
+        x, y = scale_pos(pos[node])
+        color = regular_colors[i]
+        size = regular_sizes[i]
+        gene_name = gene_names[node]
+        
+        html_content += f'''<circle cx="{x:.1f}" cy="{y:.1f}" r="{size/2}" fill="{color}" stroke="black" stroke-width="0.5" 
+                           onmouseover="showTooltip(event, '{gene_name} (Regular)')" 
+                           onmouseout="hideTooltip()"/>\n'''
+
+    # Draw important nodes (on top)
+    for i, node in enumerate(important_nodes):
+        x, y = scale_pos(pos[node])
+        color = important_colors[i]
+        size = important_sizes[i]
+        gene_name = gene_names[node]
+        node_type = "Hub" if node in hub_indices else "Highlighted"
+        
+        html_content += f'''<circle cx="{x:.1f}" cy="{y:.1f}" r="{size/2}" fill="{color}" stroke="black" stroke-width="1" 
+                           onmouseover="showTooltip(event, '{gene_name} ({node_type})')" 
+                           onmouseout="hideTooltip()"/>\n'''
+
+    # Close SVG and add JavaScript for tooltip
+    html_content += '''
+        </svg>
+    </div>
+    <script>
+        function showTooltip(event, text) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = text;
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY - 30) + 'px';
+            tooltip.style.display = 'block';
+        }
+        
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+    </script>
+    '''
+    
+    return html_content
 
 def plot_network_svg(tom_array, gene_names, module_colors=None, threshold=0.1, 
                      selected_modules=None, n_hubs=10, highlight_nodes=None,
@@ -846,68 +1187,53 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
     fig, ax = plt.subplots(figsize=(15, 15), facecolor='white')
     ax.set_facecolor('white')
     
-    # Calculate ForceAtlas2 layout
+    # Calculate ForceAtlas2 layout - fa2 package only
     if FA2_AVAILABLE:
-        try:
-            # Create ForceAtlas2 layout using ForceAtlas2Py package
-            pos = FA2Py.forceatlas2_networkx_layout(
-                G, 
-                pos=None,
-                iterations=100,
-                # ForceAtlas2 parameters
-                outboundAttractionDistribution=True,
-                linLogMode=False,
-                adjustSizes=False,
-                edgeWeightInfluence=1.0,
-                jitterTolerance=1.0,
-                barnesHutOptimize=True,
-                barnesHutTheta=1.2,
-                multiThreaded=False,
-                scalingRatio=2.0,
-                strongGravityMode=False,
-                gravity=1.0,
-                verbose=False
-            )
-            st.success("✅ Using ForceAtlas2 algorithm")
+        # Convert NetworkX graph to fa2 format
+        nodes = list(G.nodes())
+        edges = list(G.edges(data=True))
+        
+        # Create adjacency matrix for fa2
+        n_nodes = len(nodes)
+        node_to_idx = {node: i for i, node in enumerate(nodes)}
+        
+        # Create adjacency matrix with weights
+        import numpy as np
+        adj_matrix = np.zeros((n_nodes, n_nodes))
+        for u, v, data in edges:
+            i, j = node_to_idx[u], node_to_idx[v]
+            weight = data.get('weight', 1.0)
+            adj_matrix[i][j] = weight
+            adj_matrix[j][i] = weight  # Symmetric for undirected graph
+        
+        # Initialize ForceAtlas2
+        forceatlas2 = fa2_ForceAtlas2(
+            outboundAttractionDistribution=True,
+            linLogMode=False,
+            adjustSizes=False,
+            edgeWeightInfluence=1.0,
+            jitterTolerance=1.0,
+            barnesHutOptimize=True,
+            barnesHutTheta=1.2,
+            multiThreaded=False,
+            scalingRatio=2.0,
+            strongGravityMode=False,
+            gravity=1.0,
+            verbose=False
+        )
+        
+        # Run ForceAtlas2 layout
+        positions = forceatlas2.forceatlas2(adj_matrix, pos=None, iterations=100)
+        
+        # Convert back to NetworkX format
+        pos = {nodes[i]: (positions[i][0], positions[i][1]) for i in range(len(nodes))}
+        st.success("✅ Using ForceAtlas2 algorithm (fa2)")
             
-        except Exception as e:
-            st.warning(f"⚠️ ForceAtlas2 failed ({str(e)}), using spring layout approximation")
-            pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
-                                  iterations=100, seed=42)
-                                  
-    elif IGRAPH_AVAILABLE:
-        try:
-            nodes = list(G.nodes())
-            edges = [(nodes.index(u), nodes.index(v)) for u, v in G.edges()]
-            weights = [data['weight'] for u, v, data in G.edges(data=True)]
-            
-            # Create igraph graph
-            ig_graph = ig.Graph(n=len(nodes), edges=edges)
-            ig_graph.es['weight'] = weights
-            
-            # Use igraph's forceatlas2 layout
-            layout = ig_graph.layout_forceatlas2(
-                iterations=100,
-                linlog=False,
-                pos=None,
-                nohubs=False,
-                weight_attr='weight'
-            )
-            
-            # Convert to networkx format
-            pos = {nodes[i]: (layout[i][0], layout[i][1]) for i in range(len(nodes))}
-            st.success("✅ Using ForceAtlas2 algorithm (igraph)")
-            
-        except Exception as e:
-            st.warning(f"⚠️ igraph ForceAtlas2 failed ({str(e)}), using spring layout approximation")
-            pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
-                                  iterations=100, seed=42)
     else:
-        # Use spring layout as ForceAtlas2 approximation
-        st.info("📦 ForceAtlas2 package not available, using spring layout approximation")
-        st.info("💡 Install with: pip install ForceAtlas2")
-        pos = nx.spring_layout(G, k=1/np.sqrt(len(G.nodes())), 
-                              iterations=100, seed=42)
+        # fa2 package required
+        st.error("❌ fa2 package is required for ForceAtlas2 layout")
+        st.error("💡 Please install fa2 package and restart")
+        return None
     
     # Draw nodes (same as regular plot_network function)
     nodes = list(G.nodes())
@@ -1097,7 +1423,7 @@ def main():
                 if module_colors is not None:
                     unique_modules = sorted(set(module_colors))
                     st.subheader("Module Selection")
-                    show_all = st.checkbox("Show all modules", value=True)
+                    show_all = st.checkbox("Show all modules", value=False)
                     if not show_all:
                         selected_modules = st.multiselect(
                             "Select modules",
@@ -1203,13 +1529,20 @@ def main():
                                                                 # Visualization type selection
                     vis_type = st.selectbox(
                         "Select Network Visualization Type",
-                        ["Force-Directed", "ForceAtlas2", "Interactive", "Circular Layout", "Hive Plot"],
+                        ["Force-Directed", "ForceAtlas2", "Interactive", "Interactive ForceAtlas2", "Circular Layout", "Hive Plot"],
                         key="vis_type_select",index=2
                     )
                     if not FA2_AVAILABLE and vis_type == "ForceAtlas2":
-                        st.warning("📝 **ForceAtlas2 Note**: Using spring_layout approximation.")
-                        st.info("💡 For true ForceAtlas2, install: `pip install ForceAtlas2` or `pip install python-igraph`")
-                    st.write("Hive plot is extremely slow....")
+                        st.error("❌ fa2 package is required for ForceAtlas2 layout")
+                        st.error("💡 Please install fa2 package and restart")
+                    if not FA2_AVAILABLE and vis_type == "Interactive ForceAtlas2":
+                        st.error("❌ fa2 package is required for Interactive ForceAtlas2 layout")
+                        st.error("💡 Please install fa2 package and restart")
+                    if vis_type == "Interactive ForceAtlas2" and FA2_AVAILABLE:
+                        st.info("🔗 Interactive ForceAtlas2 with hover tooltips and SVG rendering")
+                    if vis_type == "Hive Plot":
+                        st.info("📅 Hive Plot organizes nodes into 3 axes based on degree centrality")
+                        st.warning("⏰ Hive Plot can be slow for large networks")
 
                     submitted = st.form_submit_button("Update Network")
 
@@ -1218,7 +1551,7 @@ def main():
                     st.header("Network Visualization")
                     
                     # プロット生成（キャッシュされる）
-                    if vis_type == "Interactive":
+                    if vis_type == "Interactive" or vis_type == "Interactive ForceAtlas2":
                         html_content, fig_static = generate_network_plots(
                             tom_array, gene_names, module_colors, threshold,
                             selected_modules, n_hubs, highlight_indices,

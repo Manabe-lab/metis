@@ -31,7 +31,7 @@ st.set_page_config(
 def home():
     # Display logo image
     import os
-    logo_path = os.path.join(os.path.dirname(__file__), "Metis_favicon.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "Metis_logo.png")
     if os.path.exists(logo_path):
         st.image(logo_path, width=150)
     

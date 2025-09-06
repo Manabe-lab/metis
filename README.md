@@ -1,4 +1,6 @@
+<div align="center">
 <img src="Metis_logo.png" alt="METIS Logo" width="150">
+</div>
 
 ## **M**olecular **E**xploration and **T**ranscriptomic **I**nvestigation **S**uite
 

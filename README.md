@@ -1,8 +1,8 @@
-# 🧝🏻‍♀️ METIS
+![METIS Logo](Metis_logo.png)
 
 ## **M**olecular **E**xploration and **T**ranscriptomic **I**nvestigation **S**uite
 
-METIS is a comprehensive bioinformatics web application suite built with Streamlit for RNA-seq analysis, single-cell RNA-seq analysis, ChIP-seq analysis, and various data manipulation tasks. This toolkit provides an intuitive interface for researchers to perform complex genomic analyses without requiring extensive programming knowledge.
+METIS is a comprehensive bioinformatics web application suite built with Streamlit for RNA-seq analyses, single-cell RNA-seq analyses, ChIP-seq and CUT&RUN-seq analyses, and various data manipulation tasks. This toolkit provides an intuitive interface for researchers to perform complex genomic analyses without requiring extensive programming knowledge.
 
 ## 🚀 Quick Start
 

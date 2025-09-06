@@ -170,14 +170,14 @@ if Analysis_mode == "Over-representation":
 
 		if db == 'mSigDB':
 			if species == 'mouse':
-				dir_path = "/home/cellxgene/streamlit/db/mSigDB_mouse"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
 			else:
-				dir_path = "/home/cellxgene/streamlit/db/mSigDB"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
 		elif db == 'Enrichr':
 			if species == 'mouse':
-				dir_path = "/home/cellxgene/streamlit/db/enrichr_database_mouse"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
 			else:
-				dir_path = "/home/cellxgene/streamlit/db/enrichr_database"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
 		else:
 			GO = None
 			uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
@@ -345,18 +345,18 @@ else:
 
 		if db == 'mSigDB':
 			if species == 'mouse':
-				dir_path = "/home/cellxgene/streamlit/db/mSigDB_mouse"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
 			else:
-				dir_path = "/home/cellxgene/streamlit/db/mSigDB"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
 		elif db == 'Enrichr':
 			if species == 'mouse':
-				dir_path = "/home/cellxgene/streamlit/db/enrichr_database_mouse"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
 			else:
-				dir_path = "/home/cellxgene/streamlit/db/enrichr_database"
+				dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
 		else:
 			uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
 			if uploaded_gmt is not None:
-				GO_name = upload_gmt.name
+				GO_name = uploaded_gmt.name
 				stringio = StringIO(uploaded_gmt.getvalue().decode("utf-8"))
 				s = stringio.read()
 				t = s.split('\n')

@@ -55,11 +55,11 @@ st.write("APPRIS piricipal transcript databeses do not cover all the genes. Prob
 
 
 if species == 'Human':
-    with open("/home/cellxgene/streamlit/data/human_synonym2symbol.pkl", "rb") as tf:
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "human_synonym2symbol.pkl"), "rb") as tf:
         dic = pickle.load(tf)
 
 else:
-    with open("/home/cellxgene/streamlit/data/mouse_synonym2symbol.pkl", "rb") as tf:
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse_synonym2symbol.pkl"), "rb") as tf:
         dic = pickle.load(tf)
 
 isoform_method = st.radio(
@@ -138,20 +138,20 @@ if uploaded_file is not None:
 
         if species == "mouse":
             if version == 'APPRIS_vm25':
-                length = pd.read_csv('db/mm10_principal_gene_length.tsv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mm10_principal_gene_length.tsv"), sep = '\t', index_col=0)
             elif version == 'APPRIS_vm23':
-                length = pd.read_csv('db/mm10_principal_gene_length.vm23.tsv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mm10_principal_gene_length.vm23.tsv"), sep = '\t', index_col=0)
             elif version == 'Ensembl_GRCm38.p6':
-                length = pd.read_csv('db/GRCm38.p6_transcript_lengths.csv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "GRCm38.p6_transcript_lengths.csv"), sep = '\t', index_col=0)
             elif version == 'Ensembl_GRCm38.p3(2015)':
-                length = pd.read_csv('db/GRCm38.p3_transcript_lengths.csv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "GRCm38.p3_transcript_lengths.csv"), sep = '\t', index_col=0)
             elif version == 'Ensembl_GRCm39':
-                length = pd.read_csv('db/GRCm39_transcript_lengths.csv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "GRCm39_transcript_lengths.csv"), sep = '\t', index_col=0)
         else:
             if version == 'Ensembl_GRCh38':
-                length = pd.read_csv('db/GRCh38_transcript_lengths.csv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "GRCh38_transcript_lengths.csv"), sep = '\t', index_col=0)
             elif version == 'APPRIS_hg38':
-                length = pd.read_csv('db/hg38_principal_gene_length.v45.tsv', sep = '\t', index_col=0)
+                length = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "hg38_principal_gene_length.v45.tsv"), sep = '\t', index_col=0)
 
 #        st.write(length.head())
         if version in ['APPRIS_vm25', 'APPRIS_hg38', 'APPRIS_vm23']:

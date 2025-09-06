@@ -328,7 +328,8 @@ if uploaded_file is not None:
             from rpy2.robjects.vectors import StrVector
             import pyper
             r = pyper.R(use_pandas=True)
-            f = ro.r("source('/home/cellxgene/streamlit/pages/deseq2_func.R')") # full pathが必要
+            script_path = os.path.join(os.path.dirname(__file__), "deseq2_func.R")
+            f = ro.r(f"source('{script_path}')") # full pathが必要
 
             condition = [str(i) for i in df.columns.tolist()] #error防止
             group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く

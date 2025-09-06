@@ -5,12 +5,13 @@ import re
 import csv
 import Levenshtein
 import sys
+import os
 
 st.set_page_config(page_title="Make_rank_file.", page_icon="⇅")
 
 def load_m2h():
     import pickle
-    with open("/home/cellxgene/streamlit/data/mouse2human.dic", mode='rb') as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse2human.dic"), mode='rb') as f:
         data = pickle.load(f)
     return data
 

@@ -50,17 +50,17 @@ if uploaded_file is not None:
     if species != 'No conversion, summarize duplicates':
         if canonical:
             if species == 'Human':
-                with open("/home/cellxgene/streamlit/data/Hg38_ENSEMBLCanonicalSmbol.pkl", "rb") as tf:
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "Hg38_ENSEMBLCanonicalSmbol.pkl"), "rb") as tf:
                     dic = pickle.load(tf)
             else:
-                with open("/home/cellxgene/streamlit/data/ENSEMBLCanonicalSmbol.pkl", "rb") as tf:
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "ENSEMBLCanonicalSmbol.pkl"), "rb") as tf:
                     dic = pickle.load(tf)
         else:
             if species == 'Human':
-                with open("/home/cellxgene/streamlit/data/Human_ENSMUSGT2Symbol.pkl", "rb") as tf:
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "Human_ENSMUSGT2Symbol.pkl"), "rb") as tf:
                     dic = pickle.load(tf)
             else:
-                with open("/home/cellxgene/streamlit/data/ENSMUSGT2Symbol.pkl", "rb") as tf:
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "ENSMUSGT2Symbol.pkl"), "rb") as tf:
                     dic = pickle.load(tf)
 
         gene_list = df.index.tolist()

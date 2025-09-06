@@ -1433,7 +1433,7 @@ def load_tfs_list(file) -> Set[str]:
 @st.cache_data
 def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
     """
-    regulonデータの読み込み
+    regulonデータの読み込み（TSVまたはJSON形式に対応）
     Returns:
         Tuple[Dict[str, Set[str]], Set[str]]: (regulon_data, all_genes)
         - regulon_data: TFとその制御遺伝子の辞書
@@ -1442,8 +1442,54 @@ def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
     regulon_data = defaultdict(set)
     all_genes = set()
     
-    content = file.getvalue().decode('utf-8').splitlines()
-    for line in content[1:]:  # Skip header
+    content = file.getvalue().decode('utf-8')
+    
+    # JSON形式かどうかをチェック
+    if content.strip().startswith('[') or content.strip().startswith('{'):
+        try:
+            import json
+            data = json.loads(content)
+            
+            # pySCENIC JSON形式の処理
+            if isinstance(data, list):
+                # リスト形式: [{"TF": "TF1", "TargetGenes": [...]}, ...]
+                for regulon in data:
+                    if isinstance(regulon, dict):
+                        # 様々なキー名に対応
+                        tf = regulon.get('TF') or regulon.get('tf') or regulon.get('transcription_factor') or ''
+                        if 'Regulon' in regulon:
+                            tf = regulon['Regulon'].split('(')[0].strip()
+                        
+                        # ターゲット遺伝子の取得（様々なキー名に対応）
+                        targets = regulon.get('TargetGenes') or regulon.get('targetGenes') or \
+                                 regulon.get('targets') or regulon.get('genes') or []
+                        
+                        if tf:
+                            tf = tf.split('(')[0].strip()  # (+)などを除去
+                            regulon_data[tf] = set(targets)
+                            all_genes.add(tf)
+                            all_genes.update(targets)
+            
+            elif isinstance(data, dict):
+                # 辞書形式: {"TF1": ["gene1", "gene2"], ...}
+                for tf, targets in data.items():
+                    tf = tf.split('(')[0].strip()
+                    if isinstance(targets, list):
+                        regulon_data[tf] = set(targets)
+                        all_genes.add(tf)
+                        all_genes.update(targets)
+            
+            # JSON処理が成功した場合はここで返す
+            if regulon_data:
+                return regulon_data, all_genes
+                
+        except (json.JSONDecodeError, Exception) as e:
+            # JSON解析に失敗した場合は、TSV形式として処理を続行
+            pass
+    
+    # TSV形式の処理（既存のコード）
+    lines = content.splitlines()
+    for line in lines[1:]:  # Skip header
         row = line.split('\t')
         if len(row) >= 2:
             tf = row[0].split('(')[0].strip()
@@ -3120,8 +3166,8 @@ def main():
 
     st.markdown("##### Upload Regulon Data")
     regulon_file = st.file_uploader(
-        "regulons.seurat_object.filtered_by_pySCENIC.txt or regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txt or regulons.seurat_object.txt", 
-        type=['txt', 'tsv'],
+        "regulons.json (pySCENIC) or regulons.seurat_object.filtered_by_pySCENIC.txt or regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txt or regulons.seurat_object.txt", 
+        type=['txt', 'tsv', 'json'],
         help ='regulons.seurat_object.filtered_by_pySCENIC.txtはpySCENICでフィルタリングされたもの、regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txtではregulonが活性化している細胞が10以下と判断されたregulonは除かれている'
     )
 
@@ -3595,6 +3641,22 @@ def main():
                     )
                     
 
+            # 黄色のSubmitボタンスタイル
+            st.markdown("""
+                <style>
+                div.stFormSubmitButton > button {
+                    background-color: #FFD700;
+                    color: black;
+                    border: none;
+                }
+                div.stFormSubmitButton > button:hover {
+                    background-color: #FFC700;
+                    color: black;
+                    border: none;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+            
             submitted = st.form_submit_button("Submit")
             
             if submitted:

@@ -17,9 +17,9 @@ else:
     temp_dir, res_dir = mk_temp_dir("bedgraph", temp_dir)
 
 GENOME_FILES = {
-    "mm10": "/home/cellxgene/streamlit/db/genome_size/mm10.chrom.sizes",
-    "mm39": "./db/genome_size/mm39.chrom.sizes",
-    "hg38": "./db/genome_size/hg38.chrom.sizes"
+    "mm10": os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "genome_size", "mm10.chrom.sizes"),
+    "mm39": os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "genome_size", "mm39.chrom.sizes"),
+    "hg38": os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "genome_size", "hg38.chrom.sizes")
 }
 
 def process_bam_file(bam_file, sample_name, genome_file):

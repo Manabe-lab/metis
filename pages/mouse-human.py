@@ -11,13 +11,15 @@ import numpy as np
 
 def load_m2h():
     import pickle
-    with open("/home/cellxgene/streamlit/data/mouse2human.dic", mode='rb') as f:
+    data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse2human.dic")
+    with open(data_path, mode='rb') as f:
         data = pickle.load(f)
     return data
 
 def load_h2m():
     import pickle
-    with open("/home/cellxgene/streamlit/data/human2mouse.dic", mode='rb') as f:
+    data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "human2mouse.dic")
+    with open(data_path, mode='rb') as f:
         data = pickle.load(f)
     return data
 
@@ -259,7 +261,8 @@ if st.button('Run conversion'):
                 converted_genes = convert_mouse_to_human_symbols(data, version=1)
             elif method == 'Nicehnetr v1 (corrected)':
                 # 修正版NichenetR v1を使用
-                geneinfo_corrected = pd.read_csv("/home/ichiro/streamlit/db/nichenetr.db/nichenetr_geneinfo_human_corrected.csv")
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_human_corrected.csv")
+                geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
                     geneinfo_corrected.dropna()
                     .groupby('symbol_mouse').size()
@@ -286,17 +289,20 @@ if st.button('Run conversion'):
                 converted_genes = [mousesymbol2humansymbol.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus':
                 # Consensusテーブルを使用
-                consensus_df = pd.read_csv("/home/cellxgene/streamlit/data/consensus_orthologs_one_to_one.csv")
+                data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one.csv")
+                consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['mouse_symbol'], consensus_df['human_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus (corrected)':
                 # 修正版Consensusテーブルを使用
-                consensus_df = pd.read_csv("/home/cellxgene/streamlit/data/consensus_orthologs_one_to_one_corrected.csv")
+                data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one_corrected.csv")
+                consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['mouse_symbol'], consensus_df['human_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Nichenetr v2 (corrected)':
                 # 修正版NichenetR v2を使用
-                geneinfo_corrected = pd.read_csv("/home/ichiro/streamlit/db/nichenetr.db/nichenetr_geneinfo_2022_corrected.csv")
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_2022_corrected.csv")
+                geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
                     geneinfo_corrected.dropna()
                     .groupby('symbol_mouse').size()
@@ -329,7 +335,8 @@ if st.button('Run conversion'):
                 converted_genes = convert_human_to_mouse_symbols(data, version=1)
             elif method == 'Nicehnetr v1 (corrected)':
                 # 修正版NichenetR v1を使用
-                geneinfo_corrected = pd.read_csv("/home/ichiro/streamlit/db/nichenetr.db/nichenetr_geneinfo_human_corrected.csv")
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_human_corrected.csv")
+                geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
                     geneinfo_corrected.dropna()
                     .groupby('symbol_mouse').size()
@@ -356,17 +363,20 @@ if st.button('Run conversion'):
                 converted_genes = [humansymbol2mousesymbol.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus':
                 # Consensusテーブルを使用
-                consensus_df = pd.read_csv("/home/cellxgene/streamlit/data/consensus_orthologs_one_to_one.csv")
+                data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one.csv")
+                consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['human_symbol'], consensus_df['mouse_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus (corrected)':
                 # 修正版Consensusテーブルを使用
-                consensus_df = pd.read_csv("/home/cellxgene/streamlit/data/consensus_orthologs_one_to_one_corrected.csv")
+                data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one_corrected.csv")
+                consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['human_symbol'], consensus_df['mouse_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Nichenetr v2 (corrected)':
                 # 修正版NichenetR v2を使用
-                geneinfo_corrected = pd.read_csv("/home/ichiro/streamlit/db/nichenetr.db/nichenetr_geneinfo_2022_corrected.csv")
+                db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_2022_corrected.csv")
+                geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
                     geneinfo_corrected.dropna()
                     .groupby('symbol_mouse').size()

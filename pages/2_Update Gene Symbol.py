@@ -29,16 +29,18 @@ data_format = st.radio(
     ('TSV tab-separated','CSV comma-separated'))
 
 
+data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+
 if species == 'Human':
-    with open("/home/cellxgene/streamlit/data/human_synonym2symbol.pkl", "rb") as tf:
+    with open(os.path.join(data_dir, "human_synonym2symbol.pkl"), "rb") as tf:
         dic = pickle.load(tf)
-    with open("/home/cellxgene/streamlit/data/Human_refseq2symbol_2023-4.pkl", "rb") as tf:
+    with open(os.path.join(data_dir, "Human_refseq2symbol_2023-4.pkl"), "rb") as tf:
         refseq = pickle.load(tf)
 
 else:
-    with open("/home/cellxgene/streamlit/data/mouse_synonym2symbol.pkl", "rb") as tf:
+    with open(os.path.join(data_dir, "mouse_synonym2symbol.pkl"), "rb") as tf:
         dic = pickle.load(tf)
-    with open("/home/cellxgene/streamlit/data/mouse_refseq2symbol_2023-4.pkl", "rb") as tf:
+    with open(os.path.join(data_dir, "mouse_refseq2symbol_2023-4.pkl"), "rb") as tf:
         refseq = pickle.load(tf)
 
 

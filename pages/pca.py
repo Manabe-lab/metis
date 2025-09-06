@@ -334,7 +334,7 @@ if df is not None:
                 from rpy2.robjects.vectors import StrVector
                 import pyper
                 r = pyper.R(use_pandas=True)
-                f = ro.r("source('/home/cellxgene/streamlit/pages/deseq2_func.R')") # full pathが必要
+                f = ro.r(f"source('{os.path.join(os.path.dirname(__file__), 'deseq2_func.R')}')")  # full pathが必要
                 condition = [str(i) for i in df.columns.tolist()]
                 group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
                 group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く

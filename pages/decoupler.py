@@ -47,17 +47,17 @@ st.sidebar.title("Options")
 
 def get_tf_databases(species):
     """TFデータベースの定義を返す"""
-    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
-    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
     
     return [
-        {'name': 'DoRothEA A', 'path': 'db', 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A']},
+        {'name': 'DoRothEA A', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A']},
          'source': 'tf', 'target': 'target', 'type': 'dorothea'},
-        {'name': 'DoRothEA B', 'path': 'db', 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A', 'B']},
+        {'name': 'DoRothEA B', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A', 'B']},
          'source': 'tf', 'target': 'target', 'type': 'dorothea'},
  #       {'name': 'MSigDB TFT', 'path': msigdb_dir, 'file': 'c3.tft.v2023.2.Hs.symbols.gmt' if species=='human' else 'c3.tft.v2023.2.Hs.symbols.Mouse.gmt',
  #        'source': 'source', 'target': 'target', 'type': 'gmt'},
-         {'name': 'CollecTRI', 'path': 'db', 'file': f'TRI.{species}.tsv', 
+         {'name': 'CollecTRI', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'TRI.{species}.tsv', 
          'source': 'source', 'target': 'target', 'type': 'collecTRI'},
         {'name': 'ChEA 2022', 'path': enrichr_dir, 'file': 'ChEA_2022.gmt',
          'source': 'source', 'target': 'target', 'type': 'gmt'},
@@ -73,8 +73,8 @@ def get_tf_databases(species):
 
 def get_pathway_databases(species):
     """パスウェイデータベースの定義を返す"""
-    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
-    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
     
     return [
             {'name': 'MSigDB Hallmark', 'path': msigdb_dir, 'file': 'h.all.v2023.2.Hs.symbols.gmt' if species=='human' else 'mh.all.v2023.2.Mm.symbols.gmt',
@@ -97,8 +97,8 @@ def get_pathway_databases(species):
 
 def get_celltype_databases(species):
     """パスウェイデータベースの定義を返す"""
-    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
-    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
     
     return [
             {'name': 'MSigDB cell type signature', 'path': msigdb_dir, 'file': 'c8.all.v2023.2.Hs.symbols.gmt' if species=='human' else 'm8.all.v2023.2.Mm.symbols.gmt',
@@ -1023,7 +1023,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
         num_progeny = st.radio("Number of top genes:", ('500','2000','5000', 'all'), index = 0,
             help="各パスウェイの活性計算に使用するフットプリント遺伝子数。500（高信頼性）〜all（全遺伝子）。デフォルトの500推奨。")
         if st.button('Load PROGENy db') or (num_progeny != st.session_state.num_progeny):
-            net = pd.read_csv('./db/progeny.' + species + "." + num_progeny + '.tsv', sep = '\t')
+            net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'progeny.{species}.{num_progeny}.tsv'), sep = '\t')
             source='source'
             target='target'
             weight = 'weight'
@@ -1039,7 +1039,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             weight = 'weight'
 
     elif path == 'CollecTRI':
-        net = pd.read_csv('./db/TRI.' + species + '.tsv', sep = '\t')
+        net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'TRI.{species}.tsv'), sep = '\t')
         source='source'
         target='target'
         weight = 'weight'
@@ -1053,7 +1053,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             conf_levels = ['A', 'B','C']
         elif conf == 'D':
             conf_levels = ['A', 'B','C', 'D']
-        net = pd.read_csv('./db/dorothea.' + species + '.tsv', sep = '\t')
+        net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'dorothea.{species}.tsv'), sep = '\t')
         source='tf'
         target='target'
         weight = 'mor'
@@ -1091,19 +1091,19 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
         weight = None
         if path == 'mSigDB':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
         elif path == 'Enrichr':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_gmt_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_gmt"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
         elif path == 'Homemade':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
 
         files_file = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
         files_file.sort()

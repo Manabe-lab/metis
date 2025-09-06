@@ -9,9 +9,14 @@ st.set_page_config(
 
 # Home page function
 def home():
+    # Display logo image
+    import os
+    logo_path = os.path.join(os.path.dirname(__file__), "Metis_logo.png")
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=150)
+    
     st.markdown(
     """
-    # 🧝🏻‍♀️Metis
     #### ***M***olecular ***E***xploration and ***T***ranscriptomic ***I***nvestigation ***S***uite
 
     #### RNA-seq workflow

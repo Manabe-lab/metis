@@ -785,19 +785,19 @@ if Analysis_mode == "Over-representation":
 
         if db == 'mSigDB':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
         elif db == 'Enrichr':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_database_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_database"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
         elif db == 'Homemade':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
         else:
             GO = None
             uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
@@ -1120,19 +1120,19 @@ elif Analysis_mode == "Prerank":
 
         if db == 'mSigDB':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/mSigDB"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
         elif db == 'Enrichr':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_database_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/enrichr_database"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
         elif db == 'Homemade':
             if species == 'mouse':
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt_mouse"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
             else:
-                dir_path = "/home/cellxgene/streamlit/db/custum_gmt"
+                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
 
         else:
             uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])

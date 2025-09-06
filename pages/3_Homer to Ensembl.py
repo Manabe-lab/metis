@@ -48,18 +48,18 @@ if uploaded_file is not None:
     st.write(df.head(3))
 
     if species == 'Human':
-        with open("/home/cellxgene/streamlit/data/human_synonym2symbol.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "human_synonym2symbol.pkl"), "rb") as tf:
             synonym = pickle.load(tf)
-        with open("/home/cellxgene/streamlit/data/Human_refseq2ensembl_2023-4.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "Human_refseq2ensembl_2023-4.pkl"), "rb") as tf:
             refseq = pickle.load(tf)
-        with open("/home/cellxgene/streamlit/data/Human_Symbol2Ensembl_2023-4.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "Human_Symbol2Ensembl_2023-4.pkl"), "rb") as tf:
             dic = pickle.load(tf)
     else:
-        with open("/home/cellxgene/streamlit/data/mouse_synonym2symbol.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse_synonym2symbol.pkl"), "rb") as tf:
             synonym = pickle.load(tf)
-        with open("/home/cellxgene/streamlit/data/mouse_refseq2ensembl_2023-4.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse_refseq2ensembl_2023-4.pkl"), "rb") as tf:
             refseq = pickle.load(tf)
-        with open("/home/cellxgene/streamlit/data/Symbol2Ensembl_2023-4.pkl", "rb") as tf:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "Symbol2Ensembl_2023-4.pkl"), "rb") as tf:
             dic = pickle.load(tf)
 
     OutDataName = os.path.splitext(uploaded_file.name)[0] + '.Ensembl.txt'
@@ -86,7 +86,7 @@ if uploaded_file is not None:
                  new_id = dic[gene]
             except:
                 try:
-                    new_synbol = synonym[gene]
+                    new_symbol = synonym[gene]
                 except:
                     ens_id.append(i) # どちらも存在しないとき
                     removed.append(i)
@@ -101,7 +101,7 @@ if uploaded_file is not None:
                         converted_id.append(i)
                         removed_genes.append([i, gene])
                     else:
-                        ens.id.append(new_id)
+                        ens_id.append(new_id)
                         exist_id.append(i)
                         converted_id.append(new_id)
             else:

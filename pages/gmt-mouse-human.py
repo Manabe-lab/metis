@@ -76,9 +76,9 @@ def convert_human_to_mouse_symbols(symbols, version=1):
     if not isinstance(symbols, (list, pd.Series)):
         raise ValueError("symbols should be a list or pandas Series of human gene symbols")
     if version == 1:
-        geneinfo = pd.read_csv("db/nichenetr.db/geneinfo_human.tsv", sep = '\t')
+        geneinfo = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "geneinfo_human.tsv"), sep = '\t')
     elif version == 2:
-        geneinfo = pd.read_csv("db/nichenetr.db/geneinfo_2022.tsv", sep = '\t')
+        geneinfo = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "geneinfo_2022.tsv"), sep = '\t')
     else:
         raise ValueError("version must be 1 or 2")
     unambiguous_mouse_genes = (
@@ -111,9 +111,9 @@ def convert_mouse_to_human_symbols(symbols, version=1):
     if not isinstance(symbols, (list, pd.Series)):
         raise ValueError("symbols should be a list or pandas Series of mouse gene symbols")
     if version == 1:
-        geneinfo = pd.read_csv("db/nichenetr.db/geneinfo_human.tsv", sep = '\t')
+        geneinfo = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "geneinfo_human.tsv"), sep = '\t')
     elif version == 2:
-        geneinfo = pd.read_csv("db/nichenetr.db/geneinfo_2022.tsv", sep = '\t')
+        geneinfo = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "geneinfo_2022.tsv"), sep = '\t')
     else:
         raise ValueError("version must be 1 or 2")
     unambiguous_mouse_genes = (
@@ -190,10 +190,10 @@ if uploaded_file is not None:
         go = new_go
         # human2mouse変換dictionaryの読み込み
         if species == "Human":
-            with open("/home/cellxgene/streamlit/data/human2mouse.dic", mode='rb') as f:
+            with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "human2mouse.dic"), mode='rb') as f:
                 h2m = pickle.load(f)
         else:
-            with open("/home/cellxgene/streamlit/data/mouse2human.dic", mode='rb') as f:
+            with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mouse2human.dic"), mode='rb') as f:
                 h2m = pickle.load(f)
 
         if method == 'in-house':

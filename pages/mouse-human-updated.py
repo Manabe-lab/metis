@@ -10,7 +10,7 @@ import shutil
 import numpy as np
 
 # データディレクトリのパス
-DATA_DIR = "/home/cellxgene/streamlit/data"
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 def load_m2h():
     import pickle
@@ -53,30 +53,30 @@ def load_conversion_tables():
     
     # NichenetR v1 (original)
     try:
-        tables['nichenetr_v1_original'] = pd.read_csv("db/nichenetr.db/nichenetr_v1_original.csv")
+        tables['nichenetr_v1_original'] = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_v1_original.csv"))
     except:
-        st.warning("db/nichenetr.db/nichenetr_v1_original.csv not found")
+        st.warning("nichenetr_v1_original.csv not found")
         tables['nichenetr_v1_original'] = None
     
     # NichenetR v1 (corrected)
     try:
-        tables['nichenetr_v1_corrected'] = pd.read_csv("db/nichenetr.db/nichenetr_v1_corrected.csv")
+        tables['nichenetr_v1_corrected'] = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_v1_corrected.csv"))
     except:
-        st.warning("db/nichenetr.db/nichenetr_v1_corrected.csv not found")
+        st.warning("nichenetr_v1_corrected.csv not found")
         tables['nichenetr_v1_corrected'] = None
     
     # NichenetR v2 (original)
     try:
-        tables['nichenetr_v2_original'] = pd.read_csv("db/nichenetr.db/nichenetr_v2_original.csv")
+        tables['nichenetr_v2_original'] = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_v2_original.csv"))
     except:
-        st.warning("db/nichenetr.db/nichenetr_v2_original.csv not found")
+        st.warning("nichenetr_v2_original.csv not found")
         tables['nichenetr_v2_original'] = None
     
     # NichenetR v2 (corrected)
     try:
-        tables['nichenetr_v2_corrected'] = pd.read_csv("db/nichenetr.db/nichenetr_v2_corrected.csv")
+        tables['nichenetr_v2_corrected'] = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_v2_corrected.csv"))
     except:
-        st.warning("db/nichenetr.db/nichenetr_v2_corrected.csv not found")
+        st.warning("nichenetr_v2_corrected.csv not found")
         tables['nichenetr_v2_corrected'] = None
     
     return tables

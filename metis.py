@@ -17,8 +17,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This project contains modified code from SCALA (https://github.com/PavlopoulosLab/SCALA)
-Original SCALA code is also licensed under GPL-3.0.
 """
 
 import streamlit as st

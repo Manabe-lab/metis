@@ -1,4 +1,4 @@
-![METIS Logo](Metis_logo.png)
+<img src="Metis_logo.png" alt="METIS Logo" width="150">
 
 ## **M**olecular **E**xploration and **T**ranscriptomic **I**nvestigation **S**uite
 

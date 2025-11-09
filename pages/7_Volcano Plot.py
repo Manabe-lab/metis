@@ -916,27 +916,30 @@ if df is not None:
             pdf_command = "ggsave(filename = '" + res_dir + "/" + file_name + "_EnhancedVolcano.pdf', plot = p, device = 'pdf', width = " + EV_X_size + ", height = " + EV_Y_size + ")"
             r(pdf_command)
 
-        # Download options
+        # Download options using form
         st.markdown("---")
-        download_subset = st.checkbox("Include labeled DEG data subset in download?", value=False)
+        with st.form("download_form"):
+            download_subset = st.checkbox("Include labeled DEG data subset in download?", value=False)
+            submitted = st.form_submit_button("Download plots")
 
-        # Save labeled gene subset if requested
-        if download_subset and len(gene_list) > 0:
-            # Create subset dataframe with labeled genes
-            subset_df = df.loc[gene_list].copy()
-            subset_filename = file_name_head + ".subset.tsv"
-            subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
-            st.write(f"Labeled genes subset: {len(gene_list)} genes")
+            if submitted:
+                # Save labeled gene subset if requested
+                if download_subset and len(gene_list) > 0:
+                    # Create subset dataframe with labeled genes
+                    subset_df = df.loc[gene_list].copy()
+                    subset_filename = file_name_head + ".subset.tsv"
+                    subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
+                    st.write(f"Labeled genes subset: {len(gene_list)} genes")
 
-        # zipファイルの作成と保存
-        shutil.make_archive(temp_dir + "/Volcano", format='zip', root_dir=res_dir)
-        with open(temp_dir + "/Volcano.zip", "rb") as fp:
-            btn = st.download_button(
-                label="Download plots" + (" and labeled DEG subset" if download_subset else "") + "?",
-                data=fp,
-                file_name=file_name_head + "_" + file_name + "_Volcano.zip",
-                mime="zip"
-            )
+                # zipファイルの作成と保存
+                shutil.make_archive(temp_dir + "/Volcano", format='zip', root_dir=res_dir)
+                with open(temp_dir + "/Volcano.zip", "rb") as fp:
+                    btn = st.download_button(
+                        label="Download zip file" + (" with labeled DEG subset" if download_subset else ""),
+                        data=fp,
+                        file_name=file_name_head + "_" + file_name + "_Volcano.zip",
+                        mime="zip"
+                    )
 
         # 一時ディレクトリの掃除
         shutil.rmtree(temp_dir)

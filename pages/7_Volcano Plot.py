@@ -88,6 +88,16 @@ with st.sidebar:
         # Read the gene list for the selected class
         file_path = "db/functionalclass/" + functional_classes[selected_class]
         goi = read_gene_list(file_path)
+
+        # Download button for the selected functional gene list
+        if goi is not None and len(goi) > 0:
+            gene_list_str = "\n".join(goi)
+            st.download_button(
+                label=f"Download {selected_class} gene list ({len(goi)} genes)",
+                data=gene_list_str,
+                file_name=f"{species}_{selected_class.replace(' ', '_')}_genes.txt",
+                mime="text/plain"
+            )
 # temp内に保存する
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:

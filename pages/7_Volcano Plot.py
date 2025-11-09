@@ -65,9 +65,9 @@ with st.sidebar:
 
         # Define functional class options based on species
         if species == 'mouse':
-            class_options = ["TF","Epigenetic regulator","CytokineGF", "Cytokine-GF Ligand", "Cytokine-GF Receptor", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
+            class_options = ["TF","Epigenetic regulator", "Cytokine-GF Ligand", "Cytokine-GF Receptor", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
         else:
-            class_options = ["TF","Epigenetic regulator","CytokineGF", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
+            class_options = ["TF","Epigenetic regulator", "Cytokine-GF", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
 
         selected_class = st.selectbox("Functional class", class_options, index = 0)
 
@@ -76,7 +76,6 @@ with st.sidebar:
             functional_classes = {
                 "TF": "Mus_musculus_TF_llst.txt",
                 "Epigenetic regulator": "Mus_musculus_epigenetic_factors_list.txt",
-                "CytokineGF": "cytokine-genes-mouse_symbols.txt",
                 "Cytokine-GF Ligand": "CytokineGF_mouse_ligand.txt",
                 "Cytokine-GF Receptor": "CytokineGF_mouse_receptor.txt",
                 "NicheNet Ligand": "NicheNet_ligand.txt",
@@ -91,7 +90,7 @@ with st.sidebar:
             functional_classes = {
                 "TF": "Homo_sapiens_TF_list.txt",
                 "Epigenetic regulator": "Human_epigenetic_factors_list.txt",
-                "CytokineGF": "cytokine-genes-mouse_symbols.txt",
+                "Cytokine-GF": "CytokineGF_human.txt",
                 "NicheNet Ligand": "NicheNet_ligand.txt",
                 "NicheNet Receptor": "NicheNet_receptor.txt",
                 "CellChat Ligand": "CellChat_human_ligand.txt",

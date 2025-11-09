@@ -918,28 +918,36 @@ if df is not None:
 
         # Download options using form
         st.markdown("---")
+
+        # Initialize session state for download options
+        if "download_subset" not in st.session_state:
+            st.session_state.download_subset = False
+
         with st.form("download_form"):
-            download_subset = st.checkbox("Include labeled DEG data subset in download?", value=False)
-            submitted = st.form_submit_button("Download plots")
+            download_subset = st.checkbox("Include labeled DEG data subset in download?", value=st.session_state.download_subset)
+            submitted = st.form_submit_button("Prepare download")
 
             if submitted:
-                # Save labeled gene subset if requested
-                if download_subset and len(gene_list) > 0:
-                    # Create subset dataframe with labeled genes
-                    subset_df = df.loc[gene_list].copy()
-                    subset_filename = file_name_head + ".subset.tsv"
-                    subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
-                    st.write(f"Labeled genes subset: {len(gene_list)} genes")
+                st.session_state.download_subset = download_subset
+                st.success("Download prepared! Click the download button below.")
 
-                # zipファイルの作成と保存
-                shutil.make_archive(temp_dir + "/Volcano", format='zip', root_dir=res_dir)
-                with open(temp_dir + "/Volcano.zip", "rb") as fp:
-                    btn = st.download_button(
-                        label="Download zip file" + (" with labeled DEG subset" if download_subset else ""),
-                        data=fp,
-                        file_name=file_name_head + "_" + file_name + "_Volcano.zip",
-                        mime="zip"
-                    )
+        # Save labeled gene subset if requested
+        if st.session_state.download_subset and len(gene_list) > 0:
+            # Create subset dataframe with labeled genes
+            subset_df = df.loc[gene_list].copy()
+            subset_filename = file_name_head + ".subset.tsv"
+            subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
+            st.write(f"Labeled genes subset: {len(gene_list)} genes")
+
+        # zipファイルの作成と保存（formの外）
+        shutil.make_archive(temp_dir + "/Volcano", format='zip', root_dir=res_dir)
+        with open(temp_dir + "/Volcano.zip", "rb") as fp:
+            btn = st.download_button(
+                label="Download plots" + (" with labeled DEG subset" if st.session_state.download_subset else ""),
+                data=fp,
+                file_name=file_name_head + "_" + file_name + "_Volcano.zip",
+                mime="zip"
+            )
 
         # 一時ディレクトリの掃除
         shutil.rmtree(temp_dir)

@@ -1372,7 +1372,29 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                             bar_name_org =  path + '_barplot'
                         bar_name_head = st.text_input("Barplot file name: ", value = bar_name_org)
                         bar_name = bar_name_head + ".pdf"
-                        bar_top = int(st.number_input('How many top terms to show', min_value =1, step =1, value=15))
+
+                        # Filtering method selection
+                        bar_filter_method = st.radio(
+                            "Filter by:",
+                            ('Top N', 'Adjusted P-value threshold'),
+                            index=0,
+                            help="Choose how to filter terms for the barplot"
+                        )
+
+                        if bar_filter_method == 'Top N':
+                            bar_top = int(st.number_input('How many top terms to show', min_value=1, step=1, value=15))
+                            bar_adjp_threshold = None
+                        else:
+                            bar_adjp_threshold = st.number_input(
+                                'Adjusted P-value threshold',
+                                min_value=0.0,
+                                max_value=1.0,
+                                step=0.01,
+                                value=0.05,
+                                help="Show terms with adj.p_value <= threshold"
+                            )
+                            bar_top = None
+
                         bar_vertical = st.checkbox("Vertical plot?", value=True)
                         bar_vc = st.checkbox("Change center value?", value=False)
                         if bar_vc:
@@ -1383,7 +1405,21 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                         bar_y_size = st.number_input('Y size', min_value =1, value=6)
 
                     bar_plot_name = dc_temp_dir + "/" + bar_name
-                    fig_bar = dc.plot_barplot(score, stat_column, top=bar_top, vertical=bar_vertical, figsize = (bar_x_size, bar_y_size),
+
+                    # Filter score based on adj.p_value if threshold is set
+                    if bar_adjp_threshold is not None and 'adj.p_value' in res.columns:
+                        significant_terms = res[res['adj.p_value'] <= bar_adjp_threshold].index.tolist()
+                        if len(significant_terms) == 0:
+                            st.warning(f"No terms with adj.p_value <= {bar_adjp_threshold}. Showing top 15 instead.")
+                            bar_top = 15
+                            score_filtered = score
+                        else:
+                            score_filtered = score[[col for col in score.columns if col in significant_terms]]
+                            st.info(f"Found {len(significant_terms)} terms with adj.p_value <= {bar_adjp_threshold}")
+                    else:
+                        score_filtered = score
+
+                    fig_bar = dc.plot_barplot(score_filtered, stat_column, top=bar_top, vertical=bar_vertical, figsize = (bar_x_size, bar_y_size),
                         vcenter = bar_v_center,  return_fig=True) # save = dc_temp_dir + "/" + bar_name,
                     fig_bar.gca().invert_yaxis()
                     fig_bar.savefig(dc_temp_dir + "/" + bar_name,bbox_inches='tight')
@@ -1392,8 +1428,8 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                 #            vcenter = bar_v_center, save = dc_temp_dir + "/" + bar_name)
 
 
-                    # Create plot with DECOUPLER
-                    fig = dc.plot_barplot(score, stat_column, top=bar_top, vertical=bar_vertical,
+                    # Create plot with DECOUPLER (with FDR coloring)
+                    fig = dc.plot_barplot(score_filtered, stat_column, top=bar_top, vertical=bar_vertical,
                                          figsize=(bar_x_size, bar_y_size), vcenter=bar_v_center, return_fig=True)
 
                     # Remove existing colorbar
@@ -1602,7 +1638,29 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                         bar_name_org = bar_name_org + "." + "_".join(map(str, selected_cluster))
                     bar_name_head = st.text_input("ORA: Barplot file name: ", value = bar_name_org)
                     bar_name = bar_name_head + ".pdf"
-                    bar_top = int(st.number_input('ORA: How many top terms to show', min_value =1, step =1, value=15))
+
+                    # ORA Filtering method selection
+                    ora_bar_filter_method = st.radio(
+                        "ORA: Filter by:",
+                        ('Top N', 'FDR threshold'),
+                        index=0,
+                        help="Choose how to filter terms for the ORA barplot"
+                    )
+
+                    if ora_bar_filter_method == 'Top N':
+                        bar_top = int(st.number_input('ORA: How many top terms to show', min_value=1, step=1, value=15))
+                        ora_fdr_threshold = None
+                    else:
+                        ora_fdr_threshold = st.number_input(
+                            'ORA: FDR threshold',
+                            min_value=0.0,
+                            max_value=1.0,
+                            step=0.01,
+                            value=0.05,
+                            help="Show terms with FDR p-value <= threshold"
+                        )
+                        bar_top = None
+
                     bar_vertical = st.checkbox("ORA: Vertical plot?", value=True)
                     bar_vc = st.checkbox("ORA: Change center value?", value=False)
                     if bar_vc:
@@ -1612,8 +1670,21 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                     bar_x_size = st.number_input('ORA: X size', min_value =1, value=8)
                     bar_y_size = st.number_input('ORA: Y size', min_value =1, value=6)
 
+                # Filter ORA results by FDR if threshold is set
+                if ora_fdr_threshold is not None:
+                    significant_terms = ORA_res[ORA_res['FDR p-value'] <= ora_fdr_threshold]['Term'].tolist()
+                    if len(significant_terms) == 0:
+                        st.warning(f"ORA: No terms with FDR p-value <= {ora_fdr_threshold}. Showing top 15 instead.")
+                        bar_top = 15
+                        enr_pvals_filtered = enr_pvals
+                    else:
+                        enr_pvals_filtered = enr_pvals.loc[enr_pvals.index.isin(significant_terms)]
+                        st.info(f"ORA: Found {len(significant_terms)} terms with FDR p-value <= {ora_fdr_threshold}")
+                else:
+                    enr_pvals_filtered = enr_pvals
+
                 try:
-                    fig_bar2 = dc.plot_barplot(enr_pvals.T, 'FDR p-value', vertical=bar_vertical, top=bar_top,
+                    fig_bar2 = dc.plot_barplot(enr_pvals_filtered.T, 'FDR p-value', vertical=bar_vertical, top=bar_top,
                         figsize = (bar_x_size, bar_y_size), vcenter = bar_v_center, return_fig=True)
                     fig_bar2.gca().invert_yaxis()
                     st.pyplot(fig_bar2)
@@ -1624,11 +1695,11 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When 
                     st.write("Probably little difference in FDR.")
                     st.markdown("#### The following graph likely has no use!")
                     st.markdown("##### -log10(0.05) = 1.301")
-                    st.write(enr_pvals)
-                    vmn = enr_pvals['FDR p-value'].min()
-                    vmx = enr_pvals['FDR p-value'].max()
-                    vc = enr_pvals['FDR p-value'].mean()
-                    fig_bar3 = dc.plot_barplot(enr_pvals.T, 'FDR p-value', vertical=bar_vertical, top=bar_top,
+                    st.write(enr_pvals_filtered)
+                    vmn = enr_pvals_filtered['FDR p-value'].min()
+                    vmx = enr_pvals_filtered['FDR p-value'].max()
+                    vc = enr_pvals_filtered['FDR p-value'].mean()
+                    fig_bar3 = dc.plot_barplot(enr_pvals_filtered.T, 'FDR p-value', vertical=bar_vertical, top=bar_top,
                         figsize = (bar_x_size, bar_y_size), vmin = vmn, vmax=vmx, vcenter =vc, return_fig=True)
                     fig_bar3.gca().invert_yaxis()
                     st.pyplot(fig_bar3)

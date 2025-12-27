@@ -17,24 +17,24 @@ from io import StringIO
 
 # Custom component temporarily disabled due to module loading issues in dynamic navigation
 # import streamlit.components.v1 as components
-# 
+#
 # import os
-# 
-# # コンポーネントをグローバル変数として初期化
+#
+# # Initialize component as a global variable
 # if 'pathway_summary' not in st.session_state:
-#     # 現在のスクリプトのディレクトリを取得
+#     # Get the directory of the current script
 #     current_dir = os.path.dirname(os.path.abspath(__file__))
-#     # componentsディレクトリへの絶対パスを構築
+#     # Build absolute path to components directory
 #     components_dir = os.path.join(os.path.dirname(current_dir), 'components', 'pathway_summary')
-#     
-#     # カスタムコンポーネントの定義 - componentsを直接使用
+#
+#     # Define custom component - use components directly
 #     st.session_state.pathway_summary = components.declare_component(
 #         "pathway_summary",
 #         path=components_dir,
-#         url=None  # 明示的にurlをNoneに設定
+#         url=None  # Explicitly set url to None
 #     )
-# 
-# # セッションステートから取得
+#
+# # Get from session state
 # pathway_summary = st.session_state.pathway_summary
 
 import os
@@ -46,18 +46,18 @@ st.sidebar.title("Options")
 
 
 def get_tf_databases(species):
-    """TFデータベースの定義を返す"""
-    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
-    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
-    
+    """Return TF database definitions"""
+    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
+    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+
     return [
-        {'name': 'DoRothEA A', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A']},
+        {'name': 'DoRothEA A', 'path': 'db', 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A']},
          'source': 'tf', 'target': 'target', 'type': 'dorothea'},
-        {'name': 'DoRothEA B', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A', 'B']},
+        {'name': 'DoRothEA B', 'path': 'db', 'file': f'dorothea.{species}.tsv', 'filter': {'confidence': ['A', 'B']},
          'source': 'tf', 'target': 'target', 'type': 'dorothea'},
  #       {'name': 'MSigDB TFT', 'path': msigdb_dir, 'file': 'c3.tft.v2023.2.Hs.symbols.gmt' if species=='human' else 'c3.tft.v2023.2.Hs.symbols.Mouse.gmt',
  #        'source': 'source', 'target': 'target', 'type': 'gmt'},
-         {'name': 'CollecTRI', 'path': os.path.join(os.path.dirname(os.path.dirname(__file__)), "db"), 'file': f'TRI.{species}.tsv', 
+         {'name': 'CollecTRI', 'path': 'db', 'file': f'TRI.{species}.tsv',
          'source': 'source', 'target': 'target', 'type': 'collecTRI'},
         {'name': 'ChEA 2022', 'path': enrichr_dir, 'file': 'ChEA_2022.gmt',
          'source': 'source', 'target': 'target', 'type': 'gmt'},
@@ -72,10 +72,10 @@ def get_tf_databases(species):
     ]
 
 def get_pathway_databases(species):
-    """パスウェイデータベースの定義を返す"""
-    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
-    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
-    
+    """Return pathway database definitions"""
+    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
+    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+
     return [
             {'name': 'MSigDB Hallmark', 'path': msigdb_dir, 'file': 'h.all.v2023.2.Hs.symbols.gmt' if species=='human' else 'mh.all.v2023.2.Mm.symbols.gmt',
          'source': 'source', 'target': 'target', 'type': 'gmt'},
@@ -96,10 +96,10 @@ def get_pathway_databases(species):
         ]
 
 def get_celltype_databases(species):
-    """パスウェイデータベースの定義を返す"""
-    msigdb_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
-    enrichr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse") if species == "mouse" else os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
-    
+    """Return cell type database definitions"""
+    msigdb_dir = "db/mSigDB_mouse" if species == "mouse" else "db/mSigDB"
+    enrichr_dir = "db/enrichr_gmt_mouse" if species == "mouse" else "db/enrichr_gmt"
+
     return [
             {'name': 'MSigDB cell type signature', 'path': msigdb_dir, 'file': 'c8.all.v2023.2.Hs.symbols.gmt' if species=='human' else 'm8.all.v2023.2.Mm.symbols.gmt',
          'source': 'source', 'target': 'target', 'type': 'gmt'},
@@ -117,21 +117,21 @@ def get_celltype_databases(species):
 
 def run_summary_analysis(databases, gene_list, n_background):
     """
-    共通の解析実行関数
+    Common analysis execution function
     """
     all_results = {}
     progress_bar = st.progress(0)
-    
-    # 2列レイアウトを作成
+
+    # Create 2-column layout
     col1, col2 = st.columns(2)
-    
-    # 各データベースで解析を実行
+
+    # Run analysis for each database
     for idx, db in enumerate(databases):
         try:
             filepath = os.path.join(db['path'], db['file'])
             source = db['source']
             target = db['target']
-            
+
             if db.get('type') == 'dorothea':
                 net = pd.read_csv(filepath, sep='\t')
                 net = net[net['confidence'].isin(db['filter']['confidence'])]
@@ -141,30 +141,30 @@ def run_summary_analysis(databases, gene_list, n_background):
 
             else:
                 net = dc.read_gmt(filepath)
-            
-            # キャッシュされた関数を使用して解析実行
+
+            # Run analysis using cached function
             ora_res = run_single_database_analysis(
-                filepath, 
-                gene_list, 
-                source, 
-                target, 
+                filepath,
+                gene_list,
+                source,
+                target,
                 n_background,
                 db_type=db.get('type'),
                 filter_dict=db.get('filter')
             )
-            
+
             if ora_res is not None:
-                # 結果を保存
+                # Save results
                 all_results[db['name']] = ora_res
                 progress_bar.progress((idx + 1) / len(databases))
-                
-                # プロットを表示（2列に分ける）
+
+                # Display plots (split into 2 columns)
                 with col1 if idx % 2 == 0 else col2:
                     if len(ora_res) > 0:
                         display_results(db, ora_res)
             else:
                 st.warning(f"Database file not found: {filepath}")
-                
+
         except Exception as e:
             st.error(f"Error processing {db['name']}: {str(e)}")
 
@@ -173,41 +173,41 @@ def run_summary_analysis(databases, gene_list, n_background):
 
 def display_results(db, ora_res):
     """
-    共通の結果表示関数
+    Common results display function
     """
     with st.expander(f"📊 {db['name']}", expanded=True):
-        # プロット作成
+        # Create plot
         fig, ax = plt.subplots(figsize=(6, 4))
-        
-        # 上位5つを取得し、-log10(FDR)でソート
+
+        # Get top 5 and sort by -log10(FDR)
         plot_data = ora_res.head(5).copy()
         plot_data['neg_log10_fdr'] = -np.log10(plot_data['FDR p-value'])
         plot_data = plot_data.sort_values('neg_log10_fdr', ascending=True)
-        
-        # バープロット作成と色付け
+
+        # Create bar plot and color
         y_pos = range(len(plot_data))
         scores = plot_data['neg_log10_fdr']
         cmap = plt.cm.Reds
         colors = cmap(scores / scores.max())
         bars = ax.barh(y_pos, scores)
-        
+
         for bar, color in zip(bars, colors):
             bar.set_color(color)
-        
+
         ax.set_yticks(y_pos)
         ax.set_yticklabels(plot_data['Term'].str[:50])
         ax.set_xlabel('-log10(FDR)')
         plt.tight_layout()
         st.pyplot(fig)
         plt.close()
-        
-        # 詳細表示ボタン
+
+        # Detailed view button
         if st.button(f"Analyze {db['name']} in detail"):
             display_detailed_analysis(ora_res)
 
 def display_detailed_analysis(ora_res):
     """
-    共通の詳細解析表示関数
+    Common detailed analysis display function
     """
     try:
         fig = create_enrichment_plot(ora_res, '')
@@ -221,20 +221,19 @@ def display_detailed_analysis(ora_res):
     except Exception as e:
         st.error(f"Error creating dot plot: {str(e)}")
 
-    # 結果テーブルを表示
+    # Display results table
     st.markdown("### Results Table")
-    st.dataframe(
-        ora_res[['Term', 'FDR p-value', 'Features']].style.format({
-            'FDR p-value': '{:.2e}'
-        })
-    )
+    # Direct display instead of .style (avoid jinja2 errors)
+    display_df = ora_res[['Term', 'FDR p-value', 'Features']].copy()
+    display_df['FDR p-value'] = display_df['FDR p-value'].apply(lambda x: f'{x:.2e}')
+    st.dataframe(display_df)
 
 @st.cache_data
 def run_single_database_analysis(filepath, gene_list, source, target, n_background, db_type=None, filter_dict=None):
-    """単一のデータベースに対する解析をキャッシュする"""
+    """Cache analysis for a single database"""
     if not os.path.exists(filepath):
         return None
-    
+
     try:
         if db_type == 'dorothea':
             net = pd.read_csv(filepath, sep='\t')
@@ -246,10 +245,10 @@ def run_single_database_analysis(filepath, gene_list, source, target, n_backgrou
             net = pd.read_csv(filepath, sep='\t')
         else:
             net = dc.read_gmt(filepath)
-            
-        ora_res = dc.get_ora_df(gene_list, net, source=source, target=target, 
+
+        ora_res = dc.get_ora_df(gene_list, net, source=source, target=target,
                                n_background=n_background, verbose=False)
-        
+
         return ora_res.sort_values('FDR p-value', ascending=True)
     except Exception as e:
         st.error(f"Error in run_single_database_analysis: {str(e)}")
@@ -257,12 +256,12 @@ def run_single_database_analysis(filepath, gene_list, source, target, n_backgrou
 
 @st.cache_data
 def create_enrichment_plot(ora_res_detail, title):
-    """エンリッチメントプロットを生成してキャッシュする"""
+    """Generate and cache enrichment plot"""
     enr_pvals = ora_res_detail[['FDR p-value']]
     enr_pvals.index = ora_res_detail['Term']
     enr_pvals.values[enr_pvals.values == 0] = np.min(enr_pvals.values[enr_pvals.values != 0])
     enr_pvals = -np.log10(enr_pvals)
-    
+
     g = dc.plot_barplot(enr_pvals.T, 'FDR p-value', vertical=True, top=15,
                        figsize=(8, 6), return_fig=True)
     g.gca().invert_yaxis()
@@ -270,13 +269,13 @@ def create_enrichment_plot(ora_res_detail, title):
 
 @st.cache_data
 def create_dotplot(ora_res_detail):
-    """ドットプロットを生成してキャッシュする"""
+    """Generate and cache dot plot"""
     ora_res_detail = ora_res_detail.copy()
     ora_res_detail['count'] = ora_res_detail['Features'].str.split(';').str.len()
-    
+
     max_count = ora_res_detail['count'].max()
     scale = 4 / max_count if max_count <= 10 else (2 / max_count if max_count <= 50 else 1 / max_count)
-    
+
     dotplot = dc.plot_dotplot(
         ora_res_detail.sort_values('Combined score', ascending=False).head(15),
         x='Combined score',
@@ -291,20 +290,20 @@ def create_dotplot(ora_res_detail):
 
 @st.cache_data
 def run_pathway_analysis(gene_list, net, source, target, n_background):
-    """パスウェイ解析を実行してキャッシュする"""
-    ora_res_detail = dc.get_ora_df(gene_list, net, source=source, target=target, 
+    """Run and cache pathway analysis"""
+    ora_res_detail = dc.get_ora_df(gene_list, net, source=source, target=target,
                                   n_background=n_background, verbose=False)
     return ora_res_detail.sort_values('FDR p-value', ascending=True)
 
 
-# プロットスタイルを設定する関数
+# Function to set plot style
 def set_plot_style():
-    plt.style.use('default')  # デフォルトスタイルをリセット
-    plt.rcParams['figure.facecolor'] = 'white'  # 図の背景色を白に
-    plt.rcParams['axes.facecolor'] = 'white'    # プロット領域の背景色を白に
-#    sns.set_style("white")                      # seabornのスタイルを白背景に
-    
-# グラフ生成前に呼び出す
+    plt.style.use('default')  # Reset default style
+    plt.rcParams['figure.facecolor'] = 'white'  # Set figure background color to white
+    plt.rcParams['axes.facecolor'] = 'white'    # Set plot area background color to white
+#    sns.set_style("white")                      # Set seaborn style to white background
+
+# Call before graph generation
 set_plot_style()
 
 
@@ -346,7 +345,7 @@ def run_method(method, mat, net, source, target, weight, verbose=True, min_n = 0
         score, pvalue = dc.run_mlm(mat, net=net, source=source, target=target, weight=weight, verbose=True, min_n = min_n)
     elif method == 'wsum_norm':
         score, norm, corr, pvalue = dc.run_wsum(mat, net=net, source=source, target=target, weight=weight, verbose=True, min_n = min_n)
-        score = norm # wsum z-scoreを使う
+        score = norm # Use wsum z-score
     elif method == 'viper':
         score, pvalue = dc.run_viper(mat, net=net, source=source, target=target, weight=weight, verbose=True, min_n = min_n)
     if method == 'wsum_norm':
@@ -362,34 +361,34 @@ def run_GSEA_df(mat, stat='stat', net = 'net', source='source', target='target',
 @st.cache_data
 def calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch):
     orig_len = len(df)
-    df = df[np.isfinite(df[P_column]) & pd.notnull(df[P_column])]     # FCやpがNAのものを除く
-    df = df[np.isfinite(df[FC_column]) & pd.notnull(df[FC_column])]    # FCやpがNAのものを除く
+    df = df[np.isfinite(df[P_column]) & pd.notnull(df[P_column])]     # Remove rows where FC or p is NA
+    df = df[np.isfinite(df[FC_column]) & pd.notnull(df[FC_column])]    # Remove rows where FC or p is NA
     if len(df) < orig_len:
         st.warning("The P or FC columns contain inf or NA")
     inv_parameter = 1
     if inv_switch:
         inv_parameter = -1
-    # p=0がないか、みる
+    # Check if p=0
     p_0 = (df.loc[:,P_column] == 0)
     if not any(p_0):
-        #scoreを作る
+        # Create score
         if rank_metric == 'sign(LFC) x -log10(P)':
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
         else:
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-     # p=0があるとき
+     # When p=0
     else:
         st.write("p=0 data are:")
         st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
-        # 0e0がとして読まれる LogFCも0のはず
-        # FC=0かつp=0の遺伝子を特定
+        # Read as 0e0, LogFC should also be 0
+        # Identify genes with FC=0 and p=0
         problematic_mask = (df[FC_column] == 0) & (df[P_column] == 0)
         if any(problematic_mask):
             st.warning(f"Found {sum(problematic_mask)} genes with FC=0 and p=0. These will be excluded from analysis.")
             excluded_genes = df.loc[problematic_mask, Gene_column].tolist()
             st.write("Excluded genes:", ", ".join(excluded_genes[:10]), "..." if len(excluded_genes) > 10 else "")
             df = df[~problematic_mask]
-            p_0 = (df.loc[:,P_column] == 0) # FC>0の0
+            p_0 = (df.loc[:,P_column] == 0) # 0 with FC>0
             if any(p_0):
                 st.write("Remaining p=0 data are:")
                 st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
@@ -398,20 +397,20 @@ def calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch):
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
         else:
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-        #Seurat "MAST"だと318あたり？
+        # Seurat "MAST" around 318?
         if input_file_type == 'Seurat':
-            #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる log10を計算するとinf
+            # max_score = np.log10(1e-324) # 1e-324 == 0 is TRUE, calculating log10 gives inf
             max_score = -324
             st.write("\nMax score: "+str(max_score))
         else:
-            #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる pythonでも同じ 1e-324 + 1e-323でも計算される
+            # max_score = np.log10(1e-324) # 1e-324 == 0 is TRUE, same in python, 1e-324 + 1e-323 is also calculated
             max_score = -324
             st.write("\nMax score: "+str(max_score))
-        # 順位付けのためにFCの値を足す
-        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column]  * inv_parameter#条件を括弧で囲むこと！！！
+        # Add FC value for ranking
+        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column]  * inv_parameter  # Must enclose conditions in parentheses!!!
         df.loc[(p_0 & (df.loc[:,FC_column]<0)),'score'] = max_score + df.loc[:,FC_column] * inv_parameter
         st.write('Ranking score are -log10(P-values)')
-    return df['score'].to_frame() #DFに変換してから返す
+    return df['score'].to_frame() # Convert to DF before returning
 
 
 
@@ -428,36 +427,36 @@ def set_back_func():
         else:
             df = read_excel(uploaded_file, index_col = None, header = None)
 
-        # もし1列のデータで最初にGeneがないとき
+        # If data is 1 column and doesn't start with Gene
         if df.shape[1] == 1:
             bk_genes = df.iloc[:,1].values
             if bk_genes[0] == "Gene" or bk_genes[0] == "GENE":
                 bk_genes = bk_genes[1:]
 
         else:
-            df.columns = df.iloc[0,:].tolist()  # transposeすると狂うので、transposeした後にcolumnsを決める
-            df = df.drop(0, axis = 0) # 1行目を列名にして除く
+            df.columns = df.iloc[0,:].tolist()  # Determine columns after transpose to avoid issues
+            df = df.drop(0, axis = 0) # Use first row as column names and remove it
 
             st.write(df.head())
             content = df.columns.tolist()
             Gene_column = content[0]
             if "Annotation/Divergence" in content:
-                  # colnamesの変換
+                  # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # Temporarily change names
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel compatible
 
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
         #       df.loc[:,'Annotation/Divergence'] = df.apply(lambda x: re.sub(r'([^|]*).*', r'\1', x['Annotation/Divergence']), axis=1)
-                # annotation/divergence以前を除く
+                # Remove everything before annotation/divergence
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -484,7 +483,7 @@ if "decouplercalc" not in st.session_state:
 if "ORA" not in st.session_state:
       st.session_state.ORA = False
 
-# temp内に保存する
+# Save in temp directory
 # --- Initialising SessionState ---
 if "dc_temp_dir" not in st.session_state:
     st.session_state.dc_temp_dir = True
@@ -499,7 +498,7 @@ if "dc_temp_dir" not in st.session_state:
 else:
     dc_temp_dir = st.session_state.dc_temp_dir
 
-# progeny 読み込みの制御
+# Control progeny loading
 
 if "net" not in st.session_state:
     st.session_state.net = None
@@ -513,14 +512,18 @@ if 'down_list' not in st.session_state:
     st.session_state.down_list = None
 if 'P_column' not in st.session_state:
     st.session_state.P_column = None
+if 'rank_source' not in st.session_state:
+    st.session_state.rank_source = None
+if 'Loading_column' not in st.session_state:
+    st.session_state.Loading_column = None
 
 #############################
 
 
 st.markdown('''## Signal pathway and TF activity inference using decoupleR
-##### For rank mode, upload DEG result file or rank file
-###### e.g.) FD-unshrunk DESeq2 file
-###### decopuler orinigally uses stat values from DESeq2.
+##### For rank mode, upload DEG result file, PCA loading result file, or rank file
+###### e.g.) FD-unshrunk DESeq2 file or PCA loadings file
+###### decoupler originally uses stat values from DESeq2 or t value from limma. PCA loadings can be used to identify pathways associated with specific PCs.
 ---
 ''')
 
@@ -534,9 +537,9 @@ st.markdown("---")
 
 if Analysis_mode == "Rank":
     input_file_type = st.radio(
-    "Data format of DESeq2 result or rank file:",
+    "Data format of DESeq2, PCA loading result or rank file:",
     ('tsv','csv', 'excel', 'rank'), index = 0)
-    st.write("DESeq2 res: tsv, csv, excel; rank file: rank")
+    st.write("DESeq2/PCA loading results: tsv, csv, excel; rank file: rank")
 
     rnk_input = False
 
@@ -556,10 +559,10 @@ if Analysis_mode == "Rank":
 
         df.iloc[0:3,:]
 
-else: #ORA
+else: # ORA
     ORA_mode = st.radio(
     "##### How to provide gene list:",
-    ('DEG result file','Cluster info file', "Input genes"), key='DEG result file')
+    ('DEG/PCA loading file','Cluster info file', "Input genes"), key='DEG result file')
     n_background = None
     set_back = False
 
@@ -579,7 +582,7 @@ else: #ORA
             elif cluster_file_type == 'tsv':
                 df_cluster = read_csv(cluster_file, sep = '\t')
             elif cluster_file_type == 'excel':
-                df_cluster = read_xl(cluster_file)    
+                df_cluster = read_xl(cluster_file)
 
 
             st.write("Preview of uploaded data:")
@@ -594,9 +597,9 @@ else: #ORA
                 # Allow user to select column names
                 gene_column = st.selectbox("Select the column containing gene names:", df_cluster.columns, index=df_cluster.columns.get_loc("Gene") if "Gene" in df_cluster.columns else 0)
                 cluster_column = st.selectbox("Select the column containing cluster information:", df_cluster.columns, index=df_cluster.columns.get_loc("Cluster") if "Cluster" in df_cluster.columns else 0)
-                
+
                 # Get unique clusters
-                clusters = sorted(df_cluster[cluster_column].unique())           
+                clusters = sorted(df_cluster[cluster_column].unique())
                 column_submitted = st.form_submit_button("Set gene and cluster columns")
 
             with st.form("Choose cluster"):
@@ -604,7 +607,7 @@ else: #ORA
                 cluster_submitted = st.form_submit_button("Select clusters")
                 st.session_state.cluster_submitted = True
 
-                
+
             if st.session_state.cluster_submitted:
 #                cluster_genes = df_cluster[df_cluster[cluster_column] == selected_cluster][gene_column].tolist()
                 cluster_genes = df_cluster[df_cluster[cluster_column].isin(selected_cluster)][gene_column].tolist()
@@ -618,20 +621,20 @@ else: #ORA
                     n_background = set_back_func()
 
     elif ORA_mode == 'Input genes':
-        st.markdown("##### Or input genes (comma, space, CR separated):")
+        st.markdown("##### Or input genes (comma, semicolon, space, CR separated):")
         genes = st.text_input("genes",label_visibility = 'collapsed')
         gene_list = []
         if len(genes) > 0:
 #            if ',' not in genes:
 #                gene_list = genes.split(' ')
 #            else:
-#                genes =  ''.join(genes.split()) #空白を除く
+#                genes =  ''.join(genes.split()) # Remove spaces
 #                gene_list = genes.split(',')
-            raw_genes = re.split(r'[,\s]+', genes)
+            raw_genes = re.split(r'[,;\s]+', genes)
             # Remove spaces from each gene name and filter out empty strings
             gene_list = [re.sub(r'\s', '', gene) for gene in raw_genes if gene.strip()]
 
-            genes = list(filter(lambda x: x != "", genes)) #空白を除く
+            genes = list(filter(lambda x: x != "", genes)) # Remove spaces
             gene_list =sorted(set(gene_list), key=gene_list.index)
             st.write(gene_list[:3])
             st.markdown("By default, all genes in the gene sets are used as background. However, all genes in the DEG analysis are a better background. To do this, define background genes.")
@@ -648,13 +651,13 @@ else: #ORA
         if "down" not in st.session_state:
             st.session_state.down = None
 
-        use_upload = 'Yes' # deseq2がないときはYes
+        use_upload = 'Yes' # Yes when deseq2 is not available
         df_res = None
         if 'deseq2' in st.session_state:
             st.write("There is a deseq2 result in the cache. If you use it, do not upload a new file.")
             if st.session_state.deseq2 is not None:
                 use_upload = st.radio("Upload new file?", ('Yes','No'), index = 1)
-            if use_upload == "No" and "df_res" not in st.session_state: #df_resを作る
+            if use_upload == "No" and "df_res" not in st.session_state: # Create df_res
                 if 'df_res' not in st.session_state:
                     df_res = st.session_state.deseq2
                     df_res['Gene'] = df_res.index
@@ -663,10 +666,10 @@ else: #ORA
                     else:
                         file_name_head = "res"
                     input_file_type = 'tsv'
-                    if "Row_name" in df_res.columns.to_list(): # Row_nameを含むとき
+                    if "Row_name" in df_res.columns.to_list(): # When Row_name is included
                         df_res = df_res.set_index('Row_name')
                         df_res.index.name = "Gene"
-                    st.session_state.df_res = df_res # df_resに記録
+                    st.session_state.df_res = df_res # Record in df_res
             elif "df_res" in st.session_state:
                 df_res = st.session_state.df_res
             else:
@@ -674,7 +677,7 @@ else: #ORA
 
 
 
-        if use_upload == 'Yes': # DEGの結果を使うとき df_res
+        if use_upload == 'Yes': # When using DEG results df_res
     #        st.session_state.deseq2 = None
             input_file_type = st.radio(
                 "Data from:",
@@ -698,7 +701,7 @@ else: #ORA
                 st.session_state.df_res = df_res
                 file_name_head = os.path.splitext(uploaded_file.name)[0]
                 st.session_state.deseq2_uploaded_file_name = file_name_head
-            #    if 'seurat_res' not in st.session_state: #sueratのしょりをしたらTrue
+            #    if 'seurat_res' not in st.session_state: # True when Seurat processing is done
             #        st.session_state.seurat_res = False
 
             else:
@@ -712,84 +715,113 @@ else: #ORA
             st.write(df_res.head(3))
 
 
-#            if use_upload == 'Yes': #Seuratをクリックしたとき
-    #        if 'seurat_res' not in st.session_state: #sueratのしょりをしたらTrue
+#            if use_upload == 'Yes': # When Seurat is clicked
+    #        if 'seurat_res' not in st.session_state: # True when Seurat processing is done
     #            st.session_state.seurat_res = False
-    #        elif not st.session_state.seurat_res: #まだseuratの処理をしていないとき
-            seurat = st.checkbox('Seurat resuls?', value=False)
+    #        elif not st.session_state.seurat_res: # When Seurat processing is not done yet
+            seurat = st.checkbox('Seurat results?', value=False)
             if seurat:
 #                df_res.columns = ['col', 'p_val','avg_log2FC','pct.1','pct.2','p_val_adj','cluster','gene']
 #                df_res = df_res.drop("col", axis = 1)
 
             #    st.write(df_res.head())
 
-                # ユニークなクラスターを特定
+                # Identify unique clusters
                 clusters = df_res['cluster'].unique()
-                #clusters = list(set(df_res['cluster']))
+                # clusters = list(set(df_res['cluster']))
             #    st.write(clusters)
             #    st.write(f"Unique clusters: {clusters}")
 
-                # 各クラスターのDataFrameを保持するリストを作成
+                # Create list to hold DataFrames for each cluster
                 cluster_dfs = []
 
                 for cluster in clusters:
-                    # このクラスターのデータをフィルタリング
+                    # Filter data for this cluster
                     cluster_data = df_res[df_res['cluster'] == cluster].copy()
 
             #        st.write(f"Processing cluster {cluster}, shape: {cluster_data.shape}")
-                    # 'gene' 列をインデックスに設定
+                    # Set 'gene' column as index
                     cluster_data = cluster_data.set_index('gene')
-                    # 'cluster' カラムを削除
+                    # Drop 'cluster' column
                     cluster_data = cluster_data.drop('cluster', axis=1)
-                    # カラム名を変更してクラスター番号を先頭に
+                    # Change column names to add cluster number at the beginning
                     new_columns = [f'{cluster}_{col}' for col in cluster_data.columns]
                     cluster_data.columns = new_columns
-                    # クラスターDataFrameのリストに追加
+                    # Add cluster DataFrame to list
                     cluster_dfs.append(cluster_data)
 
-                # 全てのクラスターDataFrameをマージ
+                # Merge all cluster DataFrames
                 result_df = pd.concat(cluster_dfs, axis=1)
 
-#                # カラムを並べ替えて 'gene' を最初の列にする
+#                # Rearrange columns to make 'gene' the first column
 #                cols = ['gene'] + [col for col in result_df.columns if col != 'gene']
 #                result_df = result_df[cols]
                 df_res = result_df
                 df_res["Gene"] = df_res.index.to_list()
                 st.write(df_res.head(3))
-                #st.session_state.seurat_res = True こうすると最初から戻ってきたときに動かない
+                # st.session_state.seurat_res = True  This would prevent it from working when returning to the beginning
 
             content = df_res.columns.tolist()
             p_patterns = ['p.val', 'pvalue', 'p-val', 'p val', 'p_val', 'pval']
-            pvalue = [i for i in content if any(p in i.lower() for p in p_patterns)] #and 'adj.pval' not in i.lower()]
+            pvalue = [i for i in content if any(p in i.lower() for p in p_patterns)] # and 'adj.pval' not in i.lower()]
             fc_patterns = ['log2fc', 'fold change', 'log2foldchange', 'coef', 'logfc']
             fc = [i for i in content if any(pattern in i.lower() for pattern in fc_patterns)]
-            gene = [i for i in content if (i not in pvalue) and (i not in fc)]
-            P_column = st.selectbox(
-                'Select adjusted P-value column',
-                pvalue)
-            # ジャロ・ウィンクラー距離法
-            #JW_dist = [Levenshtein.jaro_winkler(P_column, x) for x in fc]
 
-            JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
-            try:
-                FC_column = st.selectbox(
-                    'Select FC column',
-                    fc, index = JW_dist.index(max(JW_dist)))
-            except:
-                FC_column = st.selectbox(
-                    'Select FC column', fc)
+            # Auto-detect PCA loadings
+            loading_patterns = ['pc', 'loadings', 'component']
+            loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
 
-            file_name_add = P_column
-            file_name_add = file_name_add.replace('.adj.pvalue','')
-            file_name_add = file_name_add.replace(' adj. p-value','')
+            # If no P-value or FDR but has PC columns, treat as PCA loadings
+            is_pca_loading = (len(pvalue) == 0 and len(loadings_cols) > 0)
+
+            if is_pca_loading:
+                st.info("🔍 PCA loadings file detected (no p-value columns found, PC columns present)")
+                ora_mode_auto = 'PCA loadings'
+
+                # If not found, use all numeric columns as candidates
+                if not loadings_cols:
+                    loadings_cols = df_res.select_dtypes(include=[np.number]).columns.tolist()
+
+                Loading_column = st.selectbox('Select PCA loading column', loadings_cols)
+                file_name_add = Loading_column
+                P_column = None  # Don't use P_column
+                FC_column = None
+            else:
+                st.info("📊 DEG result file detected (p-value columns found)")
+                ora_mode_auto = 'DEG'
+
+                gene = [i for i in content if (i not in pvalue) and (i not in fc)]
+                P_column = st.selectbox(
+                    'Select adjusted P-value column',
+                    pvalue)
+                # Jaro-Winkler distance method
+                # JW_dist = [Levenshtein.jaro_winkler(P_column, x) for x in fc]
+
+                JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
+                try:
+                    FC_column = st.selectbox(
+                        'Select FC column',
+                        fc, index = JW_dist.index(max(JW_dist)))
+                except:
+                    FC_column = st.selectbox(
+                        'Select FC column', fc)
+
+                file_name_add = P_column
+                file_name_add = file_name_add.replace('.adj.pvalue','')
+                file_name_add = file_name_add.replace(' adj. p-value','')
+
             file_name = file_name_add
 
             set_gene = st.checkbox("Specify gene column?", value=False)
 
             if set_gene:
+                if is_pca_loading:
+                    gene_for_selection = [i for i in content if i not in loadings_cols]
+                else:
+                    gene_for_selection = gene
                 Gene_column =  st.selectbox(
                 'Select gene column',
-                gene)
+                gene_for_selection)
             else:
 
                 if "Annotation/Divergence" in content:
@@ -800,81 +832,138 @@ else: #ORA
                 elif "Gene" in content:
                     Gene_column =  "Gene"
                 else:
+                    if is_pca_loading:
+                        gene_for_selection = [i for i in content if i not in loadings_cols]
+                    else:
+                        gene_for_selection = gene
                     Gene_column =  st.selectbox(
                     'Select gene column',
-                    gene)
+                    gene_for_selection)
 
             if use_upload == 'Yes':
-                # indexをGeneにする
+                # Set index to Gene
                 df_res.index = df_res[Gene_column].tolist()
 
             if 'df_res' in st.session_state:
                 st.session_state.df_res = df_res
 
             with st.form("Basic settings:"):
-                p_or_top = st.radio("P threshold or top/bottom:", ('P_threshold','top', 'both'))
-                up_or_down = st.radio("Up or down genes:", ('Up','Down'))
-                sort_val = st.radio("Top based on:", ('FC','P value'), index = 0)
-                p_thre = st.number_input('Threshold for adjusted P', min_value =0.000, max_value=1.000,
-                step =0.002, value=0.050)
-                FC_thre = st.number_input('Threshold for log FC', min_value =0.0, step =0.1, value=0.0)
+                if is_pca_loading:
+                    # PCA loadings mode: top N selection only
+                    st.info("📊 PCA loadings mode: Select top N genes by loading values")
+                    up_or_down = st.radio("Positive or negative loadings:", ('Positive','Negative'))
+                    top_n = st.number_input('Number of top genes', min_value =1, step = 1, value=50)
+                    set_back = st.checkbox('Set background genes?', value=False)
+                    st.markdown("By default, all genes in the gene sets are used as background. However, all genes in the analysis are a better background.")
+                    ssubmitted_basic = st.form_submit_button("Change the parameters")
+                    up=None
+                    down=None
+                    df_thre  = None
 
-                top_n = st.number_input('Number of top genes', min_value =1, step = 1, value=50)
+                    # PCA loadings mode processing
+                    df_thre = df_res.copy(deep=True)
+                    df_thre = df_thre.dropna(subset=[Loading_column])  # Remove NA
 
-                st.write("Top genes include only those that meet the adjusted P-value threshold.")
-                set_back = st.checkbox('Set background genes?', value=False)
-                st.markdown("By default, all genes in the gene sets are used as background. However, all genes in the DEG analysis are a better background. To do this, define background genes.")
-                ssubmitted_basic = st.form_submit_button("Change the parameters")
-                up=None
-                down=None
-                df_thre  = None
+                    # Sort by absolute value
+                    df_thre = df_thre.sort_values(Loading_column, ascending=False, key=abs)
 
-                if p_or_top == 'top': #topのみのときはp_threは1に強制的に変更する
-                    p_thre = 1
+                    # Separate by Positive or Negative loadings
+                    if up_or_down == 'Positive':
+                        up = df_thre[df_thre[Loading_column] > 0].index.to_list()
+                        down = []
+                    else:
+                        down = df_thre[df_thre[Loading_column] < 0].index.to_list()
+                        up = []
 
-
-                # "Basic settings:"フォームの後、df_threを作成する前に追加
-                # FC=0かつp=0の遺伝子を確認・除外
-                problematic_mask = (df_res[FC_column] == 0) & (df_res[P_column] == 0)
-                if any(problematic_mask):
-                    st.warning(f"Found {sum(problematic_mask)} genes with FC=0 and p=0 in the DEG results.")
-                    excluded_genes = df_res.loc[problematic_mask, Gene_column].tolist()
-                    st.write("These genes will be excluded from ORA analysis:", ', '.join(excluded_genes[:10]), 
-                             "..." if len(excluded_genes) > 10 else "")
-                    
-                    # df_resから除外
-                    df_res = df_res[~problematic_mask]
-
-                df_thre = df_res.copy(deep=True)
-                df_thre = df_thre[df_thre[P_column] < p_thre]
-                df_thre = df_thre[abs(df_thre[FC_column]) > FC_thre]
-                if sort_val == "P value":
-                    df_thre =df_thre.sort_values(P_column, ascending=True)
-                    up = df_thre[df_thre[FC_column]>0].index.to_list()
-                    down = df_thre[df_thre[FC_column]<0].index.to_list()
                 else:
-                    df_thre = df_thre.sort_values(FC_column, ascending=False)
-                    up = df_thre[df_thre[FC_column]>0].index.to_list()
-                    df_thre = df_thre.sort_values(FC_column, ascending=True)
-                    down = df_thre[df_thre[FC_column]<0].index.to_list()
-                if p_or_top in ["top",  "both"]:
+                    # DEG mode: original behavior
+                    p_or_top = st.radio(
+                        "P threshold or top/bottom:",
+                        ('P_threshold','top', 'both'),
+                        help="P_threshold: Select all genes meeting thresholds | top: Select top N genes (ignores P-value) | both: Apply thresholds then select top N | Note: FC threshold (default=0) applies to all modes when set >0"
+                    )
+                    up_or_down = st.radio("Up or down genes:", ('Up','Down'))
+                    sort_val = sort_val = st.radio("Top based on:", ('FC','P value'), index = 0,
+                        help="This setting is only used when 'top' or 'both' mode is selected")
+                    p_thre = st.number_input('Threshold for adjusted P', min_value =0.000, max_value=1.000,
+                    step =0.002, value=0.050)
+                    FC_thre = st.number_input('Threshold for log FC', min_value =0.0, step =0.1, value=0.0)
+
+                    top_n = st.number_input('Number of top genes', min_value =1, step = 1, value=50)
+
+                    st.write("Top genes include only those that meet the adjusted P-value threshold.")
+                    set_back = st.checkbox('Set background genes?', value=False)
+                    st.markdown("By default, all genes in the gene sets are used as background. However, all genes in the DEG analysis are a better background. To do this, define background genes.")
+                    ssubmitted_basic = st.form_submit_button("Change the parameters")
+                    up=None
+                    down=None
+                    df_thre  = None
+
+                    if p_or_top == 'top': # Force p_thre to 1 when only top is selected
+                        p_thre = 1
+
+
+                    # Add before creating df_thre, after the "Basic settings:" form
+                    # Check and exclude genes with FC=0 and p=0
+                    problematic_mask = (df_res[FC_column] == 0) & (df_res[P_column] == 0)
+                    if any(problematic_mask):
+                        st.warning(f"Found {sum(problematic_mask)} genes with FC=0 and p=0 in the DEG results.")
+                        excluded_genes = df_res.loc[problematic_mask, Gene_column].tolist()
+                        st.write("These genes will be excluded from ORA analysis:", ', '.join(excluded_genes[:10]),
+                                 "..." if len(excluded_genes) > 10 else "")
+
+                        # Exclude from df_res
+                        df_res = df_res[~problematic_mask]
+
+                    df_thre = df_res.copy(deep=True)
+                    df_thre = df_thre[df_thre[P_column] < p_thre]
+                    df_thre = df_thre[abs(df_thre[FC_column]) > FC_thre]
+                    if sort_val == "P value":
+                        df_thre =df_thre.sort_values(P_column, ascending=True)
+                        up = df_thre[df_thre[FC_column]>0].index.to_list()
+                        down = df_thre[df_thre[FC_column]<0].index.to_list()
+                    else:
+                        df_thre = df_thre.sort_values(FC_column, ascending=False)
+                        up = df_thre[df_thre[FC_column]>0].index.to_list()
+                        df_thre = df_thre.sort_values(FC_column, ascending=True)
+                        down = df_thre[df_thre[FC_column]<0].index.to_list()
+                # Top N selection (DEG mode only)
+                if not is_pca_loading and p_or_top in ["top",  "both"]:
                     up = up[:top_n]
                     down = down[:top_n]
-                up = sorted(set(up), key=up.index) #重複を除く
+
+                # Top N selection for PCA loadings mode (already filtered above, just limit here)
+                if is_pca_loading:
+                    up = up[:top_n]
+                    down = down[:top_n]
+
+                up = sorted(set(up), key=up.index) # Remove duplicates
                 down = sorted(set(down), key=down.index)
 
                 st.session_state.up = up
                 st.session_state.down = down
             try:
                 if len(df_thre) > 0:
-                    if up_or_down == "Up":
-                        st.write(','.join(st.session_state.up))
-                        st.write("Number of genes: " + str(len(up)))
-                        gene_list = st.session_state.up
+                    # For PCA loadings mode, handle Positive/Negative
+                    if is_pca_loading:
+                        if up_or_down == "Positive":
+                            st.write(','.join(st.session_state.up))
+                            st.write("Number of genes: " + str(len(up)))
+                            gene_list = st.session_state.up
+                        else:
+                            st.write(','.join(st.session_state.down))
+                            st.write("Number of genes: " + str(len(down)))
+                            gene_list = st.session_state.down
                     else:
-                        st.write(','.join(st.session_state.down))
-                        st.write("Number of genes: " + str(len(down)))
-                        gene_list = st.session_state.down
+                        # DEG mode
+                        if up_or_down == "Up":
+                            st.write(','.join(st.session_state.up))
+                            st.write("Number of genes: " + str(len(up)))
+                            gene_list = st.session_state.up
+                        else:
+                            st.write(','.join(st.session_state.down))
+                            st.write("Number of genes: " + str(len(down)))
+                            gene_list = st.session_state.down
                     st.session_state.gene_list = gene_list
             except:
                 pass
@@ -882,16 +971,20 @@ else: #ORA
 
 
         if set_back:
-            #bk_genes = df_res[Gene_column].values
+            # bk_genes = df_res[Gene_column].values
             n_background = len(set(df_res[Gene_column].to_list()))
             st.write('Background gene number: ' + str(n_background))
 
         gene_list = st.session_state.gene_list
 
-        if p_or_top == 'top':
-            gene_list_file = P_column + "." + up_or_down + "-" + str(top_n) + '.txt'
+        # Generate file name
+        if is_pca_loading:
+            gene_list_file = Loading_column + "." + up_or_down + "-" + str(top_n) + '.txt'
         else:
-            gene_list_file = P_column + "." + up_or_down + ".p" + str(p_thre) + '.txt'
+            if p_or_top == 'top':
+                gene_list_file = P_column + "." + up_or_down + "-" + str(top_n) + '.txt'
+            else:
+                gene_list_file = P_column + "." + up_or_down + ".p" + str(p_thre) + '.txt'
 
         tsv_string = '\n'.join(gene_list)
 
@@ -904,8 +997,7 @@ else: #ORA
         )
 
 
-
-if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfかgenesを入力したとき
+if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # When df or genes are entered
 
 
     if Analysis_mode == "Rank":
@@ -914,30 +1006,46 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
         rank_calc = False
         rank_metric = None
         if not rnk_input:
-            rank_metric = st.radio(
-                "Ranking metric:",
-                ('sign(LFC) x -log10(P)', 'LFC x -log10(p)', "DESeq2 stat"), index = 0)
-                # calculate stat value
-            # indexをGeneカラムにコピー
+            # Copy index to Gene column
             df['Gene'] = df.index
-            # indexの名前を除く
+            # Remove index name
             df.index.name = None
             content = df.columns.tolist()
-        if rank_metric ==  "DESeq2 stat" and not rnk_input:
-            statvalue = [i for i in content if ('stat' in i)]
-            stat_column = st.selectbox('Select stat column', statvalue)
 
-        elif not rnk_input:
-            generated_rnk = True # decoupler内でrnk fileを作ったとき
-            st.write("Select pvalue and logFC")
+            # Auto-detection logic
             p_patterns = ['p.val', 'pvalue', 'p-val', 'p val', 'p_val', 'pval']
             pvalue = [i for i in content if any(p in i.lower() for p in p_patterns) and 'adj.pval' not in i.lower()]
- #           pvalue = [i for i in content if (('pval' in i) or ('p-val' in i) or ('p val' in i) or ('p_val' in i) or ('pval' in i) or ('p.val' in i)) and ('adj.pval' not in i)]
+            loading_patterns = ['pc', 'loadings', 'component']
+            loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
+
+            # If no P-value or FDR but has PC columns, treat as PCA loadings
+            is_pca_loading = (len(pvalue) == 0 and len(loadings_cols) > 0)
+
+            if is_pca_loading:
+                st.info("🔍 PCA loadings file detected (no p-value columns found, PC columns present)")
+                rank_source = 'PCA loadings'
+            else:
+                st.info("📊 DEG result file detected (p-value columns found)")
+                rank_source = 'P values (DEA results)'
+
+            if rank_source == 'P values (DEA results)':
+                rank_metric = st.radio(
+                    "Ranking metric:",
+                    ('sign(LFC) x -log10(P)', 'LFC x -log10(p)', "DESeq2 stat/limma t"), index = 0)
+                    # calculate stat value
+        if rank_metric ==  "DESeq2 stat/limma t" and not rnk_input and rank_source == 'P values (DEA results)':
+            statvalue = [i for i in content if ('stat' in i) or ('t' in i)]
+            stat_column = st.selectbox('Select stat column', statvalue)
+
+        elif not rnk_input and rank_source == 'P values (DEA results)':
+            generated_rnk = True # When rnk file is created within decoupler
+            st.write("Select pvalue and logFC")
+            # pvalue is already defined by auto-detection
             fc = [i for i in content if ('log2FC' in i) or ('Fold Change' in i) or ('log2FoldChange' in i) or ('coef' in i) or ('logFC' in i)]
             gene = [i for i in content if (i not in pvalue) and (i not in fc)]
             P_column = st.selectbox('Select P-value column', pvalue)
-            stat_column = re.match(r'([^\.]+)', P_column).group(1) #名前を変更する
-            # ジャロ・ウィンクラー距離法
+            stat_column = re.match(r'([^\.]+)', P_column).group(1) # Change name
+            # Jaro-Winkler distance method
             JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
             try:
                 FC_column = st.selectbox(
@@ -966,11 +1074,69 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             st.write(mat.iloc[:,:10])
             df = df_score
 
-            # P_columnが変更されたらファイルを消去する
+            # Delete files if P_column is changed
             if st.session_state.P_column != P_column:
                 shutil.rmtree(dc_temp_dir)
                 os.mkdir(dc_temp_dir)
                 st.session_state.P_column = P_column
+
+            # Save to session state (for later reference)
+            st.session_state.rank_source = 'P values (DEA results)'
+
+        elif not rnk_input and rank_source == 'PCA loadings':
+            # PCA loadings mode
+            generated_rnk = True
+            st.write("Select PCA loadings column")
+
+            # Loading column patterns (PC1, PC2, etc.)
+            loading_patterns = ['pc', 'loadings', 'component']
+            loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
+
+            # If not found, use all numeric columns as candidates
+            if not loadings_cols:
+                loadings_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+            Loading_column = st.selectbox('Select PCA loading column', loadings_cols)
+            stat_column = Loading_column
+
+            # Select Gene column
+            gene = [i for i in content if i not in loadings_cols]
+            if "Gene" in content:
+                Gene_column = "Gene"
+            elif "Symbol" in content:
+                Gene_column = "Symbol"
+            else:
+                Gene_column = st.selectbox('Select gene column', gene)
+
+            inv_switch = st.checkbox('Invert the sign')
+
+            # Convert loadings values to rank file
+            df_score = df[[Gene_column, Loading_column]].copy()
+            df_score = df_score.dropna()  # Remove NA
+            df_score.columns = ['Gene', 'score']
+            df_score = df_score.set_index('Gene')
+
+            # Invert if needed
+            if inv_switch:
+                df_score['score'] = -1 * df_score['score']
+
+            # Sort by score (descending)
+            df_score = df_score.sort_values('score', ascending=False)
+            stat_column = 'score'
+            mat = df_score.transpose()
+            rank_calc = True
+            st.write(mat.iloc[:,:10])
+            df = df_score
+
+            # Delete files if Loading_column is changed
+            if st.session_state.P_column != Loading_column:
+                shutil.rmtree(dc_temp_dir)
+                os.mkdir(dc_temp_dir)
+                st.session_state.P_column = Loading_column  # Save to P_column even in PCA loadings mode
+
+            # Save to session state (for later reference)
+            st.session_state.rank_source = 'PCA loadings'
+            # Unify to P_column (contains Loading_column name in PCA loadings case)
 
         else: # rank file
             stat_column = 'Rank'
@@ -980,7 +1146,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
             if list(df.index.duplicated()).count(True) > 0:
                 st.markdown("#### There are duplicated genes.")
-                st.write('Dupliated genes:' +  ', '.join(list(df[df.index.duplicated()].index)))
+                st.write('Duplicated genes:' +  ', '.join(list(df[df.index.duplicated()].index)))
                 st.write("The first instances will be kept.")
                 st.markdown("---")
                 df = df[~df.index.duplicated(keep='first')]
@@ -1021,9 +1187,9 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
     if path == 'PROGENy':
         num_progeny = st.radio("Number of top genes:", ('500','2000','5000', 'all'), index = 0,
-            help="各パスウェイの活性計算に使用するフットプリント遺伝子数。500（高信頼性）〜all（全遺伝子）。デフォルトの500推奨。")
+            help="Number of footprint genes used for calculating each pathway's activity. 500 (high confidence) ~ all (all genes). Default 500 recommended.")
         if st.button('Load PROGENy db') or (num_progeny != st.session_state.num_progeny):
-            net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'progeny.{species}.{num_progeny}.tsv'), sep = '\t')
+            net = pd.read_csv('./db/progeny.' + species + "." + num_progeny + '.tsv', sep = '\t')
             source='source'
             target='target'
             weight = 'weight'
@@ -1039,7 +1205,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             weight = 'weight'
 
     elif path == 'CollecTRI':
-        net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'TRI.{species}.tsv'), sep = '\t')
+        net = pd.read_csv('./db/TRI.' + species + '.tsv', sep = '\t')
         source='source'
         target='target'
         weight = 'weight'
@@ -1053,33 +1219,35 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             conf_levels = ['A', 'B','C']
         elif conf == 'D':
             conf_levels = ['A', 'B','C', 'D']
-        net = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", f'dorothea.{species}.tsv'), sep = '\t')
+        net = pd.read_csv('./db/dorothea.' + species + '.tsv', sep = '\t')
+        net = net[net['confidence'].isin( conf_levels)]
+        # Rename 'mor' to 'weight' before passing to decoupler
+        net = net.rename(columns={'mor': 'weight'})
         source='tf'
         target='target'
-        weight = 'mor'
-        net = net[net['confidence'].isin( conf_levels)]
+        weight = 'weight'
 
 
     elif path in ['TF_summary', 'Pathway_summary', 'Celltype_summary']:
         source = 'source'
         target = 'target'
         weight = None
-        
+
         if path == 'TF_summary':
             st.write("### Transcription Factor Activity Summary")
-            databases = get_tf_databases(species)  # TFデータベース定義
+            databases = get_tf_databases(species)  # TF database definitions
             all_results = run_summary_analysis(databases, gene_list, n_background)
             st.stop()
-            
+
         elif path == 'Pathway_summary':
             st.write("### Pathway Enrichment Summary")
-            databases = get_pathway_databases(species)  # パスウェイデータベース定義
+            databases = get_pathway_databases(species)  # Pathway database definitions
             all_results = run_summary_analysis(databases, gene_list, n_background)
             st.stop()
 
         elif path == 'Celltype_summary':
             st.write("### Cell Type Summary")
-            databases = get_celltype_databases(species) 
+            databases = get_celltype_databases(species)
             all_results = run_summary_analysis(databases, gene_list, n_background)
             st.stop()
 
@@ -1091,19 +1259,19 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
         weight = None
         if path == 'mSigDB':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
+                dir_path = "db/mSigDB_mouse"
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+                dir_path = "db/mSigDB"
         elif path == 'Enrichr':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt_mouse")
+                dir_path = "db/enrichr_gmt_mouse"
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_gmt")
+                dir_path = "db/enrichr_gmt"
         elif path == 'Homemade':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
+                dir_path = "db/custom_gmt_mouse"
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
+                dir_path = "db/custom_gmt"
 
         files_file = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
         files_file.sort()
@@ -1129,7 +1297,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             path = uploaded_gmt.name.replace('.gmt','')
             stringio = StringIO(uploaded_gmt.getvalue().decode("utf-8"))
             s = stringio.read()
-            #スペースがあるとエラーになる
+            # Spaces cause errors
             s = s.replace(' ', '_')
 
             with open('temp.gmt', mode='w') as f:
@@ -1145,7 +1313,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
         st.write(net.head(2))
     #-------------------------------------
         if Analysis_mode == 'Rank':
-            st.markdown("##### For CollecTRI TF enrichment: ULM, PROGENy pathway enrichment: MLM")
+            st.markdown("##### For CollecTRI TF enrichment: ULM, PROGENy pathway enrichment: ULM or MLM")
             st.write("For other weightless datasets (e.g., gmt gene sets), ulm treats each gene set independently while mlm accounts for all of them at the same time during fitting. If your gene sets contain many common targets, it is better to use ulm, as mlm may not be able to run at all.")
             method_index = 2
             if path ==  'CollecTRI' or path == 'DoRothEA':
@@ -1169,7 +1337,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                 if st.button('Run analysis'): # or not st.session_state.decouplercalc:
                     if method == 'wsum_norm':
                         score, pvalue, norm, corr  = run_method(method= 'wsum_norm', mat=mat, net=net, source=source, target=target, weight=weight, verbose=True, min_n = min_n)
-                        score = norm # wsum z-scoreを使う
+                        score = norm # Use wsum z-score
                     else:
                         score, pvalue = run_method(method= method, mat=mat, net=net, source=source, target=target, weight=weight, verbose=True, min_n = min_n)
 
@@ -1224,40 +1392,42 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                 #            vcenter = bar_v_center, save = dc_temp_dir + "/" + bar_name)
 
 
-                    # DECOUPLERでプロットを作成
-                    fig = dc.plot_barplot(score, stat_column, top=bar_top, vertical=bar_vertical, 
+                    # Create plot with DECOUPLER
+                    fig = dc.plot_barplot(score, stat_column, top=bar_top, vertical=bar_vertical,
                                          figsize=(bar_x_size, bar_y_size), vcenter=bar_v_center, return_fig=True)
-                    
-                    # 既存のカラーバーを削除
-                    # 全てのaxesを取得
+
+                    # Remove existing colorbar
+                    # Get all axes
                     axes = fig.axes
-                    # 最後のaxes（カラーバー）を削除
-                    if len(axes) > 1:  # メインプロット以外にaxesがある場合
+                    # Delete last axes (colorbar)
+                    if len(axes) > 1:  # If there are axes other than the main plot
                         fig.delaxes(axes[-1])
-                    
-                    # メインのaxesを取得
+
+                    # Get main axes
                     ax = axes[0]
-                    
-                    # プロットデータの準備
-                    plot_data = res.head(bar_top)
-                    log_padj = -np.log10(plot_data['adj.p_value'])
-                    
-                    # カラーマップの作成
+
+                    # Get pathway names displayed in bar plot (in display order)
+                    displayed_pathways = [label.get_text() for label in ax.get_yticklabels()]
+
+                    # Get adj.p_value in display order
+                    log_padj = -np.log10(res.loc[displayed_pathways, 'adj.p_value'])
+
+                    # Create colormap
                     cmap = plt.cm.Reds
-                    
-                    # バーの色を変更
+
+                    # Change bar colors
                     for i, bar in enumerate(ax.containers[0]):
                         bar.set_color(cmap(log_padj.iloc[i] / log_padj.max()))
-                    
-                    # 新しいカラーバーの追加
+
+                    # Add new colorbar
                     sm = plt.cm.ScalarMappable(cmap=cmap)
                     sm.set_array(log_padj)
                     cbar = fig.colorbar(sm, ax=ax)
                     cbar.set_label('-log10(adj P-value)')
-                    
+
                     ax.invert_yaxis()
-                    
-                    # プロットの保存と表示
+
+                    # Save and display plot
                     plt.tight_layout()
                     fig.savefig(dc_temp_dir + "/FDR_" + bar_name, bbox_inches='tight')
                     st.pyplot(fig)
@@ -1283,7 +1453,8 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                             st.write("Weight shows positive/negative targets of the TF")
 
                     if generated_rnk:
-                        add_head = P_column + '.' # rankファイルの名前をつける
+                        # P_column contains Loading_column name in PCA loadings mode
+                        add_head = st.session_state.P_column + '.' # Add name of rank file
                     else:
                         add_head = ""
                     if path == 'mSigDB' or path == 'Enrichr' or path == "Homemade":
@@ -1298,7 +1469,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                         zip_name = down_file_name + "." +add_head +  method + "." + path
 
                     if st.button('Prepare enrichment files to download'):
-                        score.to_csv(out_file_name, sep = '\t')
+                        res.to_csv(out_file_name, sep = '\t')
                         shutil.make_archive('temp' + "/" + zip_name, format='zip',root_dir= dc_temp_dir)
 
                         with open('temp' + "/" + zip_name + '.zip', "rb") as fp:
@@ -1339,15 +1510,15 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
                     fig, d =  dc.plot_running_score(mat.T, stat_column, net = net, source=source, target=target,
                         set_name=nes_show, cmap='RdBu_r', figsize=(gsea_x_size, gsea_y_size), dpi=100, return_fig=True, save=None)
-                    # fig, axのtuple objectがもどる dは遺伝子名
+                    # Returns tuple object of fig, ax; d is gene name
 
                     nes = GSEA_res[GSEA_res['Term']==nes_show]['NES'].iloc[-1]
                     fdr = GSEA_res[GSEA_res['Term']==nes_show]['FDR p-value'].iloc[-1]
 
                     s = "NES: " + str(nes) + "\nFDR:" + str(fdr)
-                    #plt.text(len(mat.T)/10, 18, s, fontsize=14)
-                    plt.figtext(gsea_legend_x, gsea_legend_y, s, fontsize = gsea_legend_size) # plotの中のcoordinateで書き込まれる。左下から。0-1
-                    # axisを取り出して、タイトルを修正する
+                    # plt.text(len(mat.T)/10, 18, s, fontsize=14)
+                    plt.figtext(gsea_legend_x, gsea_legend_y, s, fontsize = gsea_legend_size) # Written in plot coordinates, from bottom left. 0-1
+                    # Extract axis and modify title
                     gsea_title = nes_show.replace("_", " ")
                     fig.axes[0].set_title(gsea_title, wrap=True, fontsize= gsea_title_size)
                     fig.axes[0].set_ylabel("Enrichment Score")
@@ -1357,7 +1528,8 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
                     st.dataframe(GSEA_res)
                     if generated_rnk:
-                        add_head = P_column + '.' # rankファイルの名前をつける
+                        # P_column contains Loading_column name in PCA loadings mode
+                        add_head = st.session_state.P_column + '.' # Add name of rank file
                     else:
                         add_head = ""
                     if path == 'mSigDB' or path == 'Enrichr' or path == "Homemade":
@@ -1390,7 +1562,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
             if "ORA_res" not in st.session_state:
                 st.session_state.ORA_res = None
 
-            if st.button('Run ORA analysis') or not st.session_state.ORA: # ボタンが押されない場合は再計算しない。
+            if st.button('Run ORA analysis') or not st.session_state.ORA: # Don't recalculate if button is not pressed.
                 try:
                     ORA_res = dc.get_ora_df(gene_list, net, source=source, target=target, n_background=n_background, verbose=False)
                 except Exception as e:
@@ -1446,11 +1618,11 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                     fig_bar2.gca().invert_yaxis()
                     st.pyplot(fig_bar2)
                     st.markdown("#### Activity = -log10(adjP)")
-                    st.markdown("###### -log10(0.05) = 1.301") 
+                    st.markdown("###### -log10(0.05) = 1.301")
                 except Exception as e:
-                    st.error(f"Error: {str(e)}")  
+                    st.error(f"Error: {str(e)}")
                     st.write("Probably little difference in FDR.")
-                    st.markdown("#### The follwoing graph likely has no use!")
+                    st.markdown("#### The following graph likely has no use!")
                     st.markdown("##### -log10(0.05) = 1.301")
                     st.write(enr_pvals)
                     vmn = enr_pvals['FDR p-value'].min()
@@ -1467,20 +1639,20 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
                 # Log-transform
                 enr_pvals = -np.log10(enr_pvals)
-                # countを追加
+                # Add count
                 ORA_res['count'] = ORA_res['Features'].str.split(';').str.len()
                 st.dataframe(ORA_res)
 
-                # 最大カウント値に基づいてscaleを計算
+                # Calculate scale based on max count value
                 max_count = ORA_res['count'].max()
 
-                # 経験則として、小さいカウントの場合は大きめのscale、大きいカウントの場合は小さめのscaleを使用
+                # As a rule of thumb, use larger scale for small counts, smaller scale for large counts
                 if max_count <= 10:
-                    scale = 4 / max_count  # 小さいカウントの場合、より大きなscale
+                    scale = 4 / max_count  # Larger scale for small counts
                 elif max_count <= 50:
                     scale = 2 / max_count
                 else:
-                    scale = 1 / max_count   # 大きいカウントの場合、より小さなscale
+                    scale = 1 / max_count   # Smaller scale for large counts
 
 
                 # dot plot
@@ -1498,10 +1670,10 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                     st.write("Combined score = -log10(P)")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
-                    st.write("Cannnot generate the dot plot")
+                    st.write("Cannot generate the dot plot")
 
 
-                if use_upload == "Yes": # file_nameに追加
+                if use_upload == "Yes": # Add to file_name
                     file_name_head = os.path.splitext(uploaded_file.name)[0]
                     file_name_add = file_name_head[:12] + "__"
                 else:
@@ -1525,8 +1697,16 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
 
 
                 if st.button('Prepare ORA files to download'):
-                    g.savefig( dc_temp_dir + "/" + bar_name, bbox_inches='tight')
-                    dotplot.savefig( dc_temp_dir + "/dot_" + bar_name, bbox_inches='tight')
+                    # Save figures
+                    bar_name = "ORA_barplot.pdf"
+                    try:
+                        fig_bar3.savefig(dc_temp_dir + "/" + bar_name, bbox_inches='tight')
+                    except:
+                        st.warning("Bar plot not available to save")
+                    try:
+                        fig_dotplot2.savefig(dc_temp_dir + "/dot_" + bar_name, bbox_inches='tight')
+                    except:
+                        st.warning("Dot plot not available to save")
                     ORA_res.to_csv(out_file_name, sep = '\t')
                     shutil.make_archive('temp' + "/" + zip_name, format='zip',root_dir= dc_temp_dir)
                     with open('temp' + "/" + zip_name + '.zip', "rb") as fp:
@@ -1535,7 +1715,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfか
                         data=fp,
                         file_name=zip_name + ".zip",
                         mime = "zip",
-                        on_click = delete_file([out_file_name, dc_temp_dir + "/" + bar_name])#ダウンロードするとファイルを消す
+                        on_click = delete_file([out_file_name, dc_temp_dir + "/" + bar_name])# Delete files when downloaded
                         )
 
             else:

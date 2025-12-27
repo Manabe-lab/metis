@@ -29,47 +29,51 @@ from jellyfish import jaro_winkler_similarity
 import subprocess
 import json
 
+# Dynamic base directory detection
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+STREAMLIT_BASE = os.path.dirname(SCRIPT_DIR)  # /home/xxx/streamlit
+DB_DIR = os.path.join(STREAMLIT_BASE, "db")
 
 # st.set_option('deprecation.showPyplotGlobalUse', False)
 st.set_page_config(page_title="GSEApy analysis.", page_icon="√")
 
-# ボタンスタイルを定義（黄色背景に黒テキスト）
+# Define button style (yellow background with black text)
 st.markdown("""
 <style>
     div.stButton > button {
-        background-color: #FFD700;  /* 明るい黄色 */
-        color: #000000;  /* 黒テキスト */
-        font-weight: 800;  /* テキストをより太く */
+        background-color: #FFD700;  /* Bright yellow */
+        color: #000000;  /* Black text */
+        font-weight: 800;  /* Make text bolder */
         border: none;
         padding: 0.5rem 1rem;
         border-radius: 0.3rem;
-        font-size: 1.1rem;  /* テキストサイズを大きく */
+        font-size: 1.1rem;  /* Increase text size */
     }
     div.stButton > button:hover {
-        background-color: #FFC000;  /* ホバー時は少し暗い黄色 */
+        background-color: #FFC000;  /* Slightly darker yellow on hover */
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-# プロットスタイルを設定する関数
+# Function to set plot style
 def set_plot_style():
-    plt.style.use('default')  # デフォルトスタイルをリセット
-    plt.rcParams['figure.facecolor'] = 'white'  # 図の背景色を白に
-    plt.rcParams['axes.facecolor'] = 'white'    # プロット領域の背景色を白に
-    sns.set_style("white")                      # seabornのスタイルを白背景に
+    plt.style.use('default')  # Reset to default style
+    plt.rcParams['figure.facecolor'] = 'white'  # Set figure background to white
+    plt.rcParams['axes.facecolor'] = 'white'    # Set plot area background to white
+    sns.set_style("white")                      # Set seaborn style to white background
     
-# グラフ生成前に呼び出す
+# Call before generating graphs
 set_plot_style()
 
 
-def file_name_check(file_name): #\は変換がうまく行かない
+def file_name_check(file_name): # Backslash doesn't convert well
     file_name = re.sub(r'[/|:|?|.|"|<|>|\ |\\]', '-', file_name)
     return file_name
 
 
-#March-1 Sept-1対応
+# Handle March-1 Sept-1 Excel auto-conversion
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -140,57 +144,57 @@ def calc_enrichr(gene_list,gene_sets):
 
 @st.cache_data
 def calc_prerank(rnk, gene_sets, min_size, max_size, permutation_num, seed):
-    # 実際の遺伝子セットを事前にフィルタリング
+    # Pre-filter gene sets
     filtered_gene_sets = {}
     small_sets = {}
     
-    # 遺伝子セットの総数を表示
+    # Display total number of gene sets
     st.write(f"Total number of gene sets: {len(gene_sets)}")
 #    st.write("Gene sets dictionary keys:")
 #    st.write(list(gene_sets.keys()))
     
     for term, genes in gene_sets.items():
-        # 名前を文字列に変換し、空の場合は代替名を使用
+        # Convert name to string and use alternative name if empty
         term_str = str(term) if term else "Unnamed Set"
         
-        # 遺伝子リストの妥当性チェック
+        # Check gene list validity
         if not isinstance(genes, (list, set, tuple)) or len(genes) == 0:
             small_sets[term_str] = 0
             continue
             
-        # min_sizeより小さい遺伝子セットをチェック
+        # Check for gene sets smaller than min_size
         if len(genes) < min_size:
             small_sets[term_str] = len(genes)
             continue
             
-        # 有効な遺伝子セットを追加
+        # Add valid gene sets
         filtered_gene_sets[term] = genes
     
-    # 小さな遺伝子セットの報告をexpandableに変更
+    # Report small gene sets in an expandable section
     if small_sets:
         with st.expander(f"⚠️ {len(small_sets)} gene sets have fewer genes than min_size ({min_size}) or are empty (click to view details). You may change the threshold on the side panel."):
             st.write("The following gene sets were excluded from the analysis:")
             for term, count in sorted(small_sets.items(), key=lambda x: x[1]):
                 st.info(f"- {term}: {count} genes")
     
-    # フィルタリングされた遺伝子セットがなければエラー
+    # Error if no filtered gene sets remain
     if not filtered_gene_sets:
         st.error("No gene sets remain after filtering. Please reduce min_size or use different gene sets.")
         return None
         
-    # 1つしか遺伝子セットがない場合の警告
+    # Warning if only one gene set remains
     if len(filtered_gene_sets) == 1:
         st.warning("Only one gene set remains after filtering. This may cause errors in GSEApy.")
         st.info("Consider using fgsea (R) method instead or adding more gene sets.")
         return None
     
-    # フィルタリングされた遺伝子セットを使用
+    # Use filtered gene sets
     try:
-        # GSEApyが1つの遺伝子セットでエラーを起こす可能性があるための対策
+        # Add dummy gene set if only one remains to prevent GSEApy errors
         if len(filtered_gene_sets) == 1 and 'prerank_method' in st.session_state and st.session_state.prerank_method == 'GSEApy':
-            # ダミーの遺伝子セットを追加（実際の分析には使用されない）
+            # Add a dummy gene set (not used in actual analysis)
             dummy_term = "DUMMY_GENESET_FOR_COMPATIBILITY"
-            filtered_gene_sets[dummy_term] = list(rnk.index[:min_size])  # ランキングの最初のmin_size個の遺伝子
+            filtered_gene_sets[dummy_term] = list(rnk.index[:min_size])  # First min_size genes from ranking
             st.info(f"Added a dummy gene set '{dummy_term}' to prevent errors. This will not affect your results.")
             
         pre_res = gp.prerank(rnk=rnk, 
@@ -210,76 +214,75 @@ def calc_prerank(rnk, gene_sets, min_size, max_size, permutation_num, seed):
         return None
 
 def fix_term_for_filename(term):
-    """ファイル名として安全な形式に変換する"""
-    # スペースをドットに変換、その他の特殊文字も処理
+    """Convert to filename-safe format"""
+    # Convert spaces to dots, handle other special characters
     return re.sub(r'[^a-zA-Z0-9_]', '.', term)
 
 
 
-@st.cache_data
-# calc_fgsea関数を一時的にキャッシュから外して、クラス定義を適切に行います
-# @st.cache_data アノテーションを削除して新しいバージョンを使います
+# Temporarily remove cache from calc_fgsea function and properly define class
+# Remove @st.cache_data annotation and use new version
 
 def calc_fgsea(rnk, gene_sets, min_size, max_size):
-    # 一時ファイルを作成
+    # Create temporary files
     rnk_file = f"{gsea_temp_dir}/rnk_for_fgsea.tsv"
     gmt_file = f"{gsea_temp_dir}/gene_sets_for_fgsea.gmt"
     result_file = f"{gsea_temp_dir}/fgsea_results.json"
     res_dir = f"{gsea_temp_dir}/res_data"
     
-    # rankファイルを保存
+    # Save rank file
     rnk.to_csv(rnk_file, sep='\t', header=False)
     
-    # GMTファイルを作成
+    # Create GMT file
     with open(gmt_file, 'w') as f:
         for term, genes in gene_sets.items():
             joined_genes = "\t".join(genes)
             f.write(f"{term}\t{term}\t{joined_genes}\n")
     
-    # RESデータを格納するディレクトリを作成
+    # Create directory to store RES data
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
     
-    # Rスクリプトを作成（RESデータの計算も含む）
+    # Create R script (includes RES data calculation)
     r_script = f'''
     library(fgsea)
     library(data.table)
 
-    # 遺伝子ランクを読み込む
+    # Load gene ranks
     ranks <- read.table("{rnk_file}", header=FALSE, sep="\t")
     ranks <- setNames(ranks$V2, ranks$V1)
 
-    # 遺伝子セットを読み込む
+    # Load gene sets
     pathways <- gmtPathways("{gmt_file}")
 
-    # fgseaを実行
+    # Run fgsea
     fgseaRes <- fgsea(pathways=pathways, 
                        stats=ranks,
                        minSize={min_size},
                        maxSize={max_size})
 
-    # 安全なファイル名を生成する関数
+    # Function to generate safe filenames
     makeSafeFilename <- function(name) {{
-      # スペースや特殊文字をドットに置き換え
+      # Replace spaces and special characters with dots
       safe_name <- gsub("[^a-zA-Z0-9_]", ".", name)
       return(safe_name)
     }}
 
-    # RESデータを計算して保存する関数
+    # Function to calculate and save RES data
     calculateAndSaveRES <- function(pathway, ranks, pathways, output_dir) {{
-        # 遺伝子セットを取得
+        # Get gene set
         pathway_genes <- pathways[[pathway]]
         
-        # ランク付けされた遺伝子リスト
+        # Ranked gene list
         gene_list <- names(ranks)
         gene_ranks <- ranks
         
-        # ランキングに基づいてソート
+        # Sort by ranking
         sorted_idx <- order(gene_ranks, decreasing=TRUE)
         gene_list <- gene_list[sorted_idx]
         gene_ranks <- gene_ranks[sorted_idx]
         
-        # ヒットの配列を作成（遺伝子セットに含まれる場合は1、そうでない場合は0）
+        # Create hit array (1 if in gene set, 0 otherwise)
         N <- length(gene_list)
         hits <- integer(N)
         for (i in 1:N) {{
@@ -288,43 +291,43 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
             }}
         }}
         
-        # 遺伝子セット内の遺伝子数
+        # Number of genes in gene set
         NH <- sum(hits)
         
-        # RESを計算
+        # Calculate RES
         RES <- numeric(N)
         running_sum <- 0
         
         for (i in 1:N) {{
             if (hits[i] == 1) {{
-                # 遺伝子セット内の遺伝子
+                # Gene in gene set
                 running_sum <- running_sum + 1/NH
             }} else {{
-                # 遺伝子セット外の遺伝子
+                # Gene not in gene set
                 running_sum <- running_sum - 1/(N-NH)
             }}
             RES[i] <- running_sum
         }}
         
-        # 安全なファイル名を生成
+        # Generate safe filename
         safe_pathway <- makeSafeFilename(pathway)
         
-        # 結果を保存
+        # Save results
         res_file <- file.path(output_dir, paste0(safe_pathway, "_res.tsv"))
         write.table(RES, file=res_file, sep="\\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
         
-        # ヒット位置も保存
+        # Also save hit positions
         hits_file <- file.path(output_dir, paste0(safe_pathway, "_hits.tsv"))
         hit_indices <- which(hits == 1)
         write.table(hit_indices, file=hits_file, sep="\\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
         
-        # デバッグ用にファイル名を出力
+        # Output filename for debugging
         cat("Saved RES and hits for", pathway, "as", res_file, "and", hits_file, "\\n")
         
         return(RES)
     }}
 
-    # 各パスウェイのRESを計算して保存
+    # Calculate and save RES for each pathway
     if (!dir.exists("{res_dir}")) {{
         dir.create("{res_dir}", recursive=TRUE)
     }}
@@ -339,16 +342,16 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
         }}
     }}
 
-    # Leading edgeを文字列に変換
+    # Convert leading edge to string
     fgseaRes$leadingEdge <- lapply(fgseaRes$leadingEdge, function(x) paste(x, collapse=","))
 
-    # データフレームを行ごとにリストに変換
+    # Convert dataframe to list by rows
     result_list <- split(fgseaRes, seq(nrow(fgseaRes)))
 
-    # pathwayを名前として使用
+    # Use pathway as names
     names(result_list) <- fgseaRes$pathway
 
-    # JSONとして保存
+    # Save as JSON
     library(jsonlite)
     write_json(result_list, "{result_file}", pretty=TRUE)
     '''
@@ -357,7 +360,7 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
     with open(r_script_file, 'w') as f:
         f.write(r_script)
     
-    # Rスクリプトを実行
+    # Execute R script
     try:
         result = subprocess.run(['Rscript', r_script_file], check=True, capture_output=True, text=True)
         st.write("R script executed successfully")
@@ -366,7 +369,7 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
         st.error(f"stderr: {e.stderr}")
         return None
     
-    # fgseaの結果を読み込む
+    # Load fgsea results
     try:
         with open(result_file, 'r') as f:
             fgsea_json = json.load(f)
@@ -381,39 +384,39 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
         st.error(f"Error reading fgsea results: {e}")
         return None
     
-    # RESデータを読み込んでfgsea_jsonに追加
+    # Load RES data and add to fgsea_json
     for term in fgsea_json:
-        # ファイル名のために用語を安全な形式に変換
+        # Convert term to safe format for filename
         safe_term = fix_term_for_filename(term)
         res_file = f"{res_dir}/{safe_term}_res.tsv"
         hits_file = f"{res_dir}/{safe_term}_hits.tsv"
         
         try:
             if os.path.exists(res_file):
-                # RESデータを読み込む
+                # Load RES data
                 res_data = np.loadtxt(res_file)
-                # データがリストなら辞書に変換
+                # Convert list to dict if needed
                 if isinstance(fgsea_json[term], list) and len(fgsea_json[term]) > 0:
-                    # リストの最初の要素を取得し辞書に変換
+                    # Get first element of list and convert to dict
                     data_item = fgsea_json[term][0]
                     fgsea_json[term] = data_item
                 
-                # fgsea_json[term]が辞書でない場合は辞書に変換
+                # Convert to dict if fgsea_json[term] is not a dict
                 if not isinstance(fgsea_json[term], dict):
                     fgsea_json[term] = {'ES': 0, 'NES': 0, 'pval': 1, 'padj': 1, 'leadingEdge': ''}
                 
-                # RESデータを追加
+                # Add RES data
                 fgsea_json[term]['res_data'] = res_data.tolist()
             
             if os.path.exists(hits_file):
-                # ヒット位置を読み込む
+                # Load hit positions
                 hit_indices = np.loadtxt(hits_file, dtype=int)
                 
-                # fgsea_json[term]が辞書でない場合は対応
+                # Handle if fgsea_json[term] is not a dict
                 if not isinstance(fgsea_json[term], dict):
                     fgsea_json[term] = {'ES': 0, 'NES': 0, 'pval': 1, 'padj': 1, 'leadingEdge': ''}
                 
-                # ヒット位置を追加
+                # Add hit positions
                 fgsea_json[term]['hit_indices'] = hit_indices.tolist()
                 
         except Exception as e:
@@ -422,7 +425,7 @@ def calc_fgsea(rnk, gene_sets, min_size, max_size):
     return FgseaResults(fgsea_json, rnk, gene_sets)
 
 
-# 正しく定義されたFgseaResultsクラス
+# Properly defined FgseaResults class
 class FgseaResults:
     def __init__(self, fgsea_json, rnk_data, gene_sets=None):
         self.results = {}
@@ -430,7 +433,7 @@ class FgseaResults:
         self.gene_sets = gene_sets if gene_sets is not None else {}
         
         for term, data in fgsea_json.items():
-            # データを抽出
+            # Extract data
             if isinstance(data, list) and len(data) > 0:
                 data_item = data[0]
             elif isinstance(data, dict):
@@ -438,7 +441,7 @@ class FgseaResults:
             else:
                 continue
                 
-            # 結果エントリを作成
+            # Create result entry
             self.results[term] = {
                 'es': data_item.get('ES', 0),
                 'nes': data_item.get('NES', 0),
@@ -448,16 +451,16 @@ class FgseaResults:
                 'tag %': 0,
                 'gene %': 0,
                 'lead_genes': data_item.get('leadingEdge', ''),
-                # RESとヒット位置
+                # RES and hit positions
                 'res_data': data_item.get('res_data', []),
                 'hit_indices': data_item.get('hit_indices', [])
             }
     
     def plot(self, terms, **kwargs):
         """
-        GSEApyのgseaplot関数を使用してプロット
+        Plot using GSEApy's gseaplot function
         """
-        # gseaplotをインポート
+        # Import gseaplot
         from gseapy.plot import gseaplot
         
         if isinstance(terms, str):
@@ -471,7 +474,7 @@ class FgseaResults:
             if term in self.results:
                 result = self.results[term]
                 
-                # ランクメトリックを取得
+                # Get rank metric
                 if hasattr(self.ranking, 'iloc'):
                     rank_metric = self.ranking.iloc[:, 0].values
                 elif hasattr(self.ranking, 'values'):
@@ -479,24 +482,24 @@ class FgseaResults:
                 else:
                     rank_metric = np.array(self.ranking).flatten()
                 
-                # ヒット位置を取得
+                # Get hit positions
                 hits = []
                 if 'hit_indices' in result and result['hit_indices']:
                     hits = result['hit_indices']
-                    # 数値型に変換
+                    # Convert to numeric type
                     hits = [int(x) for x in hits]
                 
-                # RESデータを取得
+                # Get RES data
                 res = []
                 if 'res_data' in result and result['res_data']:
                     res = result['res_data']
-                    # 数値型に変換
+                    # Convert to numeric type
                     res = np.array(res, dtype=float)
                 
-                # データの長さの一貫性をチェック
+                # Check data length consistency
                 if len(res) != len(rank_metric):
                     print(f"Warning: RES length ({len(res)}) doesn't match rank_metric length ({len(rank_metric)})")
-                    # 長さを合わせる
+                    # Adjust lengths
                     if len(res) > 0:
                         from scipy.interpolate import interp1d
                         x_old = np.linspace(0, 1, len(res))
@@ -504,19 +507,19 @@ class FgseaResults:
                         f = interp1d(x_old, res, bounds_error=False, fill_value=(res[0], res[-1]))
                         res = f(x_new)
                 
-                # GSEApyのgseaplot関数を使用
+                # Use GSEApy's gseaplot function
                 try:
-                    # 統計値はfgseaから取得
+                    # Get statistics from fgsea
                     gseaplot(
-                        rank_metric=rank_metric,    # ランキングメトリック
-                        term=term,                  # 遺伝子セット名
-                        hits=hits,                  # ヒット位置 
+                        rank_metric=rank_metric,    # Ranking metric
+                        term=term,                  # Gene set name
+                        hits=hits,                  # Hit positions 
                         nes=result['nes'],          # NES
-                        pval=result['pval'],        # p値
+                        pval=result['pval'],        # p-value
                         fdr=result['fdr'],          # FDR
-                        RES=res,                    # RESデータ
-                        ax=axes[i],                 # プロット先の軸
-                        ofname=None                 # ファイル出力なし
+                        RES=res,                    # RESdata
+                        ax=axes[i],                 # Target axis for plot
+                        ofname=None                 # No file output
                     )
                 except Exception as e:
                     print(f"Error with gseaplot: {e}")
@@ -654,32 +657,45 @@ def add_GO_term(i):
 @st.cache_data
 def calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch):
     orig_len = len(df)
-    df = df[np.isfinite(df[P_column]) & pd.notnull(df[P_column])]     # FCやpがNAのものを除く
-    df = df[np.isfinite(df[FC_column]) & pd.notnull(df[FC_column])] 
+
+    # DESeq2 stat/limma t mode
+    if rank_metric == "DESeq2 stat/limma t":
+        df = df[np.isfinite(df[P_column]) & pd.notnull(df[P_column])]
+        if len(df) < orig_len:
+            st.warning("The stat column contains inf or NA")
+        inv_parameter = 1
+        if inv_switch:
+            inv_parameter = -1
+        df.loc[:, 'score'] = df[P_column] * inv_parameter
+        return df['score'].to_frame()
+
+    # Standard P-value and FC mode
+    df = df[np.isfinite(df[P_column]) & pd.notnull(df[P_column])]     # Remove rows with NA in FC or p
+    df = df[np.isfinite(df[FC_column]) & pd.notnull(df[FC_column])]
     if len(df) < orig_len:
         st.warning("The P or FC columns contain inf or NA")
-    # p=0がないか、みる
+    # Check if p=0 exists
     inv_parameter = 1
     if inv_switch:
         inv_parameter = -1
     p_0 = (df.loc[:,P_column] == 0)
     if not any(p_0):
-        #scoreを作る
+        #Create score
         if rank_metric == 'sign(LFC) x -log10(P)':
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
         else:
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-     # p=0があるとき
+     # When p=0 exists
     else:
         st.write("p=0 data are:")
         st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
-        # 0e0がとして読まれる　LogFCも0のはず
+        # 0e0 is read as such - LogFC should also be 0
         if any((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)):
             st.write("And FC=0. Probably original 0.00E+00 means 1.")
             st.write(df.loc[((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)), [Gene_column,FC_column,P_column]])
             st.write("Convert 0 to 1.")
             df.loc[((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)), [FC_column,P_column]] = [1,1]
-            p_0 = (df.loc[:,P_column] == 0) # FC>0の0
+            p_0 = (df.loc[:,P_column] == 0) # p=0 with FC>0
             if any(p_0):
                 st.write("Remaining p=0 data are:")
                 st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
@@ -688,20 +704,20 @@ def calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch):
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
         else:
             df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-        #Seurat "MAST"だと318あたり？
+        #Seurat "MAST" is around 318?
         if input_file_type == 'Seurat':
-            #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる log10を計算するとinf
+            #max_score = np.log10(1e-324) # 1e-324 == 0 becomes TRUE, log10 calculation gives inf
             max_score = -324
             st.write("\nMax score: "+str(max_score))
         else:
-            #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる pythonでも同じ　1e-324 + 1e-323でも計算される
+            #max_score = np.log10(1e-324) # 1e-324 == 0 becomes TRUE in python, 1e-324 + 1e-323 also calculates
             max_score = -324
             st.write("\nMax score: "+str(max_score))
-        # 順位付けのためにFCの値を足す
-        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column] * inv_parameter #条件を括弧で囲むこと！！！
+        # Add FC value for ranking
+        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column] * inv_parameter #Must enclose conditions in parentheses!!!
         df.loc[(p_0 & (df.loc[:,FC_column]<0)),'score'] = max_score + df.loc[:,FC_column] * inv_parameter
         st.write('Ranking score are -log10(P-values)')
-    return df['score'].to_frame() #DFに変換してから返す
+    return df['score'].to_frame() #Convert to DF before returning
 
 st.sidebar.title("Options")
 # --- Initialising SessionState ---
@@ -710,7 +726,7 @@ if "gseacalc" not in st.session_state:
 if "gsea" not in st.session_state:
       st.session_state.gsea = False
 
-if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+if 'filename_add' not in globals(): #Keep previous data when starting over
  #    st.write('file name kept')
     filename_add = ""
 
@@ -748,23 +764,131 @@ st.markdown("Gene set score for calculation of gene set score in each sample usi
 if Analysis_mode == "Over-representation":
     st.markdown("### Over-representation mode")
     Test_mode = st.radio("Test mode:", ('Hypergeometric test','Enrichr web'), key='Hypergeometric test')
-    st.markdown("##### Genes (comma, space, CR separated):")
-    genes = st.text_input("genes",label_visibility = 'collapsed')
+
+    # Gene list input method
+    ORA_input_mode = st.radio(
+        "##### How to provide gene list:",
+        ('Manual input', 'DEG/PCA loading file'), key='Manual input', index=1)
+
     gene_list = []
-    gsea_dir = gsea_temp_dir + "/ORA"  # dir作成
-    if len(genes) > 0:
-        genes = genes.replace("'","")
-        genes = genes.replace('"',"")
-        gene_list = genes.split(' ') #まず空白で分離
-        gene_list = list(filter(lambda a: a != '', gene_list)) #空白のみを除く
-        if ',' in genes:
-            gene_list = sum([x.split(',') for x in gene_list],[]) #sumで平坦化 sum(x, [])
-        if '\t' in genes:
-            gene_list = sum([x.split('\t') for x in gene_list],[])
-        if '\n' in genes:
-            gene_list = sum([x.split('\n') for x in gene_list],[])
-        gene_list =sorted(set(gene_list), key=gene_list.index)
-        st.write(gene_list[:3])
+    gsea_dir = gsea_temp_dir + "/ORA"  # Create directory
+
+    if ORA_input_mode == 'Manual input':
+        st.markdown("##### Genes (comma, semicolon, space, CR separated):")
+        genes = st.text_input("genes",label_visibility = 'collapsed')
+        if len(genes) > 0:
+            genes = genes.replace("'","")
+            genes = genes.replace('"',"")
+            gene_list = genes.split(' ') #First split by space
+            gene_list = list(filter(lambda a: a != '', gene_list)) #Remove spaces only
+            if ',' in genes:
+                gene_list = sum([x.split(',') for x in gene_list],[]) #Flatten with sum sum(x, [])
+            if ';' in genes:
+                gene_list = sum([x.split(';') for x in gene_list],[])
+            if '\t' in genes:
+                gene_list = sum([x.split('\t') for x in gene_list],[])
+            if '\n' in genes:
+                gene_list = sum([x.split('\n') for x in gene_list],[])
+            gene_list =sorted(set(gene_list), key=gene_list.index)
+            st.write(gene_list[:3])
+
+    else:  # DEG/PCA loading file mode
+        st.markdown("##### Upload DEG or PCA loading result file:")
+        input_file_type = st.radio(
+            "Data format:",
+            ('tsv','csv', 'excel'), index = 0)
+
+        uploaded_file = st.file_uploader("Upload file", type=['txt','tsv','csv','xls','xlsx'])
+        if uploaded_file is not None:
+            if input_file_type == "csv":
+                df_ora = read_csv(uploaded_file, index_col = 0)
+            elif input_file_type == 'tsv':
+                df_ora = read_csv(uploaded_file, sep = '\t', index_col = 0)
+            else:
+                df_ora = read_xl(uploaded_file, index_col = 0)
+
+            st.write("Preview:")
+            st.dataframe(df_ora.head(3))
+
+            content = df_ora.columns.tolist()
+            p_patterns = ['p.val', 'pvalue', 'p-val', 'p val', 'p_val', 'pval']
+            pvalue = [i for i in content if any(p in i.lower() for p in p_patterns)]
+            fc_patterns = ['log2fc', 'fold change', 'log2foldchange', 'coef', 'logfc']
+            fc = [i for i in content if any(pattern in i.lower() for pattern in fc_patterns)]
+
+            # Auto-detect PCA loadings
+            loading_patterns = ['pc', 'loadings', 'component']
+            loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
+
+            # If no P-value or FDR but has PC columns, treat as PCA loadings
+            is_pca_loading = (len(pvalue) == 0 and len(loadings_cols) > 0)
+
+            if is_pca_loading:
+                st.info("🔍 PCA loadings file detected")
+
+                # If not found, use all numeric columns as candidates
+                if not loadings_cols:
+                    loadings_cols = df_ora.select_dtypes(include=[np.number]).columns.tolist()
+
+                Loading_column = st.selectbox('Select PCA loading column', loadings_cols)
+
+                # Select Gene column
+                if df_ora.index.name:
+                    Gene_column = df_ora.index.name
+                    st.write(f"Using index as gene names: {Gene_column}")
+                else:
+                    st.write("Using index as gene names")
+
+                # PCA loadings mode settings
+                up_or_down = st.radio("Positive or negative loadings:", ('Positive','Negative'))
+                top_n = st.number_input('Number of top genes', min_value=1, step=1, value=50)
+
+                # Process loadings
+                df_ora = df_ora.dropna(subset=[Loading_column])
+                df_ora = df_ora.sort_values(Loading_column, ascending=False, key=abs)
+
+                if up_or_down == 'Positive':
+                    gene_list = df_ora[df_ora[Loading_column] > 0].head(top_n).index.tolist()
+                else:
+                    gene_list = df_ora[df_ora[Loading_column] < 0].head(top_n).index.tolist()
+
+            else:
+                st.info("📊 DEG result file detected")
+
+                P_column = st.selectbox('Select P-value column', pvalue)
+                FC_column = st.selectbox('Select FC column', fc)
+
+                # Select Gene column
+                if df_ora.index.name:
+                    Gene_column = df_ora.index.name
+                    st.write(f"Using index as gene names: {Gene_column}")
+                else:
+                    st.write("Using index as gene names")
+
+                # DEG mode settings
+                up_or_down = st.radio("Up or down genes:", ('Up','Down'))
+                p_thre = st.number_input('Threshold for P-value', min_value=0.000, max_value=1.000,
+                                        step=0.002, value=0.050)
+                FC_thre = st.number_input('Threshold for log FC', min_value=0.0, step=0.1, value=0.0)
+                top_n = st.number_input('Number of top genes', min_value=1, step=1, value=50)
+
+                # Process DEG
+                df_thre = df_ora[df_ora[P_column] < p_thre]
+                df_thre = df_thre[abs(df_thre[FC_column]) > FC_thre]
+                df_thre = df_thre.sort_values(FC_column, ascending=False)
+
+                if up_or_down == 'Up':
+                    gene_list = df_thre[df_thre[FC_column] > 0].head(top_n).index.tolist()
+                else:
+                    df_thre = df_thre.sort_values(FC_column, ascending=True)
+                    gene_list = df_thre[df_thre[FC_column] < 0].head(top_n).index.tolist()
+
+            st.write(f"Number of genes: {len(gene_list)}")
+            st.write("Gene list (first 10):")
+            st.write(', '.join(gene_list[:10]))
+        else:
+            st.warning("Please upload a file")
+            st.stop()
 
     if Test_mode == 'Enrichr web':
         test_name = 'Enrichr_Web'
@@ -785,19 +909,19 @@ if Analysis_mode == "Over-representation":
 
         if db == 'mSigDB':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
+                dir_path = os.path.join(DB_DIR, "mSigDB_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+                dir_path = os.path.join(DB_DIR, "mSigDB")
         elif db == 'Enrichr':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
+                dir_path = os.path.join(DB_DIR, "enrichr_database_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
+                dir_path = os.path.join(DB_DIR, "enrichr_database")
         elif db == 'Homemade':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
+                dir_path = os.path.join(DB_DIR, "custum_gmt_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
+                dir_path = os.path.join(DB_DIR, "custum_gmt")
         else:
             GO = None
             uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
@@ -821,7 +945,7 @@ if Analysis_mode == "Over-representation":
                 key_index=len(files_file) - 1
             GO_name = st.multiselect('Select gene set',files_file, default = files_file[key_index])
 #            GO_name = st.selectbox('Select gene set',files_file, index=key_index)
-            if db == 'mSigDB' or db == 'Homemade': #GMT fileからdictへ変換
+            if db == 'mSigDB' or db == 'Homemade': #Convert GMT file to dict
                 GO = dict()
                 for i in GO_name:
                     GO_file = dir_path + '/' + i
@@ -857,36 +981,36 @@ if Analysis_mode == "Over-representation":
                 else:
                     df = read_excel(uploaded_file, index_col = None, header = None)
 
-                # もし1列のデータで最初にGeneがないとき
+                # If one column data and first row is not "Gene"
                 if df.shape[1] == 1:
                     bk_genes = df.iloc[:,1].values
                     if bk_genes[0] == "Gene" or bk_genes[0] == "GENE":
                         bk_genes = bk_genes[1:]
 
                 else:
-                    df.columns = df.iloc[0,:].tolist()    # transposeすると狂うので、transposeした後にcolumnsを決める
-                    df = df.drop(0, axis = 0) # 1行目を列名にして除く
+                    df.columns = df.iloc[0,:].tolist()    # Don't transpose first, set columns after transpose
+                    df = df.drop(0, axis = 0) # Use first row as column names and remove
 
                     st.write(df.head())
                     content = df.columns.tolist()
                     Gene_column = content[0]
                     if "Annotation/Divergence" in content:
-                          # colnamesの変換
+                          # Convert column names
                         search_word = '([^\ \(]*)\ \(.*'
 
                         for i in range(1, len(content)):
                             match = re.search(search_word, content[i])
                             if match:
                                 content[i] = match.group(1).replace(' ', '_')
-                        df.columns = content # 一旦名前を変更
-                        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                        df.columns = content # Change names temporarily
+                        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel compatibility
 
                         pattern = "([^|]*)"
                         repatter = re.compile(pattern)
                         f_annotation = lambda x: repatter.match(x).group(1)
                         df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
                 #        df.loc[:,'Annotation/Divergence'] = df.apply(lambda x: re.sub(r'([^|]*).*', r'\1', x['Annotation/Divergence']), axis=1)
-                        # annotation/divergence以前を除く
+                        # Remove before annotation/divergence
                         df = df.loc[:,'Annotation/Divergence':]
                         content = df.columns.tolist()
                         content[0] = 'Gene'
@@ -930,11 +1054,12 @@ if Analysis_mode == "Over-representation":
             py_x_size = 600
             py_y_size = 400
             with st.sidebar:
-                p_thre = st.number_input('Visuallzation threshold for adj. P', min_value =0.0, step = 0.01, value=0.05)
-                num_bar = int(st.number_input('Number of terms to visualize', min_value =1, step = 1, value=10))
-                ORA_bar_cmap = st.selectbox('Barplot color map:', ('viridis_r', 'Blues', 'Greys', 'BrBG', 'BuGn', 'BuPu','GnBu', 'Greens','OrRd', 'Oranges', 'autumn', 'binary', 'bone',  'gist_gray', 'magma'), index = 0)
-                py_x_size = int(st.number_input("Plot x size:", value = 600, step = 100, min_value = 100))
-                py_y_size = int(st.number_input("Plot y size:", value = 400, step = 100, min_value = 100))
+                with st.expander("📊 Barplot Settings", expanded=True):
+                    p_thre = st.number_input('Visuallzation threshold for adj. P', min_value =0.0, step = 0.01, value=0.05)
+                    num_bar = int(st.number_input('Number of terms to visualize', min_value =1, step = 1, value=10))
+                    ORA_bar_cmap = st.selectbox('Barplot color map:', ('viridis_r', 'Blues', 'Greys', 'BrBG', 'BuGn', 'BuPu','GnBu', 'Greens','OrRd', 'Oranges', 'autumn', 'binary', 'bone',  'gist_gray', 'magma'), index = 0)
+                    py_x_size = int(st.number_input("Plot x size:", value = 600, step = 100, min_value = 100))
+                    py_y_size = int(st.number_input("Plot y size:", value = 400, step = 100, min_value = 100))
 
             sig = enr.results.loc[(enr.results['Adjusted P-value']<p_thre),:]
 
@@ -992,13 +1117,27 @@ if Analysis_mode == "Over-representation":
 elif Analysis_mode == "Prerank":
     st.markdown("### Prerank-GSEA mode")
 
-    # fgseaオプションを追加
+    # fgseaoptionadd
     prerank_method = st.radio(
         "GSEA method:",
-        ('GSEApy', 'fgsea (R)'), key='prerank_method')
+        ('GSEApy', 'fgsea (R)'),
+        key='prerank_method',
+        help="""
+        **GSEApy**: Standard Python implementation
+        - Widely used, well-documented
+        - Good visualization options
+        - Slower for large datasets
+        - Best for: Standard analysis, publication-ready results
+
+        **fgsea (R)**: Fast Gene Set Enrichment Analysis
+        - 10-100x faster than standard GSEA
+        - Memory efficient for large datasets
+        - R-based implementation via Bioconductor
+        - Best for: Large-scale analysis, parameter optimization, screening
+        """)
 
     rnk_type = st.radio("Data format:",
-    ('Differential expression analysis (DEA) file', 'rank'), index = 0)
+    ('Differential expression analysis (DEA) / PCA loading file', 'rank'), index = 0)
 
     if rnk_type != 'rank':
         input_file_type = st.radio(
@@ -1010,8 +1149,14 @@ elif Analysis_mode == "Prerank":
         if uploaded_file is not None:
             if input_file_type == "csv":
                 df = read_csv(uploaded_file, index_col = 0)
+                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
+                    df.index.name = 'gene'
             elif input_file_type == 'tsv':
                 df = read_csv(uploaded_file, sep = '\t', index_col = 0)
+                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
+                    df.index.name = 'gene'
             elif input_file_type == 'Seurat':
                 # Read the Seurat format file
                 df_orig = read_csv(uploaded_file, sep = '\t')
@@ -1053,55 +1198,139 @@ elif Analysis_mode == "Prerank":
                 st.write(f"Number of genes: {len(df)}")
             else:
                 df = read_xl(uploaded_file, index_col = 0)
+                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
+                    df.index.name = 'gene'
 
             down_file_name = os.path.basename(uploaded_file.name)
 
             df.iloc[0:3,:]
-            rank_metric = st.radio(
-                "Ranking metric:",
-                ('sign(LFC) x -log10(P)', 'LFC x -log10(p)', "DESeq2 stat"), index = 0)
-                # calculate stat value
-            # indexをGeneカラムにコピー
-            df['Gene'] = df.index
-            # indexの名前を除く
-            df.index.name = None
+
+            # Auto-detection logic
             content = df.columns.tolist()
-            st.write("Select pvalue and logFC")
             p_patterns = ['p.value', 'pvalue', 'p-val', 'p val', 'p_val', 'pval', 'p_val_adj']
             pvalue = [i for i in content if any(p in i.lower() for p in p_patterns) and 'adj.pval' not in i.lower()]
-            fc_patterns = ['log2fc', 'fold change', 'log2foldchange', 'coef', 'logfc', 'avg_log2fc']
-            fc = [i for i in content if any(pattern in i.lower() for pattern in fc_patterns)]
-            gene = [i for i in content if (i not in pvalue) and (i not in fc)]
-            P_column = st.selectbox('Select P-value column', pvalue)
-            stat_column = re.match(r'([^\.]+)', P_column).group(1) #名前を変更する
-            # ジャロ・ウィンクラー距離法
-            JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
-            try:
-                FC_column = st.selectbox(
-                    'Select FC column',
-                    fc, index = JW_dist.index(max(JW_dist)))
-            except:
-                FC_column = st.selectbox(
-                    'Select FC column', fc)
+            loading_patterns = ['pc', 'loadings', 'component']
+            loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
 
-            if "Gene" in content:
-                Gene_column =  "Gene"
-            elif "Symbol" in content:
-                Gene_column =  "Symbol"
+            # If no P-value or FDR but has PC columns, treat as PCA loadings
+            is_pca_loading = (len(pvalue) == 0 and len(loadings_cols) > 0)
+
+            if is_pca_loading:
+                st.info("🔍 PCA loadings file detected (no p-value columns found, PC columns present)")
+                rank_source = 'PCA loadings'
             else:
-                Gene_column =  st.selectbox(
-                'Select gene column',
-                gene)
+                st.info("📊 DEG result file detected (p-value columns found)")
+                rank_source = 'P values (DEA results)'
 
-            inv_switch = st.checkbox('Invert the sign')
+            if rank_source == 'P values (DEA results)':
+                rank_metric = st.radio(
+                    "Ranking metric:",
+                    ('sign(LFC) x -log10(P)', 'LFC x -log10(p)', "DESeq2 stat/limma t"), index = 0)
+                    # calculate stat value
+                # indexGenecolumn copy
+                df['Gene'] = df.index
+                # indexRemove name
+                df.index.name = None
 
+                # GeneUpdate content after adding column
+                content = df.columns.tolist()
 
-            df_sub = df[[P_column, FC_column]]
-            rnk = calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch)
-            st.write(rnk.head())
-            rnk_name = P_column
-            st.session_state.rnk = rnk
-            st.session_state.rnk_name = rnk_name
+                fc_patterns = ['log2fc', 'fold change', 'log2foldchange', 'coef', 'logfc', 'avg_log2fc']
+                fc = [i for i in content if any(pattern in i.lower() for pattern in fc_patterns)]
+                gene = [i for i in content if (i not in pvalue) and (i not in fc)]
+
+                if rank_metric == "DESeq2 stat/limma t":
+                    statvalue = [i for i in content if ('stat' in i) or ('t' in i)]
+                    stat_column = st.selectbox('Select stat column', statvalue)
+                    if "Gene" in content:
+                        Gene_column = "Gene"
+                    elif "Symbol" in content:
+                        Gene_column = "Symbol"
+                    else:
+                        Gene_column = st.selectbox('Select gene column', gene)
+                else:
+                    st.write("Select pvalue and logFC")
+                    P_column = st.selectbox('Select P-value column', pvalue)
+                    stat_column = re.match(r'([^\.]+)', P_column).group(1) #nameChange name
+                    # Jaro-Winkler distance method
+                    JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
+                    try:
+                        FC_column = st.selectbox(
+                            'Select FC column',
+                            fc, index = JW_dist.index(max(JW_dist)))
+                    except:
+                        FC_column = st.selectbox(
+                            'Select FC column', fc)
+
+                    if "Gene" in content:
+                        Gene_column =  "Gene"
+                    elif "Symbol" in content:
+                        Gene_column =  "Symbol"
+                    else:
+                        Gene_column =  st.selectbox(
+                        'Select gene column',
+                        gene)
+
+                inv_switch = st.checkbox('Invert the sign')
+
+                if rank_metric == "DESeq2 stat/limma t":
+                    rnk = calc_rank(df, stat_column, None, rank_metric, Gene_column, inv_switch)
+                    st.write(rnk.head())
+                    rnk_name = stat_column
+                else:
+                    df_sub = df[[P_column, FC_column]]
+                    rnk = calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch)
+                    st.write(rnk.head())
+                    rnk_name = P_column
+                st.session_state.rnk = rnk
+                st.session_state.rnk_name = rnk_name
+
+            else:  # PCA loadings mode
+                # indexGenecolumn copy
+                df['Gene'] = df.index
+                df.index.name = None
+                content = df.columns.tolist()
+
+                st.write("Select PCA loadings column")
+                # loadings列のパターン（PC1, PC2, etc.）
+                loading_patterns = ['pc', 'loadings', 'component']
+                loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
+
+                # If not found, use all numeric columns as candidates
+                if not loadings_cols:
+                    loadings_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+                Loading_column = st.selectbox('Select PCA loading column', loadings_cols)
+
+                # Select Gene column
+                gene = [i for i in content if i not in loadings_cols]
+                if "Gene" in content:
+                    Gene_column = "Gene"
+                elif "Symbol" in content:
+                    Gene_column = "Symbol"
+                else:
+                    Gene_column = st.selectbox('Select gene column', gene)
+
+                inv_switch = st.checkbox('Invert the sign')
+
+                # loadingsvaluerank fileにconvert
+                rnk = df[[Gene_column, Loading_column]].copy()
+                rnk = rnk.dropna()  # NA除去
+                rnk.columns = ['Gene', 'score']
+                rnk = rnk.set_index('Gene')
+
+                # Invert if needed
+                if inv_switch:
+                    rnk['score'] = -1 * rnk['score']
+
+                # Sort by score (descending)
+                rnk = rnk.sort_values('score', ascending=False)
+
+                st.write(rnk.head())
+                rnk_name = Loading_column
+                st.session_state.rnk = rnk
+                st.session_state.rnk_name = rnk_name
 
     else:# rank file
 
@@ -1120,19 +1349,19 @@ elif Analysis_mode == "Prerank":
 
         if db == 'mSigDB':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB_mouse")
+                dir_path = os.path.join(DB_DIR, "mSigDB_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "mSigDB")
+                dir_path = os.path.join(DB_DIR, "mSigDB")
         elif db == 'Enrichr':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database_mouse")
+                dir_path = os.path.join(DB_DIR, "enrichr_database_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "enrichr_database")
+                dir_path = os.path.join(DB_DIR, "enrichr_database")
         elif db == 'Homemade':
             if species == 'mouse':
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt_mouse")
+                dir_path = os.path.join(DB_DIR, "custum_gmt_mouse")
             else:
-                dir_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "custum_gmt")
+                dir_path = os.path.join(DB_DIR, "custum_gmt")
 
         else:
             uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
@@ -1159,7 +1388,7 @@ elif Analysis_mode == "Prerank":
 
             GO_name = st.multiselect('Select gene set',files_file, default = files_file[key_index])
 
-            if db == 'mSigDB' or db == 'Homemade': #GMT fileからdictへ変換
+            if db == 'mSigDB' or db == 'Homemade': #Convert GMT file to dict
                 GO = dict()
                 for i in GO_name:
                     GO_file = dir_path + '/' + i
@@ -1169,7 +1398,7 @@ elif Analysis_mode == "Prerank":
                     gmt =[x.split('\t') for x in t]
                     GO_dic = dict()
                     for i in gmt:
-                        if len(i) >= 3 and i[0].strip():  # キーが空でなく、少なくとも3要素あることを確認
+                        if len(i) >= 3 and i[0].strip():  # キーが空でなく、少なくとも3要素あるcheck
                             GO_dic[i[0]] = i[2:]
                     GO = GO | GO_dic
 
@@ -1181,7 +1410,7 @@ elif Analysis_mode == "Prerank":
                     GO = GO | GO_dic
 
 
-        # termの_をスペースへ　　enrichment graphでタイトルがラップされないため
+        # Replace underscores with spaces in terms - prevents title wrapping in enrichment graph
         for i in list(GO.keys()):
             GO[i.replace("_"," ")] = GO.pop(i)
 
@@ -1190,37 +1419,37 @@ elif Analysis_mode == "Prerank":
         seed = 6
         permutation_num = 1000
         with st.sidebar:
-            st.markdown("#### GSEA parameters")
-            min_size = int(st.number_input('Minimum number of genes in a gene set', min_value =1, step =1, value=15))
-            max_size = int(st.number_input('Maximum number of genes in a gene set', min_value =1, step =100, value=500))
-            
-            # GSEApyの場合のみpermutation_numを表示
-            if prerank_method == 'GSEApy':
-                permutation_num = int(st.number_input('Number of permutation', min_value =100, step =100, value=1000))
-                seed = int(st.number_input('Seed for permutation (0: time stamp)', min_value =0, step =1, value=6))
-                if seed == 0:
-                    import time
-                    seed = int(time.time())
-            
-            rev_rnk = st.checkbox("Reverse rank order?", value = False)
-            # 修正後のコード:
-            if rev_rnk:
-                # DataFrameの構造を確認して適切に処理
-                if isinstance(rnk, pd.DataFrame):
-                    # DataFrameの最初の列（スコア値）を反転
-                    col_name = rnk.columns[0]
-                    rnk[col_name] = -rnk[col_name]
-                    st.write(f"Reversed values in column: {col_name}")
-                else:
-                    # DataFrameでない場合（念のため）
-                    st.error("Error: rank data is not in expected format")
-                    
-                rev_rnk_name = st.text_input("New rank name:", rnk_name + "_rev")
-                rnk_name = rev_rnk_name
-                
-                # 反転後のデータを表示
-                st.write("Preview of reversed ranking:")
-                st.write(rnk.head())
+            with st.expander("⚙️ GSEA Parameters", expanded=True):
+                min_size = int(st.number_input('Minimum number of genes in a gene set', min_value =1, step =1, value=15))
+                max_size = int(st.number_input('Maximum number of genes in a gene set', min_value =1, step =100, value=500))
+
+                # GSEApyの場合のみpermutation_numdisplay
+                if prerank_method == 'GSEApy':
+                    permutation_num = int(st.number_input('Number of permutation', min_value =100, step =100, value=1000))
+                    seed = int(st.number_input('Seed for permutation (0: time stamp)', min_value =0, step =1, value=6))
+                    if seed == 0:
+                        import time
+                        seed = int(time.time())
+
+                rev_rnk = st.checkbox("Reverse rank order?", value = False)
+                # 修正afterのコード:
+                if rev_rnk:
+                    # DataFrameの構造checkして適切に処理
+                    if isinstance(rnk, pd.DataFrame):
+                        # DataFrameの最初の列（スコアvalue）反転
+                        col_name = rnk.columns[0]
+                        rnk[col_name] = -rnk[col_name]
+                        st.write(f"Reversed values in column: {col_name}")
+                    else:
+                        # DataFrameでnot場合（念のため）
+                        st.error("Error: rank data is not in expected format")
+
+                    rev_rnk_name = st.text_input("New rank name:", rnk_name + "_rev")
+                    rnk_name = rev_rnk_name
+
+                    # 反転afterのdatadisplay
+                    st.write("Preview of reversed ranking:")
+                    st.write(rnk.head())
 
       #  st.write(GO_name)
         GO_name_dir = "_".join(GO_name).replace('.gmt','')
@@ -1228,7 +1457,7 @@ elif Analysis_mode == "Prerank":
         rnk_name_dir = rnk_name_dir.replace(".rank",'')
 
 
-        gsea_dir = gsea_temp_dir + "/" + rnk_name_dir + "_" + GO_name_dir # dir作成
+        gsea_dir = gsea_temp_dir + "/" + rnk_name_dir + "_" + GO_name_dir # Create directory
      #   st.write(gsea_dir)
     #    if os.path.exists(gsea_dir) and not st.session_state.gsea:
     #        shutil.rmtree(gsea_dir)
@@ -1242,7 +1471,7 @@ elif Analysis_mode == "Prerank":
             os.mkdir(gsea_dir + '/downregulated_enrichment')
 
 
-        if st.button('Run prerank GSEA test', type = 'primary') and GO: # 状態にかかわらず、ボタンが押されたら計算する。
+        if st.button('Run prerank GSEA test', type = 'primary') and GO: # 状態にかかわらず、ボタンが押edらcalculate。
             st.session_state.pre_res = None
 
             if list(rnk.index.duplicated()).count(True) > 0:
@@ -1250,7 +1479,7 @@ elif Analysis_mode == "Prerank":
                 st.write('Dupliated genes:' +  ', '.join(list(rnk[rnk.index.duplicated()].index)))
                 st.write("The instance of the largest absolute value will be kept.")
                 st.markdown("---")
-                # absoluteで最大値を取る
+                # Take maximum value by absolute value
                 rnk['abs'] = np.abs(rnk.iloc[:,0])
                 rnk = rnk.sort_values('abs', ascending=False)
                 rnk = rnk[~rnk.index.duplicated(keep='first')]
@@ -1258,7 +1487,7 @@ elif Analysis_mode == "Prerank":
                 st.write('Updated rank')
                 st.write(rnk.head())
 
-            # 選択されたメソッドに応じて処理を分岐
+            # Branch processing based on selected method
             if prerank_method == 'GSEApy':
                 pre_res = calc_prerank(rnk=rnk, gene_sets=GO, min_size=min_size, max_size=max_size,
                                 permutation_num=permutation_num, seed=seed)
@@ -1267,10 +1496,10 @@ elif Analysis_mode == "Prerank":
                 if pre_res is None:
                     st.error("fgsea analysis failed. Make sure R and the fgsea package are installed correctly.")
                     st.stop()
-                # ここでNoneチェックを追加
+                # Add None check here
             if pre_res is None:
                 st.error("Analysis failed. Please check your inputs or try a different method.")
-                st.stop()  # 処理を中断して以降のコードを実行しない
+                st.stop()  # Stop processing and don't execute subsequent code
 
             st.session_state.pre_res = pre_res
             terms = list(pre_res.results.keys())
@@ -1288,10 +1517,10 @@ elif Analysis_mode == "Prerank":
             down_res =  down_res.sort_values('FDR q-val', ascending=True)
             st.session_state.gsea_res = gsea_res
             st.session_state.up_res = up_res
-            st.session_state.down_res = down_res  #必要なデータは状態変数に入れておく
+            st.session_state.down_res = down_res  #Put necessary data in session state
             st.session_state.terms = terms
 
-        if st.session_state.pre_res is not None: # 一度計算した後は、ここからスタート
+        if st.session_state.pre_res is not None: # Start from here after calculating once
             st.markdown("##### You must run the analysis again if the parameters are changed.")
             st.markdown("---")
             pre_res = st.session_state.pre_res
@@ -1328,22 +1557,22 @@ elif Analysis_mode == "Prerank":
             es_x_size = 5
             es_y_size = 5
             with st.sidebar:
-                st.markdown("#### Enrichment plot parameters")
-                es_x_size = int(st.number_input("Enrichment plot x size:", value = 5, step = 1, min_value = 2))
-                es_y_size = int(st.number_input("Ebrichment plot y size:", value = 5, step = 1, min_value = 2))
+                with st.expander("📈 Enrichment Plot Settings"):
+                    es_x_size = int(st.number_input("Enrichment plot x size:", value = 5, step = 1, min_value = 2))
+                    es_y_size = int(st.number_input("Ebrichment plot y size:", value = 5, step = 1, min_value = 2))
 
-                # fgseaメソッドが選択されている場合のみアスペクト比のスライダーを表示
-                if prerank_method == 'fgsea (R)':
-                    aspect_ratio = st.slider(
-                        "Plot aspect ratio (height/width):", 
-                        min_value=0.3, 
-                        max_value=1.0, 
-                        value=0.6, 
-                        step=0.1,
-                        help="Adjust this to make the plot wider (lower values) or taller (higher values)"
-                    )
-                else:
-                    aspect_ratio = 1.0  # デフォルト値
+                    # fgseaメソッドがselectされている場合のみアスペクト比のスライダーdisplay
+                    if prerank_method == 'fgsea (R)':
+                        aspect_ratio = st.slider(
+                            "Plot aspect ratio (height/width):",
+                            min_value=0.3,
+                            max_value=1.0,
+                            value=0.6,
+                            step=0.1,
+                            help="Adjust this to make the plot wider (lower values) or taller (higher values)"
+                        )
+                    else:
+                        aspect_ratio = 1.0  # デフォルトvalue
 
             if enrichment_term:
                 # Check if we're using fgsea (different plotting approach needed)
@@ -1381,13 +1610,13 @@ elif Analysis_mode == "Prerank":
             res2d.columns = ['FDR q-val', 'Lead_genes', 'NES', 'Term']
 
             with st.sidebar:
-                st.markdown("#### Dotplot parameters")
-                dot_fdr  = st.number_input("Dotplot FDR threshold:", value = 0.1, min_value = 0.001)
-                dot_num  = st.number_input("Max number of terms to show:", value = 12, min_value = 1)
-                dot_pos = st.selectbox('Show terms:', ('Both',"Upregulated","Downregulated"), index = 0)
-                dot_size = int(st.number_input("Dot size:", value = 5, step = 1, min_value = 1))
-                dot_x_size = int(st.number_input("Dotplot x size:", value = 8, step = 1, min_value = 2))
-                dot_y_size = int(st.number_input("Dotplot y size:", value = 8, step = 1, min_value = 2))
+                with st.expander("🔵 Dotplot Settings"):
+                    dot_fdr  = st.number_input("Dotplot FDR threshold:", value = 0.1, min_value = 0.001)
+                    dot_num  = st.number_input("Max number of terms to show:", value = 12, min_value = 1)
+                    dot_pos = st.selectbox('Show terms:', ('Both',"Upregulated","Downregulated"), index = 0)
+                    dot_size = int(st.number_input("Dot size:", value = 5, step = 1, min_value = 1))
+                    dot_x_size = int(st.number_input("Dotplot x size:", value = 8, step = 1, min_value = 2))
+                    dot_y_size = int(st.number_input("Dotplot y size:", value = 8, step = 1, min_value = 2))
 
             st.write(" ")
 
@@ -1425,22 +1654,22 @@ elif Analysis_mode == "Prerank":
 
 
             with st.sidebar:
-                st.markdown("#### Barplot parameters")
-                bar_vis_thr  = st.number_input("Barplot FDR threshold:", value = 0.05, min_value = 0.001)
-                bar_num  = st.number_input("Max number of terms for barplot", value = 12, min_value = 1)
-                bar_type = st.selectbox('Barplot type:', ('Single plot','Separete up/down plots'), index = 0)
-                if bar_type == 'Separete up/down plots':
-                    Y_reverse = st.checkbox("Reverse Y order in downregulated plot?", value=False)
-                #dot_size = int(st.number_input("Dot size:", value = 5, step = 1, min_value = 1))
-                bar_cmap = st.selectbox('Barplot color map:', ('Default', 'Greys_r', 'Blues_r', 'BrBG_r', 'BuGn_r', 'BuPu_r','GnBu_r', 'Greens_r','OrRd_r', 'Oranges_r', 'autumn', 'binary_r', 'bone',  'gist_gray', 'magma_r', 'viridis'), index = 0)
-                bar_x_size = int(st.number_input("Barplot x size:", value = 8, step = 1, min_value = 2))
-                bar_y_size = int(st.number_input("Barplot y size:", value = 8, step = 1, min_value = 2))
+                with st.expander("📊 Barplot Settings"):
+                    bar_vis_thr  = st.number_input("Barplot FDR threshold:", value = 0.05, min_value = 0.001)
+                    bar_num  = st.number_input("Max number of terms for barplot", value = 12, min_value = 1)
+                    bar_type = st.selectbox('Barplot type:', ('Single plot','Separete up/down plots'), index = 0)
+                    if bar_type == 'Separete up/down plots':
+                        Y_reverse = st.checkbox("Reverse Y order in downregulated plot?", value=False)
+                    #dot_size = int(st.number_input("Dot size:", value = 5, step = 1, min_value = 1))
+                    bar_cmap = st.selectbox('Barplot color map:', ('Default', 'Greys_r', 'Blues_r', 'BrBG_r', 'BuGn_r', 'BuPu_r','GnBu_r', 'Greens_r','OrRd_r', 'Oranges_r', 'autumn', 'binary_r', 'bone',  'gist_gray', 'magma_r', 'viridis'), index = 0)
+                    bar_x_size = int(st.number_input("Barplot x size:", value = 8, step = 1, min_value = 2))
+                    bar_y_size = int(st.number_input("Barplot y size:", value = 8, step = 1, min_value = 2))
 
             st.write(" ")
 
-            #ーーーーーーーーーーbarplot
+            #Barplot
             gsea_nes = gsea_res.copy(deep=True)
-            gsea_nes["Gene set"] = gsea_nes.index.to_list() # indexはsnsで使えない様子
+            gsea_nes["Gene set"] = gsea_nes.index.to_list() # Index cannot be used in sns
             gsea_nes = gsea_nes.sort_values('NES', ascending=False)
             gsea_nes = gsea_nes.loc[gsea_nes['FDR q-val']<bar_vis_thr]
             up_nes = gsea_nes.loc[gsea_nes['NES'] > 0]
@@ -1501,7 +1730,7 @@ elif Analysis_mode == "Prerank":
             else:
                 if len(gsea_nes) >0:
                     fig, ax = plt.subplots(figsize=(bar_x_size, bar_y_size))
-                    if len(gsea_nes) > bar_num: #NESの絶対値でtop をとる
+                    if len(gsea_nes) > bar_num: #Take top by absolute value of NES
                         gsea_nes['abs NES'] = np.abs(gsea_nes['NES'] )
                         gsea_nes = gsea_nes.sort_values('abs NES', ascending=False)
                         gsea_nes = gsea_nes.iloc[0:bar_num]
@@ -1531,18 +1760,18 @@ elif Analysis_mode == "Prerank":
 
             # return two dataframe
             with st.sidebar:
-                st.markdown("#### Enrichment map parameters")
-                map_fdr  = st.number_input("Enrichment map FDR threshold:", value = 0.1, min_value = 0.0)
-                map_num  = st.number_input("Number of top terms to show:", value = 10, min_value = 1)
-                map_pos = st.selectbox('Show terms of:', ('Both',"Upregulated","Downregulated"), index = 0)
-                map_node  = st.number_input("Node size:", value = 800, min_value = 100)
-                node_font = st.number_input("Node label size:", value = 10, min_value = 1)
-                node_cmap = st.selectbox('Node color map:', ('Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'CMRmap', 'Dark2', 'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'Paired', 'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu', 'RdYlBu', 'RdYlGn', 'Reds', 'Set1', 'Set2', 'Set3', 'Spectral', 'Wistia', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd', 'afmhot', 'autumn', 'binary', 'bone', 'brg', 'bwr', 'cividis', 'cool', 'coolwarm', 'copper', 'cubehelix', 'flag', 'gist_earth', 'gist_gray', 'gist_heat', 'gist_ncar', 'gist_rainbow', 'gist_stern', 'gist_yarg', 'gnuplot', 'gnuplot2', 'gray', 'hot', 'hsv', 'inferno', 'jet', 'magma', 'nipy_spectral', 'ocean', 'pink', 'plasma', 'prism', 'rainbow', 'seismic', 'spring', 'summer', 'tab10', 'tab20', 'tab20b', 'tab20c', 'terrain', 'turbo', 'twilight', 'twilight_shifted', 'viridis', 'winter'), index = 11)
-                c_r = st.checkbox("Reverse color order?", value=False)
-                if c_r:
-                    node_cmap = node_cmap + "_r"
-                map_x_size = int(st.number_input("Enrichment plot x size:", value = 8, step = 1, min_value = 2))
-                map_y_size = int(st.number_input("Ebrichment plot y size:", value = 8, step = 1, min_value = 2))
+                with st.expander("🗺️ Enrichment Map Settings"):
+                    map_fdr  = st.number_input("Enrichment map FDR threshold:", value = 0.1, min_value = 0.0)
+                    map_num  = st.number_input("Number of top terms to show:", value = 10, min_value = 1)
+                    map_pos = st.selectbox('Show terms of:', ('Both',"Upregulated","Downregulated"), index = 0)
+                    map_node  = st.number_input("Node size:", value = 800, min_value = 100)
+                    node_font = st.number_input("Node label size:", value = 10, min_value = 1)
+                    node_cmap = st.selectbox('Node color map:', ('Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'CMRmap', 'Dark2', 'GnBu', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'Paired', 'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr', 'PuRd', 'Purples', 'RdBu', 'RdGy', 'RdPu', 'RdYlBu', 'RdYlGn', 'Reds', 'Set1', 'Set2', 'Set3', 'Spectral', 'Wistia', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd', 'afmhot', 'autumn', 'binary', 'bone', 'brg', 'bwr', 'cividis', 'cool', 'coolwarm', 'copper', 'cubehelix', 'flag', 'gist_earth', 'gist_gray', 'gist_heat', 'gist_ncar', 'gist_rainbow', 'gist_stern', 'gist_yarg', 'gnuplot', 'gnuplot2', 'gray', 'hot', 'hsv', 'inferno', 'jet', 'magma', 'nipy_spectral', 'ocean', 'pink', 'plasma', 'prism', 'rainbow', 'seismic', 'spring', 'summer', 'tab10', 'tab20', 'tab20b', 'tab20c', 'terrain', 'turbo', 'twilight', 'twilight_shifted', 'viridis', 'winter'), index = 11)
+                    c_r = st.checkbox("Reverse color order?", value=False)
+                    if c_r:
+                        node_cmap = node_cmap + "_r"
+                    map_x_size = int(st.number_input("Enrichment plot x size:", value = 8, step = 1, min_value = 2))
+                    map_y_size = int(st.number_input("Ebrichment plot y size:", value = 8, step = 1, min_value = 2))
 
 
             # return two dataframe
@@ -1562,11 +1791,11 @@ elif Analysis_mode == "Prerank":
                 fig, ax = plt.subplots(figsize=(map_x_size, map_y_size))
 
 
-                # 以下、間違いを修正済み
-                # Gで使用されているtermはnodesの一部
+                # Corrected below
+                # Terms used in G are part of nodes
                 fig, ax = plt.subplots(figsize=(map_x_size, map_y_size))
 
-                # init node cooridnates
+                # init node coordinates
                 pos=nx.layout.spiral_layout(G)
                 #node_size = nx.get_node_attributes()
                 # draw node
@@ -1690,7 +1919,7 @@ elif Analysis_mode == "Prerank":
                     my_bar.progress(percent_complete, text=progress_text)
 
                 files = glob.glob(gsea_dir +'/up_png/*.png')
-                # タイル状に pm × pm 枚配置
+                # Arrange pm x pm images in tile pattern
                 pm = 4
                 d = []
                 for i in natsorted(files):
@@ -1719,7 +1948,7 @@ elif Analysis_mode == "Prerank":
 
 
                 files = glob.glob(gsea_dir +'/down_png/*.png')
-                # タイル状に pm × pm 枚配置
+                # Arrange pm x pm images in tile pattern
                 pm = 4
                 d = []
                 for i in natsorted(files):
@@ -1755,13 +1984,13 @@ elif Analysis_mode == "Prerank":
                 if not os.path.exists(gsea_dir + '/edb'):
                     os.mkdir(gsea_dir + '/edb')
                 rnk.to_csv(gsea_dir +'/edb/' + rnk_name, sep = '\t',header=False)
-                # gmt fileの作成
+                # gmt fileのcreate
 #                gene_sets_gmt = []
 #                for i in list(GO.keys()):
 #                    new_cont = [i, i]
 #                    new_cont.extend(GO[i])
 #                    gene_sets_gmt.append(new_cont)
-                gene_sets_gmt = [add_GO_term(i) for i in list(GO.keys())] #時間がかかるので内包表記にする
+                gene_sets_gmt = [add_GO_term(i) for i in list(GO.keys())] #Use list comprehension as it takes time
                 gmt_str = ""
                 percent_complete += percent_count
                 my_bar.progress(percent_complete, text=progress_text)
@@ -1788,3 +2017,238 @@ elif Analysis_mode == "Prerank":
                     file_name=down_name + ".zip",
                     mime = "zip"
                     )
+
+elif Analysis_mode == "Gene set score":
+    st.markdown('### ssGSEA/GSVA mode')
+    st.markdown('#### NES of each gene set within each sample is calculated.')
+    st.markdown("##### Test method:")
+    test_type = st.radio(
+        "",    ('ssGSEA', 'GSVA'), index = 0, label_visibility = 'collapsed')
+    st.markdown("##### Data format:")
+    file_type = st.radio(
+        "",    ('auto', 'Homer','tsv','csv','excel'), index = 0, label_visibility = 'collapsed')
+    uploaded_file = st.file_uploader("Choose a file", type=['txt','tsv', 'csv', 'xls','xlsx'])
+    st.markdown("##### TPM is recommended.")
+    if uploaded_file is not None:
+
+        if file_type == 'auto':
+            try:
+                df = read_csv2(uploaded_file, sep = None)
+                st.write("Uploaded file:")
+                st.write(df.head())
+
+                content = df.columns.tolist()
+
+                if "Annotation/Divergence" in content:
+                     # Convert column names
+                    search_word = '([^\ \(]*)\ \(.*'
+
+                    for i in range(1, len(content)):
+                        match = re.search(search_word, content[i])
+                        if match:
+                            content[i] = match.group(1).replace(' ', '_')
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel compatibility
+                    pattern = "([^|]*)"
+                    repatter = re.compile(pattern)
+                    f_annotation = lambda x: repatter.match(x).group(1)
+                    df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+                    # Remove before annotation/divergence
+                    df = df.loc[:,'Annotation/Divergence':]
+                    st.write("Converted Annotation/Divergence to gene symbols.")
+                content = df.columns.tolist()
+                content[0] = 'Gene'
+                df.columns = content
+
+            except:# excel
+                df = read_excel(uploaded_file)
+                content = df.columns.tolist()
+                if "Annotation/Divergence" in content:
+                     # Convert column names
+                    search_word = '([^\ \(]*)\ \(.*'
+
+                    for i in range(1, len(content)):
+                        match = re.search(search_word, content[i])
+                        if match:
+                            content[i] = match.group(1).replace(' ', '_')
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel compatibility
+                    pattern = "([^|]*)"
+                    repatter = re.compile(pattern)
+                    f_annotation = lambda x: repatter.match(x).group(1)
+                    df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+                    # Remove before annotation/divergence
+                    df = df.loc[:,'Annotation/Divergence':]
+                    content = df.columns.tolist()
+                    content[0] = 'Gene'
+                    df.columns = content
+                    st.write("Converted Annotation/Divergence to gene symbols.")
+                else:
+                    colnames = df.columns.tolist()
+                    colnames[0] = 'Gene'
+                    df.columns = colnames
+
+        elif file_type != 'excel':
+            if file_type == 'csv':
+                df = read_csv2(uploaded_file)
+            else:
+                df = read_csv2(uploaded_file, sep = '\t')
+            st.write("Original:")
+            st.write(df.head())
+            if file_type == 'Homer':
+                df = df.iloc[:,7:]
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                # Convert column names
+                search_word = '([^\ \(]*)\ \(.*'
+                for i in range(1, len(colnames)):
+                    match = re.search(search_word, colnames[i])
+                    if match:
+                        colnames[i] = match.group(1).replace(' ', '_')
+                pattern = "([^|]*)"
+                repatter = re.compile(pattern)
+                f_annotation = lambda x: repatter.match(x).group(1)
+                try:
+                    df.iloc[:,0] = df.iloc[:,0].apply(f_annotation)
+                    df.columns = colnames
+                except:
+                    st.markdown("### File format error. Non-Homer file?")
+
+            else:
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                df.columns = colnames
+        else: # excel
+            df = read_excel(uploaded_file)
+            content = df.columns.tolist()
+            if "Annotation/Divergence" in content:
+                 # Convert column names
+                search_word = '([^\ \(]*)\ \(.*'
+
+                for i in range(1, len(content)):
+                    match = re.search(search_word, content[i])
+                    if match:
+                        content[i] = match.group(1).replace(' ', '_')
+                df.columns = content # Change names temporarily
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel compatibility
+                pattern = "([^|]*)"
+                repatter = re.compile(pattern)
+                f_annotation = lambda x: repatter.match(x).group(1)
+                df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
+                # Remove before annotation/divergence
+                df = df.loc[:,'Annotation/Divergence':]
+                content = df.columns.tolist()
+                content[0] = 'Gene'
+                df.columns = content
+                st.write("Converted Annotation/Divergence to gene symbols.")
+            else:
+                colnames = df.columns.tolist()
+                colnames[0] = 'Gene'
+                df.columns = colnames
+
+        df = df.set_index('Gene')
+        file_name_head = os.path.splitext(uploaded_file.name)[0]
+
+    else:
+        st.stop()
+    st.write(df.head())
+
+    species = st.radio("Species:", ('mouse','human'))
+    db = st.radio("DB:", ('mSigDB','Enrichr', 'Homemade', 'Your own GMT file'))
+
+    if db == 'mSigDB':
+        if species == 'mouse':
+            dir_path = os.path.join(DB_DIR, "mSigDB_mouse")
+        else:
+            dir_path = os.path.join(DB_DIR, "mSigDB")
+    elif db == 'Enrichr':
+        if species == 'mouse':
+            dir_path = os.path.join(DB_DIR, "enrichr_database_mouse")
+        else:
+            dir_path = os.path.join(DB_DIR, "enrichr_database")
+    elif db == 'Homemade':
+        if species == 'mouse':
+            dir_path = os.path.join(DB_DIR, "custum_gmt_mouse")
+        else:
+            dir_path = os.path.join(DB_DIR, "custum_gmt")
+
+    else:
+        uploaded_gmt = st.file_uploader("Upload GMT file", type=['txt','gmt'])
+        if uploaded_gmt is not None:
+            GO_name = uploaded_gmt.name
+            stringio = StringIO(uploaded_gmt.getvalue().decode("utf-8"))
+            s = stringio.read()
+            t = s.split('\n')
+            gmt =[x.split('\t') for x in t]
+            GO = dict()
+            for i in gmt:
+                GO[i[0]] = i[2:]
+
+    if db != "Your own GMT file":
+        files_file = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+        files_file.sort()
+        key_index = 0
+        if db == 'mSigDB':
+            key_index=len(files_file) - 1
+
+        GO_name = st.multiselect('Select gene set',files_file, default = files_file[key_index])
+        if db == 'mSigDB' or db == 'Homemade': #Convert GMT file to dict
+            GO = dict()
+            for i in GO_name:
+                GO_file = dir_path + '/' + i
+                with open(GO_file) as f:
+                    s = f.read()
+                t = s.split('\n')
+                gmt =[x.split('\t') for x in t]
+                GO_dic = dict()
+                for i in gmt:
+                    GO_dic[i[0]] = i[2:]
+                GO = GO | GO_dic
+
+        else:
+            GO = dict()
+            for i in GO_name:
+                with open(dir_path + '/' + i, 'rb') as handle:
+                    GO_dic = pickle.load(handle)
+                GO = GO | GO_dic
+
+    # Replace underscores with spaces in terms - prevents title wrapping in enrichment graph
+    for i in list(GO.keys()):
+        GO[i.replace("_"," ")] = GO.pop(i)
+
+    if st.button('Calculate score') and GO:
+        if test_type == 'ssGSEA':
+            ss = gp.ssgsea(data=df,
+                        gene_sets=GO,
+                        outdir=None,
+                        sample_norm_method='rank', # choose 'custom' will only use the raw value of `data`
+                        no_plot=True)
+            nes = ss.res2d.pivot(index='Term', columns='Name', values='NES')
+            st.markdown('#### NES:')
+            st.write(nes.head())
+            st.session_state.df = nes
+
+            file_name = os.path.splitext(uploaded_file.name)[0] + '.NES.tsv'
+            st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + '.NES'
+            csv = convert_df(nes)
+        elif test_type == 'GSVA':
+
+            gsva = gp.gsva(data=df,
+                 gene_sets=GO,
+                 outdir=None)
+            st.markdown('#### ES:')
+            es = gsva.res2d.pivot(index='Term', columns='Name', values='ES')
+            st.write(es.head())
+
+            st.session_state.df = es
+            file_name = os.path.splitext(uploaded_file.name)[0] + '.ES.tsv'
+            st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + '.ES'
+            csv = convert_df(es)
+
+        st.download_button(
+            "Press to Download",
+            csv,
+            file_name,
+            "text/csv",
+            key='download-csv'
+        )

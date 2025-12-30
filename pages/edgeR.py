@@ -519,19 +519,22 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
             treat_lfc = None
 
 
-#        st.markdown("##### Batch correction:")
-#        sva = st.checkbox('SVA batch removal?')
-#        sva_calc = True
-#        if sva:
-#            sva_calc = st.checkbox('Calculate only 2 surrogate variables? Deselect if want to calculate up to the recommended number.', value = True)
-#            st.markdown("---")
-
-#        ruv = st.checkbox('RUV batch removal?')
-
-#        if ruv:
-#            RUV_alpha  = st.number_input('P values threshold for control genes in RUV', min_value=0.0, max_value = 0.5, step = 0.05,value=0.2)
-#        else:
-#            RUV_alpha = 0.2 # Set to pass to R
+        st.markdown("---")
+        st.markdown("##### SVA (Surrogate Variable Analysis):")
+        use_sva = st.checkbox('SVA batch effect estimation?',
+                              help="Estimate and remove hidden batch effects using surrogate variable analysis")
+        sva_n_sv = 2  # default
+        if use_sva:
+            sva_method = st.radio(
+                "Number of surrogate variables:",
+                ["Auto (recommended)", "Fixed number"],
+                index=0,
+                help="Auto: Calculate optimal number using be method. Fixed: Use specified number."
+            )
+            if sva_method == "Fixed number":
+                sva_n_sv = st.number_input("Number of SVs:", value=2, min_value=1, max_value=10)
+            else:
+                sva_n_sv = None  # Auto-calculate
 
 
 
@@ -838,4 +841,145 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
                 file_name=file_name_head + ".edgeR.tsv",
                 mime="text/tab-separated-values"
             )
+
+            # ========================================
+            # SVA Analysis (if enabled)
+            # ========================================
+            if use_sva:
+                st.markdown("---")
+                st.markdown("## SVA (Surrogate Variable Analysis)")
+
+                with st.spinner('Running SVA analysis...'):
+                    try:
+                        # Load sva library
+                        ro.r('suppressMessages(library(sva))')
+
+                        # Get normalized log-CPM values for SVA
+                        ro.r('''
+                        # Use normalized counts from y
+                        dat <- cpm(y, log=TRUE, prior.count=1)
+                        ''')
+
+                        # Create model matrices for SVA
+                        if has_batch:
+                            ro.r('''
+                            # Full model with group and batch
+                            mod <- model.matrix(~group_factor + batch_factor)
+                            # Null model (intercept only)
+                            mod0 <- model.matrix(~1, data=data.frame(row.names=colnames(dat)))
+                            ''')
+                        else:
+                            ro.r('''
+                            # Full model with group only
+                            mod <- model.matrix(~group_factor)
+                            # Null model (intercept only)
+                            mod0 <- model.matrix(~1, data=data.frame(row.names=colnames(dat)))
+                            ''')
+
+                        # Calculate number of surrogate variables
+                        if sva_n_sv is None:
+                            # Auto-calculate using be method
+                            ro.r('''
+                            n.sv <- num.sv(dat, mod, method="be")
+                            cat("Recommended number of surrogate variables:", n.sv, "\n")
+                            ''')
+                            n_sv = int(ro.r('n.sv')[0])
+                            st.info(f"📊 Recommended number of surrogate variables: {n_sv}")
+                        else:
+                            n_sv = int(sva_n_sv)
+                            ro.r.assign('n.sv', n_sv)
+                            st.info(f"📊 Using {n_sv} surrogate variables (user-specified)")
+
+                        if n_sv > 0:
+                            # Run svaseq
+                            ro.r(f'''
+                            svseq <- svaseq(dat, mod, mod0, n.sv={n_sv})
+                            cat("Number of significant surrogate variables:", svseq$n.sv, "\n")
+                            ''')
+
+                            actual_n_sv = int(ro.r('svseq$n.sv')[0])
+                            st.success(f"✅ SVA identified {actual_n_sv} surrogate variables")
+
+                            if actual_n_sv > 0:
+                                # Add SVs to design matrix and re-run edgeR
+                                ro.r('''
+                                # Create new design matrix with SVs
+                                sv_cols <- svseq$sv
+                                colnames(sv_cols) <- paste0("SV", 1:ncol(sv_cols))
+                                design_sva <- cbind(design, sv_cols)
+                                cat("New design matrix with SVs:\n")
+                                print(head(design_sva))
+
+                                # Re-estimate dispersion with new design
+                                y_sva <- y
+                                y_sva <- estimateDisp(y_sva, design_sva, robust=TRUE)
+
+                                # Re-fit model
+                                fit_sva <- glmQLFit(y_sva, design_sva)
+                                ''')
+
+                                st.write("**Design matrix with surrogate variables:**")
+                                st.write(capture_r_output('print(head(design_sva, 10))'))
+
+                                # Run differential expression with SVA
+                                sva_res = dict()
+
+                                for pair in group_pairs:
+                                    comparison_name = f"{pair[1]}_vs_{pair[0]}"
+                                    contrast_formula = f"`{pair[1]}` - `{pair[0]}`"
+
+                                    if use_glmtreat:
+                                        ro.r(f'''
+                                        contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
+                                        qlf_sva <- glmTreat(fit_sva, contrast=contrast_sva, lfc={treat_lfc})
+                                        ''')
+                                    else:
+                                        ro.r(f'''
+                                        contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
+                                        qlf_sva <- glmQLFTest(fit_sva, contrast=contrast_sva)
+                                        ''')
+
+                                    # Get results
+                                    qlf_sva = ro.globalenv['qlf_sva']
+                                    table_sva = qlf_sva.rx2('table')
+                                    genes_sva = qlf_sva.rx2('genes')
+
+                                    with localconverter(ro.default_converter + pandas2ri.converter):
+                                        df_table_sva = ro.conversion.rpy2py(table_sva)
+                                        s_genes_sva = ro.conversion.rpy2py(genes_sva)
+
+                                    if isinstance(s_genes_sva, pd.DataFrame):
+                                        s_genes_sva = s_genes_sva.iloc[:, 0]
+
+                                    df_table_sva.index = s_genes_sva
+                                    sva_res[comparison_name] = df_table_sva
+
+                                # Merge SVA results
+                                sva_new_dfs = []
+                                for key, df in sva_res.items():
+                                    df = df.rename(columns={col: f"{key}.{col}" for col in df.columns})
+                                    sva_new_dfs.append(df)
+
+                                sva_merged_df = pd.concat(sva_new_dfs, axis=1)
+
+                                st.markdown("### SVA-corrected Results")
+                                st.write(sva_merged_df)
+
+                                # Download SVA results
+                                sva_tsv = sva_merged_df.to_csv(index=True, sep='\t')
+                                st.download_button(
+                                    label="Download SVA-corrected data as TSV",
+                                    data=sva_tsv,
+                                    file_name=file_name_head + ".edgeR.SVA.tsv",
+                                    mime="text/tab-separated-values",
+                                    key="sva_download"
+                                )
+                            else:
+                                st.warning("⚠️ No significant surrogate variables found. Using original results.")
+                        else:
+                            st.warning("⚠️ No surrogate variables recommended. Using original results.")
+
+                    except Exception as e:
+                        st.error(f"❌ SVA analysis failed: {str(e)}")
+                        st.exception(e)
 

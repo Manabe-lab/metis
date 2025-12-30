@@ -892,20 +892,20 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
                             st.info(f"📊 Using {n_sv} surrogate variables (user-specified)")
 
                         if n_sv > 0:
-                            # Run svaseq
+                            # Run sva (not svaseq - svaseq requires non-negative counts, but we have log-CPM)
                             ro.r(f'''
-                            svseq <- svaseq(dat, mod, mod0, n.sv={n_sv})
-                            cat("Number of significant surrogate variables:", svseq$n.sv, "\n")
+                            sva_result <- sva(dat, mod, mod0, n.sv={n_sv})
+                            cat("Number of significant surrogate variables:", sva_result$n.sv, "\n")
                             ''')
 
-                            actual_n_sv = int(ro.r('svseq$n.sv')[0])
+                            actual_n_sv = int(ro.r('sva_result$n.sv')[0])
                             st.success(f"✅ SVA identified {actual_n_sv} surrogate variables")
 
                             if actual_n_sv > 0:
                                 # Add SVs to design matrix and re-run edgeR
                                 ro.r('''
                                 # Create new design matrix with SVs
-                                sv_cols <- svseq$sv
+                                sv_cols <- sva_result$sv
                                 colnames(sv_cols) <- paste0("SV", 1:ncol(sv_cols))
                                 design_sva <- cbind(design, sv_cols)
                                 cat("New design matrix with SVs:\n")

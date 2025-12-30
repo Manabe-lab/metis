@@ -63,16 +63,11 @@ with st.sidebar:
     if use_goi:
         species = st.radio("Species", ['mouse','human'], index=0)
 
-        # Define functional class options based on species
+        # Define species-specific functional class options
         if species == 'mouse':
-            class_options = ["TF","Epigenetic regulator", "Cytokine-GF Ligand", "Cytokine-GF Receptor", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
-        else:
-            class_options = ["TF","Epigenetic regulator", "Cytokine-GF", "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor", "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
-
-        selected_class = st.selectbox("Functional class", class_options, index = 0)
-
-        if species == 'mouse':
-            # Define the functional classes and their corresponding file paths
+            class_options = ["TF", "Epigenetic regulator", "Cytokine-GF Ligand", "Cytokine-GF Receptor",
+                           "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor",
+                           "Homemade LR-pair Ligand", "Homemade LR-pair Receptor", "Secreted factor"]
             functional_classes = {
                 "TF": "Mus_musculus_TF_llst.txt",
                 "Epigenetic regulator": "Mus_musculus_epigenetic_factors_list.txt",
@@ -84,9 +79,12 @@ with st.sidebar:
                 "CellChat Receptor": "CellChat_mouse_receptor.txt",
                 "Homemade LR-pair Ligand": "Homemade_mouse_ligand.txt",
                 "Homemade LR-pair Receptor": "Homemade_mouse_receptor.txt",
-                "Secreted Factor": "secreted.mouse.list.txt"
+                "Secreted factor": "secreted.mouse.list.txt"
             }
         else:
+            class_options = ["TF", "Epigenetic regulator", "Cytokine-GF",
+                           "NicheNet Ligand", "NicheNet Receptor", "CellChat Ligand", "CellChat Receptor",
+                           "Homemade LR-pair Ligand", "Homemade LR-pair Receptor"]
             functional_classes = {
                 "TF": "Homo_sapiens_TF_list.txt",
                 "Epigenetic regulator": "Human_epigenetic_factors_list.txt",
@@ -96,10 +94,11 @@ with st.sidebar:
                 "CellChat Ligand": "CellChat_human_ligand.txt",
                 "CellChat Receptor": "CellChat_human_receptor.txt",
                 "Homemade LR-pair Ligand": "Homemade_human_ligand.txt",
-                "Homemade LR-pair Receptor": "Homemade_human_receptor.txt",
-                "Secreted Factor": "secreted.mouse.list.txt"
+                "Homemade LR-pair Receptor": "Homemade_human_receptor.txt"
             }
             st.write("Human secreted factor list is not available yet")
+
+        selected_class = st.selectbox("Functional class", class_options, index=0)
 
 
         # Read the gene list for the selected class
@@ -116,16 +115,16 @@ with st.sidebar:
                 mime="text/plain"
             )
 
-            # Download L-R pair database for NicheNet and CellChat
-            if "NicheNet" in selected_class:
-                if species == 'mouse':
-                    lr_pair_file = "db/nichenet.tsv"
-                    lr_pair_label = "Download NicheNet L-R pairs (mouse)"
-                    lr_pair_filename = "nichenet_LR_pairs_mouse.tsv"
-                else:
-                    lr_pair_file = "db/nichenet_human.tsv"
-                    lr_pair_label = "Download NicheNet L-R pairs (human)"
-                    lr_pair_filename = "nichenet_LR_pairs_human.tsv"
+        # Download button for L-R pair databases
+        lr_pair_file = None
+        lr_pair_label = None
+        lr_pair_filename = None
+
+        if "Cytokine-GF" in selected_class:
+            if species == 'mouse':
+                lr_pair_file = "db/cytokineGF_LR_pairs_mouse.tsv"
+                lr_pair_label = "Download Cytokine-GF L-R pairs (mouse)"
+                lr_pair_filename = "cytokineGF_LR_pairs_mouse.tsv"
 
                 with open(lr_pair_file, 'r') as f:
                     lr_data = f.read()
@@ -135,59 +134,55 @@ with st.sidebar:
                     file_name=lr_pair_filename,
                     mime="text/tab-separated-values"
                 )
+        elif "NicheNet" in selected_class:
+            lr_pair_file = "db/nichenet.tsv"
+            lr_pair_label = "Download NicheNet L-R pairs"
+            lr_pair_filename = "nichenet_LR_pairs.tsv"
 
-            elif "CellChat" in selected_class:
-                if species == 'mouse':
-                    lr_pair_file = "db/cellchat_mouse.tsv"
-                    lr_pair_label = "Download CellChat L-R pairs (mouse)"
-                    lr_pair_filename = "cellchat_LR_pairs_mouse.tsv"
-                else:
-                    lr_pair_file = "db/cellchat.tsv"
-                    lr_pair_label = "Download CellChat L-R pairs (human)"
-                    lr_pair_filename = "cellchat_LR_pairs_human.tsv"
+            with open(lr_pair_file, 'r') as f:
+                lr_data = f.read()
+            st.download_button(
+                label=lr_pair_label,
+                data=lr_data,
+                file_name=lr_pair_filename,
+                mime="text/tab-separated-values"
+            )
+        elif "CellChat" in selected_class:
+            if species == 'mouse':
+                lr_pair_file = "db/cellchat_mouse.tsv"
+                lr_pair_label = "Download CellChat L-R pairs (mouse)"
+                lr_pair_filename = "cellchat_LR_pairs_mouse.tsv"
+            else:
+                lr_pair_file = "db/cellchat.tsv"
+                lr_pair_label = "Download CellChat L-R pairs (human)"
+                lr_pair_filename = "cellchat_LR_pairs_human.tsv"
 
-                with open(lr_pair_file, 'r') as f:
-                    lr_data = f.read()
-                st.download_button(
-                    label=lr_pair_label,
-                    data=lr_data,
-                    file_name=lr_pair_filename,
-                    mime="text/tab-separated-values"
-                )
+            with open(lr_pair_file, 'r') as f:
+                lr_data = f.read()
+            st.download_button(
+                label=lr_pair_label,
+                data=lr_data,
+                file_name=lr_pair_filename,
+                mime="text/tab-separated-values"
+            )
+        elif "Homemade LR-pair" in selected_class:
+            if species == 'mouse':
+                lr_pair_file = "db/homemade_LR_pairs_mouse.tsv"
+                lr_pair_label = "Download Homemade L-R pairs (mouse)"
+                lr_pair_filename = "homemade_LR_pairs_mouse.tsv"
+            else:
+                lr_pair_file = "db/homemade_LR_pairs_human.tsv"
+                lr_pair_label = "Download Homemade L-R pairs (human)"
+                lr_pair_filename = "homemade_LR_pairs_human.tsv"
 
-            elif "Cytokine-GF" in selected_class:
-                if species == 'mouse':
-                    lr_pair_file = "db/cytokineGF_LR_pairs_mouse.tsv"
-                    lr_pair_label = "Download Cytokine-GF L-R pairs (mouse)"
-                    lr_pair_filename = "cytokineGF_LR_pairs_mouse.tsv"
-
-                    with open(lr_pair_file, 'r') as f:
-                        lr_data = f.read()
-                    st.download_button(
-                        label=lr_pair_label,
-                        data=lr_data,
-                        file_name=lr_pair_filename,
-                        mime="text/tab-separated-values"
-                    )
-
-            elif "Homemade LR-pair" in selected_class:
-                if species == 'mouse':
-                    lr_pair_file = "db/homemade_LR_pairs_mouse.tsv"
-                    lr_pair_label = "Download Homemade L-R pairs (mouse)"
-                    lr_pair_filename = "homemade_LR_pairs_mouse.tsv"
-                else:
-                    lr_pair_file = "db/homemade_LR_pairs_human.tsv"
-                    lr_pair_label = "Download Homemade L-R pairs (human)"
-                    lr_pair_filename = "homemade_LR_pairs_human.tsv"
-
-                with open(lr_pair_file, 'r') as f:
-                    lr_data = f.read()
-                st.download_button(
-                    label=lr_pair_label,
-                    data=lr_data,
-                    file_name=lr_pair_filename,
-                    mime="text/tab-separated-values"
-                )
+            with open(lr_pair_file, 'r') as f:
+                lr_data = f.read()
+            st.download_button(
+                label=lr_pair_label,
+                data=lr_data,
+                file_name=lr_pair_filename,
+                mime="text/tab-separated-values"
+            )
 # temp内に保存する
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
@@ -316,6 +311,8 @@ if df is not None:
     if use_upload == 'Yes':
         # indexをGeneにする
         df.index = df[Gene_column].tolist()
+        # Save a copy with index set for subset creation later
+        st.session_state.deseq2_original = df.copy()
 
     st.markdown("#### Use R EnhancedVolcano?")
     enhanced =  st.checkbox('Use R EnhancedVolcano?', label_visibility = 'collapsed')
@@ -898,9 +895,10 @@ if df is not None:
             legendIconSize =  ", legendIconSize = " + lIconSize
             if dConnectors:
                 drawConnectors =  ", drawConnectors = TRUE"
+                widthConnectors =  ", widthConnectors = " + wConnectors
             else:
                 drawConnectors =  ", drawConnectors = FALSE"
-            widthConnectors =  ", widthConnectors = " + wConnectors
+                widthConnectors = ""
             if EV_color:
                 EV_options = EV_options + ", " + color_codes
 
@@ -921,8 +919,12 @@ if df is not None:
 
         # Save labeled gene subset if requested
         if download_subset and len(gene_list) > 0:
-            # Create subset dataframe with labeled genes
-            subset_df = df.loc[gene_list].copy()
+            # Create subset dataframe with labeled genes from original data
+            if 'deseq2_original' in st.session_state and st.session_state.deseq2_original is not None:
+                subset_df = st.session_state.deseq2_original.loc[gene_list].copy()
+            else:
+                # Fallback to current df if original not available
+                subset_df = df.loc[gene_list].copy()
             subset_filename = file_name_head + ".subset.tsv"
             subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
             st.write(f"Labeled genes subset: {len(gene_list)} genes")

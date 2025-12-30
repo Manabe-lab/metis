@@ -527,11 +527,11 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
         if use_sva:
             sva_method = st.radio(
                 "Number of surrogate variables:",
-                ["Auto (recommended)", "Fixed number"],
+                ["Fixed number (default: 2)", "Auto"],
                 index=0,
-                help="Auto: Calculate optimal number using be method. Fixed: Use specified number."
+                help="Fixed: Use specified number (default 2). Auto: Calculate optimal number using be method."
             )
-            if sva_method == "Fixed number":
+            if sva_method == "Fixed number (default: 2)":
                 sva_n_sv = st.number_input("Number of SVs:", value=2, min_value=1, max_value=10)
             else:
                 sva_n_sv = None  # Auto-calculate

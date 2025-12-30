@@ -1,7 +1,7 @@
-#!!!!!!!!!!!!!! pip install rpy2==3.5.1  新しいバージョンはエラーが出る
+#!!!!!!!!!!!!!! pip install rpy2==3.5.1  Newer versions cause errors
 
-# 基本的にglobal変数で計算する。
-# pythonからassgnされるのはglobal変数
+# Basically uses global variables for calculations.
+# Variables assigned from Python are global variables
 
 
 import streamlit as st
@@ -29,38 +29,38 @@ import pdf2image
 
 def remove_common_suffix(strings):
     if not strings or len(strings) == 0:
-        return []    
-    # 最も短い文字列の長さを取得
+        return []
+    # Get the length of the shortest string
     min_length = min(len(s) for s in strings)
-    # 共通の末尾部分の長さを見つける
+    # Find the length of the common suffix
     suffix_length = 0
     for i in range(1, min_length + 1):
         suffix = strings[0][-i:]
         if all(s.endswith(suffix) for s in strings):
             suffix_length = i
         else:
-            break            
-    # 共通の末尾部分が見つからない場合は元のリストを返す
+            break
+    # If no common suffix is found, return the original list
     if suffix_length == 0:
-        return strings        
-    # 共通の末尾部分を削除して新しいリストを作成
+        return strings
+    # Create a new list with the common suffix removed
     return [s[:-suffix_length] for s in strings]
 
 def format_comparison(comparison_str):
-    # group_factor を含む部分を除去
+    # Remove parts containing group_factor
     comparison_str = re.sub(r'([-]?\d*\*)?group_factor\w+\s*', '', comparison_str)
-    
-    # 係数の文字列を解析
+
+    # Parse coefficient string
     coefficients = comparison_str.split()
     pos_group = None
     neg_group = None
-    
+
     for coef in coefficients:
         if coef.startswith('1*'):
-            pos_group = coef[2:]  # '1*' を除去
+            pos_group = coef[2:]  # Remove '1*'
         elif coef.startswith('-1*'):
-            neg_group = coef[3:]  # '-1*' を除去
-    
+            neg_group = coef[3:]  # Remove '-1*'
+
     if pos_group and neg_group:
         return f"{pos_group} vs. {neg_group}"
     elif pos_group:
@@ -68,73 +68,73 @@ def format_comparison(comparison_str):
     elif neg_group:
         return f"Control vs. {neg_group}"
     else:
-        return "Comparison information not available"  # パースできない場合のメッセージ
+        return "Comparison information not available"  # Message when parsing fails
 
 
 def create_integer_contrasts(groups):
-    # グループの数を取得
+    # Get the number of groups
     n = len(groups)
-    
-    # すべての可能な2グループの組み合わせを生成
+
+    # Generate all possible 2-group combinations
     group_pairs = list(combinations(groups, 2))
-    
-    # コントラストを格納するリスト
+
+    # List to store contrasts
     contrasts = []
-    
+
     for pair in group_pairs:
-        contrast = np.zeros(n, dtype=int)  # dtype=intを追加して整数型に
+        contrast = np.zeros(n, dtype=int)  # Add dtype=int for integer type
         first_index = groups.index(pair[0])
         second_index = groups.index(pair[1])
-        
-        # 先のグループを-1、後のグループを+1に設定
+
+        # Set the first group to -1 and the second group to +1
         contrast[first_index] = -1
         contrast[second_index] = 1
-        
+
         contrasts.append(contrast)
-    
-    # コントラスト行列を作成
-    contrast_matrix = np.array(contrasts, dtype=int)  # dtype=intを追加
-    
-    # DataFrameに変換
-    contrast_df = pd.DataFrame(contrast_matrix, 
+
+    # Create contrast matrix
+    contrast_matrix = np.array(contrasts, dtype=int)  # Add dtype=int
+
+    # Convert to DataFrame
+    contrast_df = pd.DataFrame(contrast_matrix,
                                columns=groups,
                                index=[f"{pair[1]}_vs_{pair[0]}" for pair in group_pairs])
-    
+
     return contrast_df
 
 def capture_r_output_as_dataframe(r_code):
-    # R のデータフレームを Python の pandas DataFrame に変換する設定
+    # Configure to convert R data.frame to Python pandas DataFrame
     pandas2ri.activate()
-    
-    # R コードを実行し、結果を取得
+
+    # Execute R code and get result
     result = ro.r(r_code)
-    
-    # 結果が data.frame の場合、pandas DataFrame に変換
+
+    # If result is a data.frame, convert to pandas DataFrame
     if isinstance(result, ro.vectors.DataFrame):
         df = pandas2ri.rpy2py(result)
         return df
     else:
-        # データフレームでない場合は文字列として返す
+        # If not a dataframe, return as string
         return str(result)
 
 def capture_r_output(r_code):
-    # 標準出力をキャプチャするための設定
+    # Set up to capture stdout
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
 
     try:
-        # Rコードを実行
+        # Execute R code
         ro.r(r_code)
-        # キャプチャした出力を取得
+        # Get captured output
         output = sys.stdout.getvalue()
     finally:
-        # 標準出力を元に戻す
+        # Restore stdout
         sys.stdout = old_stdout
 
     return output
 
 
-#March-1 Sept-1対応
+# March-1 Sept-1 compatibility
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -200,11 +200,11 @@ def calc_barplot(data, ylabel):
 
 st.sidebar.title("Options")
 
-# temp内に保存する
+# Save to temp directory
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
-    #古いdirecotryとファイルを削除する
+    # Delete old directories and files
     temp_dir = "temp/" + str(round(time.time()))
     if not os.path.exists('temp'):
         os.mkdir('temp')
@@ -230,9 +230,9 @@ else:
         os.mkdir(res_dir)
 
 
-st.markdown("### raw count dataを使う")
+st.markdown("### Use raw count data")
 
-use_sf = False # size factorの使用
+use_sf = False # Use size factors
 
 use_upload = 'Yes'
 if 'df' in st.session_state:
@@ -244,11 +244,11 @@ if 'df' in st.session_state:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        # Homer対応
+        # Homer compatibility
         if "Transcript/RepeatID" in df.columns[0]:
             df = df.iloc[:,8:]
             st.write(df.head())
-        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+        if "Row_name" in df.columns.to_list(): # When Row_name is included
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -277,21 +277,21 @@ if use_upload == 'Yes':
 #                Gene_column = content[0]
 
                 if "Annotation/Divergence" in content:
-                     # colnamesの変換
+                     # Convert column names
                     search_word = '([^\ \(]*)\ \(.*'
 
                     for i in range(1, len(content)):
                         match = re.search(search_word, content[i])
                         if match:
                             content[i] = match.group(1).replace(' ', '_')
-                    df.columns = content # 一旦名前を変更
-                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel compatibility
                     pattern = "([^|]*)"
                     repatter = re.compile(pattern)
                     f_annotation = lambda x: repatter.match(x).group(1)
                     df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
                   #  st.write(df.head())
-                    # annotation/divergence以前を除く
+                    # Exclude columns before annotation/divergence
                     df = df.loc[:,'Annotation/Divergence':]
                   #  st.write(df.head())
                     st.write("Converted Annotation/Divergence to gene symbols.")
@@ -305,20 +305,20 @@ if use_upload == 'Yes':
                 df = read_excel(uploaded_file)
                 content = df.columns.tolist()
                 if "Annotation/Divergence" in content:
-                     # colnamesの変換
+                     # Convert column names
                     search_word = '([^\ \(]*)\ \(.*'
 
                     for i in range(1, len(content)):
                         match = re.search(search_word, content[i])
                         if match:
                             content[i] = match.group(1).replace(' ', '_')
-                    df.columns = content # 一旦名前を変更
-                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel compatibility
                     pattern = "([^|]*)"
                     repatter = re.compile(pattern)
                     f_annotation = lambda x: repatter.match(x).group(1)
                     df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                    # annotation/divergence以前を除く
+                    # Exclude columns before annotation/divergence
                     df = df.loc[:,'Annotation/Divergence':]
                     content = df.columns.tolist()
                     content[0] = 'Gene'
@@ -340,7 +340,7 @@ if use_upload == 'Yes':
                 df = df.iloc[:,7:]
                 colnames = df.columns.tolist()
                 colnames[0] = 'Gene'
-                # colnamesの変換
+                # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
                 for i in range(1, len(colnames)):
                     match = re.search(search_word, colnames[i])
@@ -363,20 +363,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # Change names temporarily
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel compatibility
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # Exclude columns before annotation/divergence
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -397,7 +397,7 @@ if df is not None:
     st.write('Original gene number:  ' + str(len(df)))
     st.write(df.head())
 
-    # floatに変換 誤射悟入
+    # Convert to float for mistyping errors
     df = df.astype(float)
 
     if not float.is_integer(df.iloc[:,0].sum()*1000):
@@ -405,9 +405,9 @@ if df is not None:
 
     df = df.round(0)
 
-    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+    df = df.loc[~(df==0).all(axis=1)] # Remove rows where all values are 0
 
-########## excel対応?
+########## Excel compatibility?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -451,24 +451,72 @@ if df is not None:
     with st.sidebar:
         st.markdown("##### Filter out weakly-expressed genes:")
         independentFiltering = st.checkbox('Yes', value= True)
-        st.markdown("""低発現遺伝子の除外はFDRの計算を改善する。
-        filtered outされた遺伝子が多い場合、GSEA用に全遺伝子をランキングするためにはチェックを外す。""")
+        st.markdown("""Removing lowly expressed genes improves FDR calculation.
+        If many genes are filtered out, uncheck to rank all genes for GSEA.""")
+
         min_threshold = 0
         max_threshold = 0
-        if independentFiltering:
+        sample_threshold = 0
 
-            st.markdown("##### Filter the genes > counts in all samples:")
-            min_threshold = st.number_input("count minimum", value = 0, label_visibility = 'collapsed')
-            min_threshold = int(min_threshold)
-            st.markdown("##### Filter the genes > counts in at least one sample:")
-            max_threshold = st.number_input("count max", value = 0, label_visibility = 'collapsed')
-            max_threshold = int(max_threshold)
+        # edgeR::filterByExpr option
+        use_edgeR_filter = st.checkbox("Use edgeR::filterByExpr()", value=False,
+                                      help="CPM-based statistical filtering (recommended). Performs appropriate low-expression gene filtering considering group composition. Simple filtering below will be disabled.")
+        if use_edgeR_filter:
+            st.markdown("##### filterByExpr parameters:")
+            filter_min_count = st.number_input("min.count", value=10, min_value=0,
+                                              help="Minimum count in each sample (default: 10)")
+            filter_min_total_count = st.number_input("min.total.count", value=15, min_value=0,
+                                                    help="Minimum total count across all samples (default: 15)")
+            filter_min_prop = st.number_input("min.prop", value=0.7, min_value=0.0, max_value=1.0, step=0.1,
+                                             help="Proportion of samples in smallest group (default: 0.7)")
+            filter_large_n = st.number_input("large.n", value=10, min_value=0,
+                                            help="Group size considered 'large' (default: 10)")
+        else:
+            filter_min_count = None
+            filter_min_total_count = None
+            filter_min_prop = None
+            filter_large_n = None
 
-            sample_threshold = 0
+            # Simple filtering options (only shown when filterByExpr is not used)
+            if independentFiltering:
+                st.markdown("##### Filter the genes > counts in all samples:")
+                min_threshold = st.number_input("count minimum", value = 0, label_visibility = 'collapsed')
+                min_threshold = int(min_threshold)
+                st.markdown("##### Filter the genes > counts in at least one sample:")
+                max_threshold = st.number_input("count max", value = 0, label_visibility = 'collapsed')
+                max_threshold = int(max_threshold)
 
-        if large_var:
-            st.markdown("##### Filter the samples <= counts:")
-            sample_threshold = st.number_input("Minimum total cout", value = 0, label_visibility = 'collapsed')
+            if large_var:
+                st.markdown("##### Filter the samples <= counts:")
+                sample_threshold = st.number_input("Minimum total cout", value = 0, label_visibility = 'collapsed')
+
+        st.markdown("---")
+        st.markdown("##### Differential expression test method:")
+        test_method = st.radio(
+            "Select test method:",
+            ["glmQLFTest (standard)", "glmTreat (minimum fold-change)"],
+            index=0,
+            help="""**glmQLFTest (standard)**: Tests for log2FC=0. Detects even small changes (suitable for GSEA ranking).
+
+**glmTreat (minimum fold-change)**: Tests for changes exceeding minimum fold-change threshold. Focuses on biologically meaningful genes (suitable for candidate gene selection and validation).
+
+Example: With lfc=0.585, only log2FC>0.585 (1.5x or more change) is significant. Small changes (log2FC=0.05 etc.) are excluded.
+
+Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
+        )
+
+        use_glmtreat = (test_method == "glmTreat (minimum fold-change)")
+
+        if use_glmtreat:
+            treat_lfc = st.number_input(
+                "Log2 fold-change threshold",
+                value=0.585,
+                min_value=0.0,
+                step=0.1,
+                help="Minimum log2FC threshold. 0.585=1.5x change (standard), 1.0=2x change, 1.5=3x change. Common thresholds: 0.585 (standard), 1.0 (stringent)"
+            )
+        else:
+            treat_lfc = None
 
 
 #        st.markdown("##### Batch correction:")
@@ -483,29 +531,33 @@ if df is not None:
 #        if ruv:
 #            RUV_alpha  = st.number_input('P values threshold for control genes in RUV', min_value=0.0, max_value = 0.5, step = 0.05,value=0.2)
 #        else:
-#            RUV_alpha = 0.2 # Rに渡すので設定しておく
+#            RUV_alpha = 0.2 # Set to pass to R
 
 
 
-    if min_threshold > 0:
-        df = df[df.apply(min, axis=1) > min_threshold]
-    if max_threshold > 0:
-        df = df[df.apply(max, axis=1) > max_threshold]
+    # Skip simple filtering when using filterByExpr
+    if not use_edgeR_filter:
+        if min_threshold > 0:
+            df = df[df.apply(min, axis=1) > min_threshold]
+        if max_threshold > 0:
+            df = df[df.apply(max, axis=1) > max_threshold]
 
-    st.write('Filtered gene number:  ' + str(len(df)))
+        st.write('Filtered gene number:  ' + str(len(df)))
 
-    if any(df.sum() <= sample_threshold): # count 0の列を除く
-        st.markdown('#### There are the samples that have counts <= ' + str(sample_threshold))
-        st.write(", ".join(df.columns[df.sum() <= sample_threshold].to_list()))
-        st.write('They are removed. Now data are:')
-        df = df.drop(df.columns[df.sum() <= sample_threshold].to_list(), axis = 1)
-        st.write(df.head())
+        if any(df.sum() <= sample_threshold): # Remove columns with count 0
+            st.markdown('#### There are the samples that have counts <= ' + str(sample_threshold))
+            st.write(", ".join(df.columns[df.sum() <= sample_threshold].to_list()))
+            st.write('They are removed. Now data are:')
+            df = df.drop(df.columns[df.sum() <= sample_threshold].to_list(), axis = 1)
+            st.write(df.head())
+    else:
+        st.write('Gene number before filterByExpr:  ' + str(len(df)))
 
-    condition = [str(i) for i in df.columns.tolist()] #error防止
-    group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
-#    group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
-    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字と_を除く
-    group_condition = [x.replace('_', '.') for x in group_condition] #_を.に
+    condition = [str(i) for i in df.columns.tolist()] # Error prevention
+    group_condition = remove_common_suffix(condition) # Remove common elements at the end
+#    group_condition = [remove_after_space(x) for x in condition] # Remove after space
+    group_condition = [remove_sample_num(x) for x in group_condition] # Remove trailing numbers and _
+    group_condition = [x.replace('_', '.') for x in group_condition] # Replace _ with .
 
     df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
     df_b = pd.DataFrame(condition, index =condition, columns = ["Batch"])
@@ -517,7 +569,7 @@ if df is not None:
         edited_df_e = st.data_editor(df_e)
 
         condition = edited_df_e.iloc[:,0].tolist()
-        
+
         if batch_in:
             st.write('Set batch:')
     #        edited_df_b = st.experimental_data_editor(df_b)
@@ -527,29 +579,29 @@ if df is not None:
             batch = edited_df_b.iloc[:,0].tolist()
             st.write('Batch: ' + '  '.join(batch))
         else:
-            batch = ["No batch"] #batchがないとき
+            batch = ["No batch"] # When there's no batch
 
         submitted = st.form_submit_button("Submit")
 
 
-    # 許容されない部分の変更
+    # Change unacceptable parts
     condition = edited_df_e.iloc[:,0].tolist()
     condition = [remove_sample_num(x) for x in condition]
-    # 次に許容されない文字を変換
+    # Next, convert unacceptable characters
     condition = [x.replace('_', '.') for x in condition]
-    # 他の特殊文字も必要に応じて置換
+    # Replace other special characters as needed
     condition = [re.sub(r'[^a-zA-Z0-9\.]', '', x) for x in condition]
-    
+
     if batch_in:
         batch = edited_df_b.iloc[:,0].tolist()
-        # バッチ名も同様に処理
-        batch = [remove_sample_num(x) for x in batch]
+        # Process batch names (don't use remove_sample_num since they may be numbers only)
+        batch = [str(x) for x in batch]  # Convert to string
         batch = [x.replace('_', '.') for x in batch]
         batch = [re.sub(r'[^a-zA-Z0-9\.]', '', x) for x in batch]
         st.write('Batch: ' + '  '.join(batch))
     else:
         batch = ["No batch"]
-        
+
     st.write('Group: ' + ' '.join(condition))
 
 
@@ -564,32 +616,101 @@ if df is not None:
             st.write("There is a non-nemeric value in ")
             st.write(a)
 
-#    df = excel_autoconversion(df) # 1-Marなどの誤変換への対応
+#    df = excel_autoconversion(df) # Handle 1-Mar and other misconversions
 
 
     st.markdown("---")
     if st.button('Run edgeR'):
         with st.spinner('Calculating edgeR...'):
             df_path = temp_dir + "/df.tsv"
-            
+
             df.to_csv(df_path, sep = '\t')
             ro.r('library(edgeR)')
             ro.r(f'''rawdata <- read.csv('{df_path}', sep = '\t')''')
             ro.r('''
             y <- DGEList(counts=rawdata[,2:dim(rawdata)[2]], genes = rawdata[,1])
             ''')
+
             r_condition = StrVector(condition)
             ro.r.assign('condition', r_condition)
-            ro.r('''
-            # グループを因子に変換
-            group_factor <- factor(condition)
 
-            # デザイン行列の作成
-            design <- model.matrix(~0 + group_factor, data=y$samples)
-            ''')
-            st.write(capture_r_output('''
-            print(design)
-            '''))
+            # Pass batch information to R if available
+            if batch_in and batch != ["No batch"]:
+                r_batch = StrVector(batch)
+                ro.r.assign('batch', r_batch)
+                has_batch = True
+                # Debug: show what was passed to R
+                st.info(f"🔍 Debug: Batch values passed to R: {list(r_batch)}")
+            else:
+                has_batch = False
+
+            # Create design matrix
+            ro.r('group_factor <- factor(condition)')
+            n_group_levels = ro.r('length(levels(group_factor))')[0]
+
+            if n_group_levels < 2:
+                st.error(f"❌ Group/condition variable has only {int(n_group_levels)} level. Need at least 2 groups for comparison.")
+                st.stop()
+
+            if has_batch:
+                # Check if batch has multiple levels
+                ro.r('batch_factor <- factor(batch)')
+                n_batch_levels = ro.r('length(levels(batch_factor))')[0]
+
+                # Debug: show batch levels
+                batch_levels = ro.r('levels(batch_factor)')
+                st.info(f"🔍 Debug: Batch levels detected: {list(batch_levels)} (count: {int(n_batch_levels)})")
+
+                if n_batch_levels < 2:
+                    st.warning(f"⚠️ Batch variable has only {int(n_batch_levels)} level. Ignoring batch adjustment.")
+                    ro.r('''
+                    design <- model.matrix(~0 + group_factor)
+                    # Clean up column names
+                    colnames(design) <- gsub("group_factor", "", colnames(design))
+                    ''')
+                    st.info("ℹ️ Design matrix: ~0 + group (batch ignored - only 1 level)")
+                    has_batch = False  # Update flag
+                else:
+                    # Create design matrix with explicit data frame containing only needed variables
+                    ro.r('''
+                    design_data <- data.frame(
+                        group_factor = group_factor,
+                        batch_factor = batch_factor
+                    )
+                    design <- model.matrix(~0 + group_factor + batch_factor, data=design_data)
+                    # Clean up column names
+                    colnames(design) <- gsub("group_factor", "", colnames(design))
+                    colnames(design) <- gsub("batch_factor", "batch_", colnames(design))
+                    ''')
+                    st.info(f"ℹ️ Design matrix includes batch adjustment: ~0 + group + batch ({int(n_batch_levels)} batch levels)")
+            else:
+                ro.r('''
+                design <- model.matrix(~0 + group_factor)
+                # Clean up column names
+                colnames(design) <- gsub("group_factor", "", colnames(design))
+                ''')
+                st.info("ℹ️ Design matrix: ~0 + group (no batch adjustment)")
+
+            st.write(capture_r_output('print(design)'))
+
+            # Apply filterByExpr if enabled
+            if use_edgeR_filter:
+                st.markdown("#### Applying edgeR::filterByExpr filtering...")
+                original_genes = int(ro.r('nrow(y)')[0])
+                ro.r(f'''
+                # Apply filterByExpr with group and parameters
+                keep <- filterByExpr(y, design=design,
+                                    min.count={filter_min_count},
+                                    min.total.count={filter_min_total_count},
+                                    min.prop={filter_min_prop},
+                                    large.n={filter_large_n})
+                y <- y[keep, , keep.lib.sizes=FALSE]
+                cat('Genes retained after filterByExpr:', sum(keep), 'out of', length(keep), '\\n')
+                ''')
+                genes_kept = int(ro.r('sum(keep)')[0])
+                st.write(f"**filterByExpr**: {genes_kept} / {original_genes} genes retained")
+                st.write(f"- Parameters: min.count={filter_min_count}, min.total.count={filter_min_total_count}, min.prop={filter_min_prop}, large.n={filter_large_n}")
+
             ro.r('''
             y <- normLibSizes(y)
             y <- estimateDisp(y, design, robust=TRUE)
@@ -598,118 +719,119 @@ if df is not None:
             fit <- glmQLFit(y, design)
             ''')
 
-            contrast_df = create_integer_contrasts( list(dict.fromkeys(condition)))
-
-
-            # Rのコードを実行してプロットを生成
+            # Execute R code to generate plot
             r_code = '''
             plotBCV(y)
             '''
-            # プロットを生成しバイトストリームとして取得
-            with grdevices.render_to_bytesio(grdevices.png, width=800, height=600) as image_buffer:
+            # Generate plot and get as byte stream
+            with grdevices.render_to_bytesio(grdevices.png, width=800, height=600, type='cairo') as image_buffer:
                 ro.r(r_code)
 
-            # バイトストリームをPIL Imageに変換
+            # Convert byte stream to PIL Image
             image_buffer.seek(0)
             image = Image.open(io.BytesIO(image_buffer.getvalue()))
 
-            # StreamlitでPIL Imageを表示
-            st.image(image, caption='BCV Plot', use_column_width=True)
+            # Display PIL Image in Streamlit
+            st.image(image, caption='BCV Plot', use_container_width=True)
+
+            # Create contrast matrix using makeContrasts
+            unique_groups = list(dict.fromkeys(condition))
+            group_pairs = list(combinations(unique_groups, 2))
 
             res = dict()
-            for i in range(len(contrast_df)):
-                l =  map(str, contrast_df.iloc[i, :].to_list())
-                c = ', '.join(l)
-                ro.r(f'''
-                qlf<- glmQLFTest(fit, contrast = c({c}))
-                FDR <- p.adjust(qlf$table$PValue, method="BH")
-                qlf$table['adj.P'] <- FDR
-                topTags(qlf)
-                ''')
+            for pair in group_pairs:
+                comparison_name = f"{pair[1]}_vs_{pair[0]}"
+
+                # Use makeContrasts to handle batch columns automatically
+                # Wrap group names in backticks to handle special characters
+                contrast_formula = f"`{pair[1]}` - `{pair[0]}`"
+
+                if use_glmtreat:
+                    # Use glmTreat for testing against minimum fold-change
+                    ro.r(f'''
+                    contrast_matrix <- makeContrasts({contrast_formula}, levels=design)
+                    qlf <- glmTreat(fit, contrast = contrast_matrix, lfc={treat_lfc})
+                    FDR <- p.adjust(qlf$table$PValue, method="BH")
+                    qlf$table['adj.P'] <- FDR
+                    topTags(qlf)
+                    ''')
+                    method_label = f"glmTreat (lfc={treat_lfc})"
+                else:
+                    # Standard glmQLFTest
+                    ro.r(f'''
+                    contrast_matrix <- makeContrasts({contrast_formula}, levels=design)
+                    qlf <- glmQLFTest(fit, contrast = contrast_matrix)
+                    FDR <- p.adjust(qlf$table$PValue, method="BH")
+                    qlf$table['adj.P'] <- FDR
+                    topTags(qlf)
+                    ''')
+                    method_label = "glmQLFTest"
+
                 toptags_table = ro.r('topTags(qlf)$table')
-                comparison = ro.r('topTags(qlf)$comparison')
-    
-                # R のデータフレームを pandas の DataFrame に変換
+
+                # Convert R dataframe to pandas DataFrame
                 with localconverter(ro.default_converter + pandas2ri.converter):
                     toptags_df = ro.conversion.rpy2py(toptags_table)
-                    comparison_str = ro.conversion.rpy2py(comparison)[0]  # R の文字ベクトルの最初の要素を取得
 
-                # 比較情報をフォーマット
-                formatted_comparison = format_comparison(comparison_str)
-                st.write(formatted_comparison)
+                # Display comparison
+                st.write(f"**{comparison_name}** ({method_label})")
                 st.write(toptags_df)
 
-                # Rのコードを実行してプロットを生成
+                # Execute R code to generate plot
                 r_code = '''
                 plotMD(qlf)
                 '''
-                # プロットを生成しバイトストリームとして取得
-                with grdevices.render_to_bytesio(grdevices.png, width=800, height=600) as image_buffer:
+                # Generate plot and get as byte stream
+                with grdevices.render_to_bytesio(grdevices.png, width=800, height=600, type='cairo') as image_buffer:
                     ro.r(r_code)
 
-                # バイトストリームをPIL Imageに変換
+                # Convert byte stream to PIL Image
                 image_buffer.seek(0)
                 image = Image.open(io.BytesIO(image_buffer.getvalue()))
 
-                # StreamlitでPIL Imageを表示
-                st.image(image, caption='MA plot', use_column_width=True)
-                                
-                # R のグローバル環境から qlf オブジェクトを取得
+                # Display PIL Image in Streamlit
+                st.image(image, caption='MA plot', use_container_width=True)
+
+                # Get qlf object from R global environment
                 qlf = ro.globalenv['qlf']
 
-                # table, comparison, genes を取得
+                # Get table and genes
                 table = qlf.rx2('table')
-                comparison = qlf.rx2('comparison')
                 genes = qlf.rx2('genes')
 
-                # table を pandas DataFrame に変換
+                # Convert table to pandas DataFrame
                 with localconverter(ro.default_converter + pandas2ri.converter):
                     df_table = ro.conversion.rpy2py(table)
 
-                # genes を pandas Series に変換
+                # Convert genes to pandas Series
                 with localconverter(ro.default_converter + pandas2ri.converter):
                     s_genes = ro.conversion.rpy2py(genes)
 
-                # s_genes が DataFrame の場合、Series に変換
+                # If s_genes is a DataFrame, convert to Series
                 if isinstance(s_genes, pd.DataFrame):
                     s_genes = s_genes.iloc[:, 0]
 
-                # df_table の行名を genes で設定
+                # Set row names of df_table using genes
                 df_table.index = s_genes
 
-                # comparison を Python の文字列に変換
-                comparison_str = comparison[0]
-
-                # 1*と-1*がついている部分を抽出
-                parts = comparison_str.split()
-                positive = parts[1][2:]  # "1*" を除去
-                negative = parts[0][3:]  # "-1*" を除去
-
-                # group_factorを除去
-                positive = positive.replace("group_factor", "")
-                negative = negative.replace("group_factor", "")
-
-                # 新しい形式の文字列を作成
-                comparison = f"{positive}_vs_{negative}"
-                
-                res[comparison] = df_table
+                res[comparison_name] = df_table
 
             new_dfs = []
 
             for key, df in res.items():
-                # カラム名を変更
+                # Rename columns
                 df = df.rename(columns={col: f"{key}.{col}" for col in df.columns})
                 new_dfs.append(df)
 
-            # すべてのデータフレームをマージ
+            # Merge all dataframes
             merged_df = pd.concat(new_dfs, axis=1)
 
             st.write(merged_df)
 
-            # DataFrameをTSVに変換
+            # Convert DataFrame to TSV
             tsv = merged_df.to_csv(index=True, sep='\t')
 
-            # ダウンロードボタンを作成
+            # Create download button
             st.download_button(
                 label="Download data as TSV",
                 data=tsv,

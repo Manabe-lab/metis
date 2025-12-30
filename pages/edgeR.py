@@ -902,79 +902,94 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
                             st.success(f"✅ SVA identified {actual_n_sv} surrogate variables")
 
                             if actual_n_sv > 0:
-                                # Add SVs to design matrix and re-run edgeR
+                                # Store all SV columns for later use
                                 ro.r('''
-                                # Create new design matrix with SVs
-                                sv_cols <- sva_result$sv
-                                colnames(sv_cols) <- paste0("SV", 1:ncol(sv_cols))
-                                design_sva <- cbind(design, sv_cols)
-                                cat("New design matrix with SVs:\n")
-                                print(head(design_sva))
-
-                                # Re-estimate dispersion with new design
-                                y_sva <- y
-                                y_sva <- estimateDisp(y_sva, design_sva, robust=TRUE)
-
-                                # Re-fit model
-                                fit_sva <- glmQLFit(y_sva, design_sva)
+                                all_sv_cols <- sva_result$sv
+                                colnames(all_sv_cols) <- paste0("SV", 1:ncol(all_sv_cols))
                                 ''')
 
-                                st.write("**Design matrix with surrogate variables:**")
-                                st.write(capture_r_output('print(head(design_sva, 10))'))
+                                # Loop through 1 to actual_n_sv, calculating results for each
+                                all_sva_results = {}
 
-                                # Run differential expression with SVA
-                                sva_res = dict()
+                                for num_sv in range(1, actual_n_sv + 1):
+                                    st.markdown(f"---")
+                                    st.markdown(f"### SVA with {num_sv} surrogate variable(s)")
 
-                                for pair in group_pairs:
-                                    comparison_name = f"{pair[1]}_vs_{pair[0]}"
-                                    contrast_formula = f"`{pair[1]}` - `{pair[0]}`"
+                                    # Create design matrix with first num_sv SVs
+                                    ro.r(f'''
+                                    # Use first {num_sv} SV(s)
+                                    sv_subset <- all_sv_cols[, 1:{num_sv}, drop=FALSE]
+                                    design_sva <- cbind(design, sv_subset)
+                                    cat("Design matrix with SV1 to SV{num_sv}:\\n")
+                                    print(head(design_sva))
 
-                                    if use_glmtreat:
-                                        ro.r(f'''
-                                        contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
-                                        qlf_sva <- glmTreat(fit_sva, contrast=contrast_sva, lfc={treat_lfc})
-                                        ''')
-                                    else:
-                                        ro.r(f'''
-                                        contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
-                                        qlf_sva <- glmQLFTest(fit_sva, contrast=contrast_sva)
-                                        ''')
+                                    # Re-estimate dispersion with new design
+                                    y_sva <- y
+                                    y_sva <- estimateDisp(y_sva, design_sva, robust=TRUE)
 
-                                    # Get results
-                                    qlf_sva = ro.globalenv['qlf_sva']
-                                    table_sva = qlf_sva.rx2('table')
-                                    genes_sva = qlf_sva.rx2('genes')
+                                    # Re-fit model
+                                    fit_sva <- glmQLFit(y_sva, design_sva)
+                                    ''')
 
-                                    with localconverter(ro.default_converter + pandas2ri.converter):
-                                        df_table_sva = ro.conversion.rpy2py(table_sva)
-                                        s_genes_sva = ro.conversion.rpy2py(genes_sva)
+                                    sv_names = ", ".join([f"SV{i}" for i in range(1, num_sv + 1)])
+                                    st.write(f"**Design matrix with {sv_names}:**")
+                                    st.write(capture_r_output('print(head(design_sva, 10))'))
 
-                                    if isinstance(s_genes_sva, pd.DataFrame):
-                                        s_genes_sva = s_genes_sva.iloc[:, 0]
+                                    # Run differential expression with this number of SVs
+                                    sva_res = dict()
 
-                                    df_table_sva.index = s_genes_sva
-                                    sva_res[comparison_name] = df_table_sva
+                                    for pair in group_pairs:
+                                        comparison_name = f"{pair[1]}_vs_{pair[0]}"
+                                        contrast_formula = f"`{pair[1]}` - `{pair[0]}`"
 
-                                # Merge SVA results
-                                sva_new_dfs = []
-                                for key, df in sva_res.items():
-                                    df = df.rename(columns={col: f"{key}.{col}" for col in df.columns})
-                                    sva_new_dfs.append(df)
+                                        if use_glmtreat:
+                                            ro.r(f'''
+                                            contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
+                                            qlf_sva <- glmTreat(fit_sva, contrast=contrast_sva, lfc={treat_lfc})
+                                            ''')
+                                        else:
+                                            ro.r(f'''
+                                            contrast_sva <- makeContrasts({contrast_formula}, levels=design_sva)
+                                            qlf_sva <- glmQLFTest(fit_sva, contrast=contrast_sva)
+                                            ''')
 
-                                sva_merged_df = pd.concat(sva_new_dfs, axis=1)
+                                        # Get results
+                                        qlf_sva = ro.globalenv['qlf_sva']
+                                        table_sva = qlf_sva.rx2('table')
+                                        genes_sva = qlf_sva.rx2('genes')
 
-                                st.markdown("### SVA-corrected Results")
-                                st.write(sva_merged_df)
+                                        with localconverter(ro.default_converter + pandas2ri.converter):
+                                            df_table_sva = ro.conversion.rpy2py(table_sva)
+                                            s_genes_sva = ro.conversion.rpy2py(genes_sva)
 
-                                # Download SVA results
-                                sva_tsv = sva_merged_df.to_csv(index=True, sep='\t')
-                                st.download_button(
-                                    label="Download SVA-corrected data as TSV",
-                                    data=sva_tsv,
-                                    file_name=file_name_head + ".edgeR.SVA.tsv",
-                                    mime="text/tab-separated-values",
-                                    key="sva_download"
-                                )
+                                        if isinstance(s_genes_sva, pd.DataFrame):
+                                            s_genes_sva = s_genes_sva.iloc[:, 0]
+
+                                        df_table_sva.index = s_genes_sva
+                                        sva_res[comparison_name] = df_table_sva
+
+                                    # Merge SVA results for this num_sv
+                                    sva_new_dfs = []
+                                    for key, df in sva_res.items():
+                                        df = df.rename(columns={col: f"{key}.{col}" for col in df.columns})
+                                        sva_new_dfs.append(df)
+
+                                    sva_merged_df = pd.concat(sva_new_dfs, axis=1)
+                                    all_sva_results[num_sv] = sva_merged_df
+
+                                    st.write(f"**Results with {num_sv} SV(s):**")
+                                    st.write(sva_merged_df)
+
+                                    # Download SVA results for this num_sv
+                                    sva_tsv = sva_merged_df.to_csv(index=True, sep='\t')
+                                    st.download_button(
+                                        label=f"Download SVA (n={num_sv}) results as TSV",
+                                        data=sva_tsv,
+                                        file_name=f"{file_name_head}.edgeR.SVA_n{num_sv}.tsv",
+                                        mime="text/tab-separated-values",
+                                        key=f"sva_download_{num_sv}"
+                                    )
+
                             else:
                                 st.warning("⚠️ No significant surrogate variables found. Using original results.")
                         else:

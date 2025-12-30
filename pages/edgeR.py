@@ -722,20 +722,21 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
             fit <- glmQLFit(y, design)
             ''')
 
-            # Execute R code to generate plot
-            r_code = '''
+            # Execute R code to generate plot (using temp file to avoid X11 issues)
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_bcv:
+                tmp_bcv_path = tmp_bcv.name
+
+            ro.r(f'''
+            png("{tmp_bcv_path}", width=800, height=600, type="cairo")
             plotBCV(y)
-            '''
-            # Generate plot and get as byte stream
-            with grdevices.render_to_bytesio(grdevices.png, width=800, height=600, type='cairo') as image_buffer:
-                ro.r(r_code)
+            dev.off()
+            ''')
 
-            # Convert byte stream to PIL Image
-            image_buffer.seek(0)
-            image = Image.open(io.BytesIO(image_buffer.getvalue()))
-
-            # Display PIL Image in Streamlit
-            st.image(image, caption='BCV Plot', use_container_width=True)
+            # Display in Streamlit
+            if os.path.exists(tmp_bcv_path):
+                st.image(tmp_bcv_path, caption='BCV Plot', use_container_width=True)
+                os.unlink(tmp_bcv_path)
 
             # Create contrast matrix using makeContrasts
             unique_groups = list(dict.fromkeys(condition))
@@ -780,20 +781,20 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
                 st.write(f"**{comparison_name}** ({method_label})")
                 st.write(toptags_df)
 
-                # Execute R code to generate plot
-                r_code = '''
+                # Execute R code to generate plot (using temp file to avoid X11 issues)
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_ma:
+                    tmp_ma_path = tmp_ma.name
+
+                ro.r(f'''
+                png("{tmp_ma_path}", width=800, height=600, type="cairo")
                 plotMD(qlf)
-                '''
-                # Generate plot and get as byte stream
-                with grdevices.render_to_bytesio(grdevices.png, width=800, height=600, type='cairo') as image_buffer:
-                    ro.r(r_code)
+                dev.off()
+                ''')
 
-                # Convert byte stream to PIL Image
-                image_buffer.seek(0)
-                image = Image.open(io.BytesIO(image_buffer.getvalue()))
-
-                # Display PIL Image in Streamlit
-                st.image(image, caption='MA plot', use_container_width=True)
+                # Display in Streamlit
+                if os.path.exists(tmp_ma_path):
+                    st.image(tmp_ma_path, caption='MA plot', use_container_width=True)
+                    os.unlink(tmp_ma_path)
 
                 # Get qlf object from R global environment
                 qlf = ro.globalenv['qlf']

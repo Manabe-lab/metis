@@ -980,15 +980,23 @@ Common thresholds: 0.585 (1.5x - standard), 1.0 (2x - stringent)"""
                                     st.write(f"**Results with {num_sv} SV(s):**")
                                     st.write(sva_merged_df)
 
-                                    # Download SVA results for this num_sv
-                                    sva_tsv = sva_merged_df.to_csv(index=True, sep='\t')
-                                    st.download_button(
-                                        label=f"Download SVA (n={num_sv}) results as TSV",
-                                        data=sva_tsv,
-                                        file_name=f"{file_name_head}.edgeR.SVA_n{num_sv}.tsv",
-                                        mime="text/tab-separated-values",
-                                        key=f"sva_download_{num_sv}"
-                                    )
+                                # Create zip file with all SVA results
+                                import zipfile
+                                zip_buffer = io.BytesIO()
+                                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                    for num_sv, df in all_sva_results.items():
+                                        tsv_content = df.to_csv(index=True, sep='\t')
+                                        zf.writestr(f"{file_name_head}.edgeR.SVA_n{num_sv}.tsv", tsv_content)
+
+                                zip_buffer.seek(0)
+                                st.markdown("---")
+                                st.download_button(
+                                    label=f"📦 Download all SVA results (n=1 to {actual_n_sv}) as ZIP",
+                                    data=zip_buffer.getvalue(),
+                                    file_name=f"{file_name_head}.edgeR.SVA_all.zip",
+                                    mime="application/zip",
+                                    key="sva_download_all"
+                                )
 
                             else:
                                 st.warning("⚠️ No significant surrogate variables found. Using original results.")

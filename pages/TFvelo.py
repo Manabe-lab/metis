@@ -256,7 +256,7 @@ elif data_source == "Load saved TFvelo analysis":
 
             # Redirect to Visualization tab instead of showing duplicate visualization
             st.success("✅ TFvelo analysis loaded successfully!")
-            st.info("💡 **下にスクロールして**、解析タブ（'📊 Data Overview', '📈 Visualization'など）を確認してください。")
+            st.info("💡 **Scroll down** to view analysis tabs ('📊 Data Overview', '📈 Visualization', etc.).")
 
             # Skip duplicate visualization - use Visualization tab instead
             if False:  # Disabled duplicate visualization
@@ -1278,7 +1278,7 @@ if st.session_state.adata is not None:
                         # Store unfiltered data in session_state for later filtering adjustment
                         st.session_state.adata_tfvelo_unfiltered = adata_processed.copy()
                         st.success("✅ TFvelo processing completed (before gene filtering)")
-                        st.info("📊 未フィルタデータをsession_stateに保存しました。後ほどフィルタリング条件を調整できます。")
+                        st.info("📊 Unfiltered data saved to session_state. You can adjust filtering conditions later.")
 
                         # Store results
                         st.session_state.adata_tfvelo = adata_processed
@@ -1328,25 +1328,25 @@ if st.session_state.adata is not None:
 
         # Check if unfiltered data is available
         if 'adata_tfvelo_unfiltered' not in st.session_state:
-            st.warning("⚠️ 未フィルタデータがありません。まず'TFvelo Setup & Analysis'タブで解析を実行してください。")
+            st.warning("⚠️ No unfiltered data available. Please run analysis in 'TFvelo Setup & Analysis' tab first.")
             st.stop()
 
         adata_unfiltered = st.session_state.adata_tfvelo_unfiltered
 
-        st.info(f"📊 **未フィルタデータ**: {adata_unfiltered.n_vars} genes, {adata_unfiltered.n_obs} cells")
+        st.info(f"📊 **Unfiltered data**: {adata_unfiltered.n_vars} genes, {adata_unfiltered.n_obs} cells")
 
         st.markdown("""
-        **📝 デフォルト値について**: 以下のフィルタリング条件は全て **TFvelo公式のデフォルト値** を使用しています。
+        **📝 About default values**: All filtering conditions below use **TFvelo official default values**.
         - `loss_percent_thres` = 50
         - `cell_percent` = 10%
         - `non_blank_gene` filter = ON
         - `spearmanr_thres` = 0.8
 
-        遺伝子数が少なすぎる場合は、特に `spearmanr_thres` を緩和することを推奨します。
+        If you have too few genes, we recommend relaxing `spearmanr_thres` in particular.
         """)
 
         # Filtering parameters
-        st.subheader("フィルタリング条件")
+        st.subheader("Filtering conditions")
 
         col1, col2 = st.columns(2)
 
@@ -1356,13 +1356,13 @@ if st.session_state.adata is not None:
                 loss_percentile = st.slider(
                     "Loss percentile threshold (loss_percent_thres) (%)",
                     0, 100, 50,
-                    help="""TFveloデフォルト=50。
+                    help="""TFvelo default=50.
 
-**意味**: 各遺伝子のTFveloモデルの適合度（損失関数の値）に基づくフィルタリング。
-lossが小さい遺伝子ほどモデルが遺伝子動態をよく説明できている。
-このパーセンタイル以下のloss値を持つ遺伝子を保持します。
+**Meaning**: Filtering based on TFvelo model fit (loss function value) for each gene.
+Genes with lower loss have better model fit for gene dynamics.
+Keeps genes with loss values below this percentile.
 
-例：50%の場合、lossが下位50%以内（＝モデル適合度が良い上位50%）の遺伝子を保持。"""
+Example: At 50%, keeps genes with loss in bottom 50% (=top 50% by model fit)."""
                 )
                 thres_loss = np.percentile(adata_unfiltered.var['min_loss'], loss_percentile)
                 genes_pass_loss = (adata_unfiltered.var['min_loss'] < thres_loss).sum()
@@ -1373,12 +1373,12 @@ lossが小さい遺伝子ほどモデルが遺伝子動態をよく説明でき�
                 cell_percent = st.slider(
                     "Minimum cell percentage (%) (cell_percent)",
                     0, 100, 10,
-                    help="""TFveloデフォルト=10%。
+                    help="""TFvelo default=10%.
 
-**意味**: 遺伝子が発現している細胞の割合に基づくフィルタリング。
-発現している細胞が少なすぎる遺伝子は、統計的に信頼性が低いため除外します。
+**Meaning**: Filtering based on fraction of cells expressing the gene.
+Genes expressed in too few cells are excluded due to low statistical reliability.
 
-例：10%の場合、全細胞の10%以上で発現している遺伝子のみを保持。"""
+Example: At 10%, keeps only genes expressed in 10%+ of cells."""
                 )
                 thres_n_cells = adata_unfiltered.n_obs * (cell_percent / 100.0)
                 genes_pass_cells = (adata_unfiltered.var['n_cells'] > thres_n_cells).sum()
@@ -1389,14 +1389,14 @@ lossが小さい遺伝子ほどモデルが遺伝子動態をよく説明でき�
             apply_blank_filter = st.checkbox(
                 "Non-blank gene filter (non_blank_gene)",
                 value=True,
-                help="""TFveloデフォルト=ON。
+                help="""TFvelo default=ON.
 
-**意味**: 遺伝子発現に大きなギャップ（blank）がある遺伝子を除外するフィルター。
-pseudotime上で発現が連続的に変化している遺伝子のみを保持します。
-発現パターンに不自然な空白がある遺伝子は、velocity推定の信頼性が低くなります。
+**Meaning**: Filter to exclude genes with large gaps (blanks) in expression.
+Keeps only genes with continuous expression changes along pseudotime.
+Genes with unnatural gaps in expression patterns have lower velocity estimation reliability.
 
-non_blank_gene == 0: 連続的に発現している良質な遺伝子
-non_blank_gene != 0: 発現ギャップがある遺伝子（除外される）"""
+non_blank_gene == 0: Good quality genes with continuous expression
+non_blank_gene != 0: Genes with expression gaps (excluded)"""
             )
             if apply_blank_filter and 'non_blank_gene' in adata_unfiltered.var:
                 genes_pass_blank = (adata_unfiltered.var['non_blank_gene'] == 0).sum()
@@ -1408,21 +1408,21 @@ non_blank_gene != 0: 発現ギャップがある遺伝子（除外される）""
                     "Spearman correlation threshold (spearmanr_thres)",
                     0.0, 1.0, 0.8,
                     step=0.05,
-                    help="""TFveloデフォルト=0.8。
+                    help="""TFvelo default=0.8.
 
-**意味**: 遺伝子固有の時間（gene-specific time）とpseudotimeとのSpearman相関に基づくフィルタリング。
-相関が高い遺伝子ほど、細胞の分化軌跡に沿って規則的に発現が変化している。
-この閾値以上の相関を持つ遺伝子のみを保持します。
+**Meaning**: Filtering based on Spearman correlation between gene-specific time and pseudotime.
+Higher correlation genes show more regular expression changes along differentiation trajectory.
+Keeps only genes with correlation above this threshold.
 
-例：0.8の場合、pseudotimeと強く相関する遺伝子のみを保持（厳しい条件）。
-遺伝子数が少なすぎる場合は0.5〜0.6程度に緩和することを推奨。"""
+Example: At 0.8, keeps only genes strongly correlated with pseudotime (strict).
+If too few genes, recommend relaxing to around 0.5-0.6."""
                 )
                 genes_pass_corr = (adata_unfiltered.var['spearmanr_pseudotime'] > corr_threshold).sum()
                 st.metric("Correlation filter", f"{genes_pass_corr} / {adata_unfiltered.n_vars} genes")
 
         # Apply filters button
         st.markdown("---")
-        if st.button("🔄 フィルタリングを適用", type="primary"):
+        if st.button("🔄 Apply filtering", type="primary"):
             with st.spinner("Applying filters..."):
                 adata_filtered = adata_unfiltered.copy()
 
@@ -1454,17 +1454,17 @@ non_blank_gene != 0: 発現ギャップがある遺伝子（除外される）""
                     filter_log.append(f"Correlation filter (>{corr_threshold}): {n_before} → {adata_filtered.n_vars} genes")
 
                 # Display filtering results
-                st.subheader("フィルタリング結果")
+                st.subheader("Filtering results")
                 for log in filter_log:
                     st.info(log)
 
                 # Check if genes remain
                 if adata_filtered.n_vars == 0:
-                    st.error("❌ **フィルタリング後に遺伝子が0個になりました！**")
-                    st.error("フィルタリング条件を緩和してください。")
+                    st.error("❌ **0 genes after filtering!**")
+                    st.error("Please relax filtering conditions.")
                     st.stop()
                 else:
-                    st.success(f"✅ **最終結果**: {adata_filtered.n_vars} genes, {adata_filtered.n_obs} cells")
+                    st.success(f"✅ **Final result**: {adata_filtered.n_vars} genes, {adata_filtered.n_obs} cells")
 
                     # Re-compute velocity graph
                     with st.spinner("Re-computing velocity graph..."):
@@ -1478,10 +1478,10 @@ non_blank_gene != 0: 発現ギャップがある遺伝子（除外される）""
                             st.session_state.tfvelo_results['completed'] = True
 
                             st.balloons()
-                            st.success("🎉 フィルタリング完了！Visualizationタブで結果を確認できます。")
+                            st.success("🎉 Filtering complete! Check results in Visualization tab.")
 
                         except Exception as e:
-                            st.error(f"❌ Velocity graph計算に失敗: {str(e)}")
+                            st.error(f"❌ Velocity graph calculation failed: {str(e)}")
                             st.text(traceback.format_exc())
 
     # Tab 4: Visualization (renamed from tab3)

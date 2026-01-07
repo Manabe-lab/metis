@@ -129,7 +129,7 @@ st.markdown("""
 **Upload both h5ad file + loom file**:
 
 1. **h5ad file**: scVelo-processed file
-   - ✅ UMAP embedding (`adata.obsm`に`umap`in `X_umap`, `umap`, `X_umap_2d`)
+   - ✅ UMAP embedding (`umap` in `adata.obsm` as X_umap`, `umap`, `X_umap_2d`)
    - ✅ Clustering results (`adata.obs['leiden']`, `adata.obs['louvain']`, `adata.obs['clusters']`, etc.)
    - ✅ QC/normalized data
    - → Utilize existing information, skip preprocessing
@@ -221,7 +221,7 @@ if uploaded_loom is not None:
     if uploaded_h5ad is not None:
         st.markdown("""
         **Basis selection for Vector Field calculation:**
-        - 高次元遺伝子発現空間（PCA, MNN, Harmony, etc.、50次元程度）を選択
+        - Select high-dimensional gene expression space (PCA, MNN, Harmony, etc., ~50 dimensions)
         - Used for perturbation analysis and Jacobian calculation
 
         ⚠️ **Perturbation analysis constraints:**
@@ -247,7 +247,7 @@ if uploaded_loom is not None:
             "Basis for Vector Field computation:",
             available_embeddings,
             index=available_embeddings.index(default_basis),
-            help="遺伝子発現空間 (pca, mnn, harmony, etc.) の選択を推奨"
+            help="Recommended to select gene expression space (pca, mnn, harmony, etc.)"
         )
 
         st.caption(f"💡 Selected: **{selected_basis}** - Vector Field will be calculated on this basis, selected 2D embedding, and new X_dynamo.umap")
@@ -302,7 +302,7 @@ if uploaded_loom is not None:
             "2D embedding for visualization:",
             available_embeddings,
             index=available_embeddings.index(default_umap) if default_umap in available_embeddings else 0,
-            help="可視化用の2D embedding。Topography解析, etc.で使用。元の名前で保持され、X_umapにもコピーされます。"
+            help="2D embedding for visualization. Used for Topography analysis, etc. Kept with original name and also copied to X_umap."
         )
 
         st.info(f"""
@@ -347,53 +347,53 @@ if uploaded_loom is not None:
     with st.expander("📚 Parameter Guide", expanded=False):
         st.markdown("""
         ### Preprocessing
-        - **Skip preprocessing**: 既にQC/正規化/PCA済みのh5adファイルの場合はチェック
-          - scVelo解析済みh5ad → スキップ推奨（既存の正規化/PCAを保持しつつDynamo用の最小限の構造を設定）
-          - 生loomファイルのみ → 前処理を実行（QC、正規化、特徴選択、PCAを全て実行）
-          - **注**: Dynamoは内部データ構造の設定が必要なため、完全にスキップはできません
+        - **Skip preprocessing**: Check if h5ad file already has QC/normalization/PCA
+          - scVelo-processed h5ad → Recommended to skip (keeps existing normalization/PCA while setting up minimal Dynamo structure)
+          - Raw loom file only → Run preprocessing (QC, normalization, feature selection, PCA)
+          - **Note**: Dynamo requires internal data structure setup, so preprocessing cannot be completely skipped
 
-        - **recipe** (前処理実行時): 前処理レシピ
-          - **monocle** (推奨): Monocle3スタイル（QC、正規化、特徴選択、PCA）
-          - **seurat**: Seuratスタイル
+        - **recipe** (when preprocessing): Preprocessing recipe
+          - **monocle** (recommended): Monocle3 style (QC, normalization, feature selection, PCA)
+          - **seurat**: Seurat style
 
-        - **Cell cycle score**: 細胞周期ステージの推定（前処理の有無に関わらず実行可能）
-          - 用途: `dyn.pl.phase_diagram()`での細胞周期による色分け
-          - 結果: `adata.obs`に細胞周期関連列が追加
-          - **注**: h5adファイルから遺伝子名を取得（マウス/ヒト両対応）。h5adなしの場合は失敗する可能性あり（optionalなので解析は継続）
+        - **Cell cycle score**: Cell cycle stage estimation (can be run regardless of preprocessing)
+          - Purpose: Color by cell cycle in `dyn.pl.phase_diagram()`
+          - Result: Cell cycle columns added to `adata.obs`
+          - **Note**: Gets gene names from h5ad file (supports mouse/human). May fail without h5ad (optional, analysis continues)
 
         ### Dynamics estimation (dyn.tl.dynamics)
-        - **model**: Dynamicsモデル
-          - **stochastic** (推奨): 確率的モデル、最も一般的
-          - **deterministic**: 決定論的モデル
-          - **degradation**: Degradation-onlyモデル
-        - **est_method**: 推定法（stochasticの場合）
-          - **gmm**: Gaussian mixture model（デフォルト、推奨）
-          - **negbin**: Negative binomialモデル
+        - **model**: Dynamics model
+          - **stochastic** (recommended): Stochastic model, most common
+          - **deterministic**: Deterministic model
+          - **degradation**: Degradation-only model
+        - **est_method**: Estimation method (for stochastic)
+          - **gmm**: Gaussian mixture model (default, recommended)
+          - **negbin**: Negative binomial model
 
         ### Vector Field (dyn.vf.VectorField)
-        - **bases**: 計算基底（複数選択可）
-          - **umap**: UMAPベースのベクトル場
-            - 📊 **Topography可視化用** - curl計算、地形図可視化に最適
-            - 2D embeddingが必須
-          - **pca**: PCAベースのベクトル場
-            - 🧬 **Perturbation解析用** - 遺伝子発現空間での定量解析
-            - In silico perturbation、Jacobian解析、ranking/differential解析に必須
-            - ⚠️ 後でPerturbation解析を行う場合は必ず選択してください
-          - **mnn_umap, harmony_umap, etc.**: バッチ補正後のUMAP（Topography用）
-          - 💡 **推奨**: UMAPとPCA両方を選択（全ての解析に対応）
-          - 各basisごとに独立してVector Fieldが保存されます（`VecFld_{basis}`）
-          - 複数選択した場合、全てのbasisでVector Fieldが計算されます
-        - **M**: サンプリングポイント数（デフォルト: 1000）
-        - **pot_curl_div**: Potential, curl, divergenceの計算
+        - **bases**: Computation bases (multiple selection available)
+          - **umap**: UMAP-based vector field
+            - 📊 **For Topography visualization** - Optimal for curl calculation and topography visualization
+            - 2D embedding required
+          - **pca**: PCA-based vector field
+            - 🧬 **For Perturbation analysis** - Quantitative analysis in gene expression space
+            - Required for in silico perturbation, Jacobian analysis, ranking/differential analysis
+            - ⚠️ Must select if you plan to run Perturbation analysis later
+          - **mnn_umap, harmony_umap, etc.**: Batch-corrected UMAP (for Topography)
+          - 💡 **Recommended**: Select both UMAP and PCA (supports all analyses)
+          - Vector Field is saved independently for each basis (`VecFld_{basis}`)
+          - When multiple bases are selected, Vector Field is calculated for all bases
+        - **M**: Number of sampling points (default: 1000)
+        - **pot_curl_div**: Calculation of Potential, curl, divergence
 
         ### Differential Geometry
-        - **speed**: 速度の大きさ
-        - **curl**: 回転場（渦度）
-        - **divergence**: 発散場（増殖/分化）
-        - **acceleration**: 加速度
-        - **curvature**: 曲率
+        - **speed**: Velocity magnitude
+        - **curl**: Rotational field (vorticity)
+        - **divergence**: Divergence field (proliferation/differentiation)
+        - **acceleration**: Acceleration
+        - **curvature**: Curvature
 
-        Qiu et al. (2022) Cell を参照
+        Qiu et al. (2022) Cell  for reference
         """)
 
     with st.form("dynamo_params_form"):
@@ -407,7 +407,7 @@ if uploaded_loom is not None:
                 max_value=10000,
                 value=2000,
                 step=500,
-                help="高変動遺伝子の数（デフォルト: 2000）"
+                help="Number of highly variable genes (default: 2000)"
             )
 
             # Force include specific genes
@@ -417,7 +417,7 @@ if uploaded_loom is not None:
                 value="",
                 height=100,
                 label_visibility='collapsed',
-                help="必ずHVGに含めたい遺伝子名（複数の区切り文字対応: , space tab CR）"
+                help="Gene names to always include in HVG (multiple delimiters supported: , space tab CR)"
             )
         elif skip_preprocess and not recompute_hvg:
             # Only option to add specific genes
@@ -428,7 +428,7 @@ if uploaded_loom is not None:
                 value="",
                 height=100,
                 label_visibility='collapsed',
-                help="既存のHVGに追加したい遺伝子名（複数の区切り文字対応: , space tab CR）"
+                help="Gene names to add to existing HVG (multiple delimiters supported: , space tab CR)"
             )
             n_top_genes = 2000  # Not used
             force_genes = ""
@@ -455,16 +455,16 @@ if uploaded_loom is not None:
             max_value=max_pca_components,
             value=min(30, max_pca_components),  # dynamo default is 30
             step=5,
-            help="PCA成分数。dynamoデフォルトは30。Perturbation解析を行う場合、embeddingの次元数と一致させる必要があります。"
+            help="Number of PCA components. Dynamo default is 30. For Perturbation analysis, must match embedding dimension."
         )
 
         if existing_embedding_dim is not None:
             if n_pca_components == existing_embedding_dim:
-                st.success(f"✓ PCA成分数 ({n_pca_components}) が既存のembedding (X_{selected_basis}) と一致しています")
+                st.success(f"✓ PCA components ({n_pca_components}) match existing embedding")
             else:
-                st.warning(f"⚠️ 既存のembedding (X_{selected_basis}) は {existing_embedding_dim} 次元です。Perturbation解析には {existing_embedding_dim} に設定してください。")
+                st.warning(f"⚠️ Existing embedding (X_{selected_basis}) has {existing_embedding_dim} dimensions. For Perturbation analysis, set to {existing_embedding_dim}.")
         else:
-            st.info(f"💡 PCA成分数: {n_pca_components} (dynamoデフォルト: 30)")
+            st.info(f"💡 PCA components: {n_pca_components} (dynamo default: 30)")
 
         # Set preprocessing recipe based on skip_preprocess
         if not skip_preprocess:
@@ -474,7 +474,7 @@ if uploaded_loom is not None:
                     "Preprocessing recipe",
                     ["monocle", "seurat"],
                     index=0,
-                    help="前処理レシピ。monocleが推奨"
+                    help="Preprocessing recipe. monocle recommended"
                 )
             with col2:
                 if preprocess_recipe == "monocle":
@@ -483,13 +483,13 @@ if uploaded_loom is not None:
             preprocess_recipe = None
             force_genes_only = force_genes_only if not recompute_hvg else ""
 
-        # 細胞周期スコアは前処理の有無に関わらず計算可能
+        # Cell cycle score can be calculated regardless of preprocessing
         col1, col2 = st.columns(2)
         with col1 if skip_preprocess else col2:
             cell_cycle_score = st.checkbox(
                 "Compute cell cycle score",
                 value=True,
-                help="細胞周期スコアを計算（phase diagram可視化用）"
+                help="Calculate cell cycle score (for phase diagram visualization)"
             )
 
         st.subheader("Dynamics estimation")
@@ -500,7 +500,7 @@ if uploaded_loom is not None:
                 "Dynamics model",
                 ["stochastic", "deterministic", "degradation"],
                 index=0,
-                help="Dynamicsモデル。stochasticが推奨"
+                help="Dynamics model. stochastic recommended"
             )
 
             if dynamics_model == "stochastic":
@@ -513,7 +513,7 @@ if uploaded_loom is not None:
                     "Estimation method",
                     ["gmm", "negbin"],
                     index=0,
-                    help="推定方法。gmmが推奨"
+                    help="Estimation method. gmm recommended"
                 )
             else:
                 st.info(f"Method: {dynamics_model} (fixed)")
@@ -530,7 +530,7 @@ if uploaded_loom is not None:
                 min_value=1,
                 max_value=n_cpus,
                 value=default_jobs,
-                help=f"並列計算のコア数。利用可能: {n_cpus}コア"
+                help=f"Number of cores for parallel computation. Available: {n_cpus} cores"
             )
 
         st.subheader("Vector field reconstruction")
@@ -540,7 +540,7 @@ if uploaded_loom is not None:
             compute_vector_field = st.checkbox(
                 "Compute vector field",
                 value=True,
-                help="ベクトル場の再構築（推奨）"
+                help="Vector field reconstruction (recommended)"
             )
 
             if compute_vector_field:
@@ -554,15 +554,15 @@ if uploaded_loom is not None:
                     # h5ad uploaded: use selected basis, selected umap, and dynamo.umap (will be computed)
                     vf_bases = [selected_umap, selected_basis, 'dynamo.umap']
                     st.info(f"""
-                    ✓ **計算対象 (3 bases):**
+                    ✓ **Computation targets (3 bases):**
                     1. {selected_umap}
                     2. {selected_basis}
-                    3. dynamo.umap (後で計算)
+                    3. dynamo.umap (to be calculated later)
                     """)
                 else:
                     # loom-only: use dynamo.umap only
                     vf_bases = ['dynamo.umap']
-                    st.info("✓ **計算対象:** dynamo.umap (新規計算)")
+                    st.info("✓ **Computation target:** dynamo.umap (new calculation)")
 
         with col3:
             vf_M = 1000
@@ -573,7 +573,7 @@ if uploaded_loom is not None:
                     max_value=5000,
                     value=1000,
                     step=100,
-                    help="サンプリングポイント数"
+                    help="Number of sampling points"
                 )
 
         st.subheader("Differential geometry analysis")
@@ -581,15 +581,15 @@ if uploaded_loom is not None:
         compute_geometry = st.checkbox(
             "Compute geometric features",
             value=True,
-            help="Speed, curl, divergence, accelerationなどを計算"
+            help="Calculate speed, curl, divergence, acceleration, etc."
         )
 
         if compute_geometry:
             if compute_vector_field and vf_bases:
-                st.info(f"✨ **Enabled** - Vector Field basesで選択した全てのbasis ({len(vf_bases)}個) で計算します")
-                st.caption(f"Geometry計算対象: {', '.join(vf_bases)}")
+                st.info(f"✨ **Enabled** - Will calculate for all bases selected in Vector Field bases ({len(vf_bases)} total)")
+                st.caption(f"Geometry calculation targets: {', '.join(vf_bases)}")
             else:
-                st.warning("⚠️ Vector Fieldが有効でない場合、Geometry analysisは実行されません")
+                st.warning("⚠️ Geometry analysis will not run if Vector Field is not enabled")
 
         st.markdown("---")
 
@@ -743,8 +743,8 @@ if uploaded_loom is not None:
                             st.error("""
                             ❌ **Missing spliced/unspliced layers in loom**
 
-                            Dynamoの解析にはspliced/unspliced行列が必要です。
-                            velocytoまたはData filtering appで生成されたloomファイルをアップロードしてください。
+                            Dynamo analysis requires spliced/unspliced matrices.
+                            Please upload a loom file generated by velocyto or Data filtering app.
                             """)
                             st.stop()
 
@@ -753,9 +753,9 @@ if uploaded_loom is not None:
                         st.info(f"✓ Available layers in loom: {', '.join(available_layers)}")
 
                         if 'ambiguous' in ldata.layers:
-                            st.success("✓ Ambiguous reads layer found - Dynamoはより正確な推定が可能です")
+                            st.success("✓ Ambiguous reads layer found - Dynamo can make more accurate estimations")
                         else:
-                            st.warning("⚠️ Ambiguous layer not found - 通常はvelocytoで生成されます（optional）")
+                            st.warning("⚠️ Ambiguous layer not found - Usually generated by velocyto (optional)")
 
                         # Check cell overlap
                         status_text.text("Checking cell correspondence...")
@@ -772,7 +772,7 @@ if uploaded_loom is not None:
                             h5ad cells: {len(h5ad_cells)}
                             loom cells: {len(loom_cells)}
 
-                            Cell IDが一致しません。同じデータセットから生成されたファイルをアップロードしてください。
+                            Cell IDs do not match. Please upload files from the same dataset.
                             """)
                             st.stop()
 
@@ -883,8 +883,8 @@ if uploaded_loom is not None:
                             st.error("""
                             ❌ **Missing spliced/unspliced layers**
 
-                            Dynamoの解析にはspliced/unspliced行列が必要です。
-                            velocytoまたはData filtering appで生成されたloomファイルをアップロードしてください。
+                            Dynamo analysis requires spliced/unspliced matrices.
+                            Please upload a loom file generated by velocyto or Data filtering app.
                             """)
                             st.stop()
 
@@ -893,9 +893,9 @@ if uploaded_loom is not None:
                         st.info(f"✓ Available layers in loom: {', '.join(available_layers)}")
 
                         if 'ambiguous' in adata.layers:
-                            st.success("✓ Ambiguous reads layer found - Dynamoはより正確な推定が可能です")
+                            st.success("✓ Ambiguous reads layer found - Dynamo can make more accurate estimations")
                         else:
-                            st.warning("⚠️ Ambiguous layer not found - 通常はvelocytoで生成されます（optional）")
+                            st.warning("⚠️ Ambiguous layer not found - Usually generated by velocyto (optional)")
 
                     st.success(f"✓ Found spliced/unspliced layers")
 
@@ -1537,36 +1537,36 @@ if uploaded_loom is not None:
         )
 
         st.info("""
-        ### 次のステップ
+        ### Next Steps
 
-        ダウンロードしたh5adファイルには以下が含まれています：
+        The downloaded h5ad file contains:
         - RNA dynamics parameters
         - Velocity vectors (`adata.layers['velocity']`)
-        - Vector field (`adata.uns['VecFld']`)（計算した場合）
+        - Vector field (`adata.uns['VecFld']`)(if calculated)
         - Geometric features: speed, curl, divergence, acceleration, curvature
 
-        **📌 UMAP embeddingsについて（重要）:**
-        - **元のUMAP** (例: `X_rna.mnn.umap`): Seurat/元の解析で作成されたもの
-        - **dynamo.umap** (`X_dynamo.umap`): 今回新しく計算されたKNN graphから作成
+        **📌 About UMAP embeddings (Important):**
+        - **Original UMAP** (e.g., `X_rna.mnn.umap`): Created by Seurat/original analysis
+        - **dynamo.umap** (`X_dynamo.umap`): Created from newly calculated KNN graph
 
-        ⚠️ **注意**: 元のUMAPでVector Fieldを可視化する場合、UMAP座標と速度ベクトルの整合性が若干ズレる可能性があります。
-        これは、元のUMAPが元のneighbor graphに基づいており、今回計算された速度ベクトルは新しいneighbor graphに基づいているためです。
+        ⚠️ **Note**: When visualizing Vector Field with original UMAP, there may be slight misalignment between UMAP coordinates and velocity vectors.
+        This is because the original UMAP is based on the original neighbor graph, while velocity vectors are based on the newly calculated neighbor graph.
 
-        💡 **推奨**: KNN graphと速度が完全に整合する`dynamo.umap`を使用すると、より正確な可視化が可能です。
+        💡 **Recommended**: Using `dynamo.umap` where KNN graph and velocity are fully consistent allows for more accurate visualization.
 
-        #### 🌟 推奨: Streamlitアプリで可視化
+        #### 🌟 Recommended: Visualize with Streamlit app
 
-        **Dynamo Visualizationアプリ**を使ってインタラクティブに可視化：
-        1. ダウンロードしたh5adファイルをアップロード
-        2. Streamline plot、Cell-wise vectors、Phase portraits, etc.を簡単に作成
-        3. パラメータを調整してリアルタイムで結果を確認
+        **Dynamo Visualization app** for interactive visualization:
+        1. Upload the downloaded h5ad file
+        2. Easily create streamline plots, cell-wise vectors, phase portraits, etc.
+        3. Adjust parameters and see results in real-time
 
-        その後、**Dynamo Perturbationアプリ**で高度な解析：
-        - In silico perturbation（遺伝子摂動シミュレーション）
-        - Least action paths（最適遷移経路）
-        - Jacobian analysis（制御ネットワーク推論）
+        Then, for advanced analysis with **Dynamo Perturbation app**:
+        - In silico perturbation (gene perturbation simulation)
+        - Least action paths (optimal transition paths)
+        - Jacobian analysis (regulatory network inference)
 
-        #### Pythonでの可視化例:
+        #### Python visualization examples:
         ```python
         import dynamo as dyn
         import scanpy as sc
@@ -1593,26 +1593,26 @@ if uploaded_loom is not None:
         dyn.pl.kinetic_heatmap(adata, genes=['gene1', 'gene2'])
         ```
 
-        #### 高度な解析 (Pythonで実行):
+        #### Advanced analysis (run in Python):
         ```python
-        # Least action paths (細胞状態間の最適経路)
+        # Least action paths (optimal paths between cell states)
         dyn.pd.least_action(adata, [start_cells], [end_cells])
 
-        # In silico perturbation (遺伝子摂動予測)
+        # In silico perturbation (gene perturbation prediction)
         dyn.pd.perturbation(adata, genes=['gene1'], expression=[0])
 
         # Regulatory network inference
         dyn.vf.jacobian(adata, regulators=['TF1', 'TF2'], effectors=['gene1', 'gene2'])
         ```
 
-        #### その他のDynamo機能:
-        - **Vector field analysis**: 軌跡予測、固定点解析
-        - **Differential geometry**: Jacobian matrix、Hessian解析
+        #### Other Dynamo features:
+        - **Vector field analysis**: Trajectory prediction, fixed point analysis
+        - **Differential geometry**: Jacobian matrix, Hessian analysis
         - **Cell fate prediction**: Attractor state identification
-        - **Perturbation simulation**: 遺伝子ノックアウト/過剰発現シミュレーション
+        - **Perturbation simulation**: Gene knockout/overexpression simulation
 
-        詳細は [Dynamo Documentation](https://dynamo-release.readthedocs.io/) を参照してください。
+        See [Dynamo Documentation](https://dynamo-release.readthedocs.io/) for details.
         """)
 
 else:
-    st.info("👆 loomファイル（spliced/unspliced matrices必須）をアップロードして開始してください。h5adファイルは任意（メタデータ用）です。")
+    st.info("👆 Upload a loom file (with spliced/unspliced matrices) to start. h5ad file is optional (for metadata).")

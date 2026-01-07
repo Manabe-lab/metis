@@ -1,0 +1,564 @@
+"""
+CellRank Analysis
+Analyze cell fate and lineage using CellRank
+"""
+
+import streamlit as st
+import scanpy as sc
+import anndata as ad
+import scvelo as scv
+import cellrank as cr
+import numpy as np
+import pandas as pd
+import os
+import io
+import tempfile
+import time
+from helper_func import clear_old_directories, clear_old_files
+
+def clean_adata_metadata(adata):
+    """
+    Clean malformed metadata in adata.obs and adata.var before saving.
+    Fixes 2D arrays by flattening or removing problematic columns.
+    """
+    # Clean obs columns
+    cols_to_drop = []
+    for col in adata.obs.columns:
+        try:
+            col_data = adata.obs[col]
+            if hasattr(col_data, 'shape') and len(col_data.shape) > 1:
+                if col_data.shape[1] == 1:
+                    # Flatten 2D array
+                    try:
+                        adata.obs[col] = col_data.values.ravel()
+                    except:
+                        try:
+                            adata.obs[col] = np.asarray(col_data).ravel()
+                        except:
+                            # Last resort: list comprehension
+                            adata.obs[col] = [x[0] if isinstance(x, (list, np.ndarray)) and len(x) > 0 else x for x in col_data]
+                else:
+                    # Cannot fix, mark for removal
+                    cols_to_drop.append(col)
+        except Exception:
+            # If any error occurs, mark for removal
+            cols_to_drop.append(col)
+
+    if cols_to_drop:
+        adata.obs = adata.obs.drop(columns=cols_to_drop)
+
+    # Clean var columns
+    cols_to_drop = []
+    for col in adata.var.columns:
+        try:
+            col_data = adata.var[col]
+            if hasattr(col_data, 'shape') and len(col_data.shape) > 1:
+                if col_data.shape[1] == 1:
+                    # Flatten 2D array
+                    try:
+                        adata.var[col] = col_data.values.ravel()
+                    except:
+                        try:
+                            adata.var[col] = np.asarray(col_data).ravel()
+                        except:
+                            adata.var[col] = [x[0] if isinstance(x, (list, np.ndarray)) and len(x) > 0 else x for x in col_data]
+                else:
+                    cols_to_drop.append(col)
+        except Exception:
+            cols_to_drop.append(col)
+
+    if cols_to_drop:
+        adata.var = adata.var.drop(columns=cols_to_drop)
+
+    return adata
+
+st.set_page_config(page_title="CellRank Analysis", page_icon="🎯", layout="wide")
+
+st.title("🎯 CellRank Analysis")
+st.markdown("""
+CellRankを用いて細胞運命と系統を解析します。
+
+### ワークフロー
+1. **ファイル読み込み**: scVelo解析結果のh5adファイル
+2. **Kernel設定**: Velocity/Connectivityカーネルの選択
+3. **状態推定**: Terminal states / Initial statesの推定
+4. **運命確率**: Fate probabilitiesの計算
+5. **結果保存**: 解析結果をh5adファイルでダウンロード
+
+### 参考
+- [CellRank Documentation](https://cellrank.readthedocs.io/)
+- [CellRank Tutorial](https://cellrank.readthedocs.io/en/stable/notebooks/tutorials/index.html)
+- Lange et al. (2022) "CellRank for directed single-cell fate mapping" Nature Methods
+""")
+
+# Initialize session state
+if "cellrank_temp_dir" not in st.session_state:
+    cellrank_temp_dir = os.path.join("temp", f"cellrank_{round(time.time())}")
+    os.makedirs("temp", exist_ok=True)
+    clear_old_directories("temp")
+    clear_old_files("temp")
+    os.makedirs(cellrank_temp_dir, exist_ok=True)
+    st.session_state.cellrank_temp_dir = cellrank_temp_dir
+else:
+    cellrank_temp_dir = st.session_state.cellrank_temp_dir
+
+if "cellrank_complete" not in st.session_state:
+    st.session_state.cellrank_complete = False
+
+# ========================================
+# Step 1: Upload file
+# ========================================
+st.header("Step 1: Upload scVelo result")
+
+uploaded_h5ad = st.file_uploader(
+    "Upload h5ad file (scVelo result)",
+    type=['h5ad'],
+    key="cellrank_h5ad_upload",
+    help="scVelo analysisアプリで生成されたh5adファイル"
+)
+
+if uploaded_h5ad is not None:
+    st.success("✓ File uploaded")
+
+    # Load metadata to get available columns
+    if ("cellrank_obs_columns" not in st.session_state or
+        st.session_state.get("cellrank_uploaded_file") != uploaded_h5ad.name):
+
+        with st.spinner("Reading metadata..."):
+            # Save uploaded file temporarily
+            temp_h5ad_path = os.path.join(cellrank_temp_dir, "preview.h5ad")
+            with open(temp_h5ad_path, "wb") as f:
+                f.write(uploaded_h5ad.read())
+
+            # Read only metadata (fast)
+            adata_preview = sc.read_h5ad(temp_h5ad_path)
+            st.session_state.cellrank_obs_columns = list(adata_preview.obs.columns)
+            st.session_state.cellrank_uploaded_file = uploaded_h5ad.name
+
+            st.info(f"✓ Detected {len(st.session_state.cellrank_obs_columns)} metadata columns")
+
+    obs_columns = st.session_state.cellrank_obs_columns
+
+    # Find default cluster key from common options
+    default_cluster_options = ['clusters', 'leiden', 'louvain', 'seurat_clusters']
+    default_cluster_key = None
+    default_index = 0
+
+    for opt in default_cluster_options:
+        if opt in obs_columns:
+            default_cluster_key = opt
+            default_index = obs_columns.index(opt)
+            break
+
+    if default_cluster_key is None and len(obs_columns) > 0:
+        default_cluster_key = obs_columns[0]
+        default_index = 0
+
+    # ========================================
+    # Step 2: Configure analysis parameters
+    # ========================================
+    st.header("Step 2: Configure analysis parameters")
+
+    with st.expander("📚 Parameter Guide", expanded=False):
+        st.markdown("""
+        ### Kernel
+        - **VelocityKernel**: RNA velocityベースの遷移確率（推奨）
+        - **ConnectivityKernel**: 近傍グラフベースの遷移確率
+        - **Combined**: 両方の組み合わせ（より堅牢）
+
+        ### Terminal States
+        - **Number of terminal states**:
+          - **None (デフォルト)**: データから自動推定（推奨）
+          - **数値指定**: 1-20の範囲で手動設定
+          - 終末状態とは、細胞分化の最終的な運命（例：成熟細胞タイプ）
+
+        - **Cluster key**:
+          - クラスター情報を含むobs列の名前（例: 'leiden', 'louvain', 'clusters'）
+          - 既存のクラスタリング結果を参考にして終末状態を推定
+          - クラスター構造を考慮することで、より生物学的に意味のある状態推定が可能
+          - 存在しない場合は自動的に'leiden'/'louvain'/'seurat_clusters'を探索
+
+        ### Fate Probability
+        - 各細胞が各終末状態に到達する確率を計算
+        - 細胞の運命決定過程を定量化
+
+        Lange et al. (2022) Nature Methods を参照
+        """)
+
+    with st.form("cellrank_params_form"):
+        st.subheader("Kernel settings")
+
+        kernel_type = st.selectbox(
+            "Kernel type",
+            ["VelocityKernel", "ConnectivityKernel", "Combined (Velocity + Connectivity)"],
+            index=2,
+            help="遷移確率の計算方法。Combinedが推奨"
+        )
+
+        if kernel_type == "Combined (Velocity + Connectivity)":
+            col1, col2 = st.columns(2)
+            with col1:
+                velocity_weight = st.slider(
+                    "Velocity kernel weight",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=0.8,
+                    step=0.1,
+                    help="Velocity kernelの重み（残りがConnectivity kernelの重み）"
+                )
+            with col2:
+                st.metric("Connectivity weight", f"{1.0 - velocity_weight:.1f}")
+
+        st.subheader("Terminal states estimation")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            cluster_key = st.selectbox(
+                "Cluster key",
+                options=obs_columns,
+                index=default_index,
+                help="既存のクラスタリング結果を参考にした終末状態の推定に使用。obs列から選択"
+            )
+
+        with col2:
+            n_states = st.number_input(
+                "Number of terminal states (None = auto)",
+                min_value=1,
+                max_value=20,
+                value=None,
+                help="終末状態の数。空欄（None、デフォルト）で自動推定（推奨）。手動で1-20の範囲で指定も可能。"
+            )
+
+            if n_states is None or n_states == 0:
+                st.info("✨ **Auto-estimation mode** (Default / Recommended)")
+
+        st.subheader("Optional analyses")
+
+        compute_initial_states = st.checkbox(
+            "Compute initial states",
+            value=False,
+            help="初期状態も推定する（時間がかかる）"
+        )
+
+        st.markdown("---")
+
+        submit_analysis = st.form_submit_button("🎯 Run Analysis", type="primary")
+
+    # ========================================
+    # Step 3: Run analysis
+    # ========================================
+    if submit_analysis:
+        st.header("Step 3: Running analysis")
+
+        with st.spinner("Loading and processing..."):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            try:
+                # Load h5ad (use the preview file already saved)
+                status_text.text("Loading scVelo result...")
+                progress_bar.progress(10)
+
+                # Use the preview.h5ad file that was already saved
+                preview_h5ad_path = os.path.join(cellrank_temp_dir, "preview.h5ad")
+                adata = sc.read_h5ad(preview_h5ad_path)
+                st.info(f"✓ Loaded h5ad: {adata.n_obs} cells, {adata.n_vars} genes")
+
+                # Check required data
+                status_text.text("Checking required data...")
+                progress_bar.progress(15)
+
+                required_data = []
+                if 'velocity' not in adata.layers:
+                    required_data.append("velocity layer")
+                if 'velocity_graph' not in adata.uns:
+                    required_data.append("velocity_graph")
+
+                if required_data:
+                    st.error(f"""
+                    ❌ **Missing required data: {', '.join(required_data)}**
+
+                    このファイルはscVelo解析結果ではないようです。
+                    scVelo analysisアプリで解析したh5adファイルをアップロードしてください。
+                    """)
+                    st.stop()
+
+                # Check cluster key
+                if cluster_key not in adata.obs.columns:
+                    st.warning(f"""
+                    ⚠️ Cluster key '{cluster_key}' not found in obs.
+
+                    Available columns: {', '.join(adata.obs.columns[:10])}...
+
+                    Using 'louvain' or 'leiden' if available, otherwise skipping cluster-based analysis.
+                    """)
+                    # Try alternative cluster keys
+                    for alt_key in ['leiden', 'louvain', 'seurat_clusters']:
+                        if alt_key in adata.obs.columns:
+                            cluster_key = alt_key
+                            st.info(f"Using '{cluster_key}' instead")
+                            break
+                    else:
+                        cluster_key = None
+
+                st.success("✓ All required data present")
+
+                # Compute kernel
+                status_text.text("Computing transition matrix...")
+                progress_bar.progress(25)
+
+                if kernel_type == "VelocityKernel":
+                    vk = cr.kernels.VelocityKernel(adata).compute_transition_matrix()
+                    combined_kernel = vk
+                    st.info("✓ VelocityKernel computed")
+
+                elif kernel_type == "ConnectivityKernel":
+                    ck = cr.kernels.ConnectivityKernel(adata).compute_transition_matrix()
+                    combined_kernel = ck
+                    st.info("✓ ConnectivityKernel computed")
+
+                else:  # Combined
+                    vk = cr.kernels.VelocityKernel(adata).compute_transition_matrix()
+                    ck = cr.kernels.ConnectivityKernel(adata).compute_transition_matrix()
+                    combined_kernel = (velocity_weight * vk + (1 - velocity_weight) * ck).compute_transition_matrix()
+                    st.info(f"✓ Combined kernel computed (velocity: {velocity_weight:.1f}, connectivity: {1-velocity_weight:.1f})")
+
+                # Estimate terminal states
+                status_text.text("Estimating terminal states...")
+                progress_bar.progress(50)
+
+                g = cr.estimators.GPCCA(combined_kernel)
+
+                if n_states is None or n_states == 0:
+                    # Auto-estimate number of states
+                    st.info("Auto-estimating number of terminal states...")
+                    g.compute_schur(n_components=20)
+                    g.compute_macrostates(cluster_key=cluster_key if cluster_key else None)
+                else:
+                    g.compute_schur(n_components=max(n_states + 5, 20))
+                    g.compute_macrostates(n_states=n_states, cluster_key=cluster_key if cluster_key else None)
+
+                g.predict_terminal_states()
+
+                n_terminal = len(g.terminal_states.cat.categories)
+                st.success(f"✓ Identified {n_terminal} terminal states")
+
+                # Show terminal states
+                terminal_states_df = pd.DataFrame({
+                    'Terminal State': g.terminal_states.cat.categories,
+                    'Count': [np.sum(g.terminal_states == state) for state in g.terminal_states.cat.categories]
+                })
+                st.write("**Terminal states:**")
+                st.dataframe(terminal_states_df)
+
+                # Compute fate probabilities
+                status_text.text("Computing fate probabilities...")
+                progress_bar.progress(70)
+
+                g.compute_fate_probabilities()
+                st.success("✓ Fate probabilities computed")
+
+                # Store results in adata
+                adata.obsm['terminal_states_probs'] = g.fate_probabilities
+                adata.obs['terminal_states'] = g.terminal_states
+                # Convert Lineage object to numpy array for max calculation
+                fate_probs_array = np.array(g.fate_probabilities)
+                adata.obs['terminal_states_probs_max'] = fate_probs_array.max(axis=1)
+
+                # Add individual fate probabilities as obs columns for pseudotime analysis
+                # This allows each terminal state's probability to be used as pseudotime in visualization apps
+                fate_probs_df = pd.DataFrame(
+                    fate_probs_array,
+                    columns=g.terminal_states.cat.categories,
+                    index=adata.obs_names
+                )
+                for state in fate_probs_df.columns:
+                    # Column name format: fate_prob_{state_name}
+                    adata.obs[f'fate_prob_{state}'] = fate_probs_df[state].values
+
+                st.info(f"✓ Added individual fate probability columns: {', '.join([f'fate_prob_{s}' for s in fate_probs_df.columns])}")
+
+                # Compute initial states (optional)
+                if compute_initial_states:
+                    status_text.text("Estimating initial states...")
+                    progress_bar.progress(85)
+
+                    g.predict_initial_states()
+                    n_initial = len(g.initial_states.cat.categories)
+                    st.success(f"✓ Identified {n_initial} initial states")
+
+                    adata.obs['initial_states'] = g.initial_states
+
+                    # Show initial states
+                    initial_states_df = pd.DataFrame({
+                        'Initial State': g.initial_states.cat.categories,
+                        'Count': [np.sum(g.initial_states == state) for state in g.initial_states.cat.categories]
+                    })
+                    st.write("**Initial states:**")
+                    st.dataframe(initial_states_df)
+
+                # Save result
+                status_text.text("Saving results...")
+                progress_bar.progress(95)
+
+                # Store estimator for later use
+                adata.uns['cellrank_kernel'] = kernel_type
+                adata.uns['cellrank_params'] = {
+                    'kernel_type': kernel_type,
+                    'velocity_weight': velocity_weight if kernel_type == "Combined (Velocity + Connectivity)" else None,
+                    'cluster_key': cluster_key,
+                    'n_states': n_terminal,
+                    'compute_initial_states': compute_initial_states
+                }
+
+                # Clean metadata before saving to prevent malformed h5ad
+                status_text.text("Cleaning metadata...")
+                adata = clean_adata_metadata(adata)
+
+                output_path = os.path.join(cellrank_temp_dir, "cellrank_result.h5ad")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+
+                adata.write_h5ad(output_path, compression="gzip")
+                st.info("✓ Saved cleaned h5ad file")
+
+                # Store in session state
+                st.session_state.cellrank_result_path = output_path
+                st.session_state.cellrank_adata = adata
+                st.session_state.cellrank_kernel_type = kernel_type
+                st.session_state.cellrank_complete = True
+
+                progress_bar.progress(100)
+                status_text.text("Analysis complete!")
+
+                st.success("""
+                ✅ **Analysis completed successfully!**
+
+                Computed results:
+                - Terminal states
+                - Fate probabilities
+                - Initial states (if requested)
+                """)
+
+                # Show summary statistics
+                st.subheader("Summary Statistics")
+
+                summary_col1, summary_col2, summary_col3 = st.columns(3)
+
+                with summary_col1:
+                    st.metric("Total cells", adata.n_obs)
+                    st.metric("Terminal states", n_terminal)
+
+                with summary_col2:
+                    mean_confidence = adata.obs['terminal_states_probs_max'].mean()
+                    st.metric("Mean fate confidence", f"{mean_confidence:.3f}")
+
+                    if compute_initial_states:
+                        st.metric("Initial states", n_initial)
+
+                with summary_col3:
+                    # Distribution of cells across terminal states
+                    most_common_state = adata.obs['terminal_states'].value_counts().index[0]
+                    st.metric("Most common terminal state", most_common_state)
+
+                # Show available data
+                with st.expander("📊 Available data in result", expanded=False):
+                    st.write("**Obs (cell metadata):**")
+                    st.write([col for col in adata.obs.columns if 'terminal' in col or 'initial' in col])
+
+                    st.write("**Obsm (fate probabilities):**")
+                    st.write([key for key in adata.obsm.keys() if 'terminal' in key or 'fate' in key])
+
+            except Exception as e:
+                st.error(f"❌ Error during analysis: {str(e)}")
+                st.exception(e)
+                st.session_state.cellrank_complete = False
+
+            finally:
+                progress_bar.empty()
+                status_text.empty()
+
+    # ========================================
+    # Step 4: Download results
+    # ========================================
+    if st.session_state.cellrank_complete:
+        st.header("Step 4: Download results")
+
+        with open(st.session_state.cellrank_result_path, "rb") as f:
+            result_bytes = f.read()
+
+        # Create filename based on input h5ad
+        h5ad_basename = os.path.splitext(uploaded_h5ad.name)[0]
+        kernel_type_short = st.session_state.cellrank_kernel_type.split()[0]  # Get first word
+        output_filename = f"{h5ad_basename}.CellRank.{kernel_type_short}.h5ad"
+
+        st.download_button(
+            label="⬇️ Download CellRank result (h5ad)",
+            data=result_bytes,
+            file_name=output_filename,
+            mime="application/octet-stream",
+            type="primary"
+        )
+
+        st.info("""
+        ### 次のステップ
+
+        ダウンロードしたh5adファイルには以下が含まれています：
+        - Terminal states (`adata.obs['terminal_states']`)
+        - Fate probabilities (`adata.obsm['terminal_states_probs']`)
+        - **Individual fate probability columns** (`adata.obs['fate_prob_{state}']`) - Pseudotime appで使用可能
+        - Initial states (`adata.obs['initial_states']`)（計算した場合）
+
+        #### 推奨: CellRank Visualization appで可視化
+
+        まずは **CellRank Visualization** appで結果を可視化してください：
+        1. **CellRank visualization** ページに移動
+        2. このh5adファイルをアップロード
+        3. 以下の可視化が可能：
+           - Terminal states（終末状態のUMAP表示）
+           - Fate probabilities（各終末状態への運命確率）
+           - Fate probability heatmap（全細胞×全状態のヒートマップ）
+           - Gene expression trends（系統に沿った遺伝子発現）
+           - Initial states（初期状態、計算した場合）
+
+        #### より詳細な解析: Pseudotime Gene Expression app
+
+        各終末状態への運命確率を横軸として、遺伝子発現トレンドを詳細に解析できます：
+        1. **Pseudotime gene expression** ページに移動
+        2. このh5adファイルをアップロード
+        3. Pseudotime selectionで `fate_prob_{state}` を選択
+        4. 横軸 = その終末状態への確率（0-1）で以下が可能：
+           - ヒートマップ、ラインプロット、スタックエリア
+           - Z-score正規化
+           - クラスター密度解析
+           - 複数遺伝子のオーバーレイ表示
+
+        #### Pythonでのvisualization例:
+        ```python
+        import cellrank as cr
+        import scanpy as sc
+        import scvelo as scv
+
+        # Load result
+        adata = sc.read_h5ad('result.CellRank.h5ad')
+
+        # Visualize terminal states
+        scv.pl.scatter(adata, basis='umap', color='terminal_states',
+                      title='Terminal States')
+
+        # Visualize fate probabilities (from obsm)
+        for state in adata.obsm['terminal_states_probs'].columns:
+            scv.pl.scatter(adata, basis='umap',
+                          color=adata.obsm['terminal_states_probs'][state],
+                          title=f'Fate probability: {state}')
+
+        # Or use individual columns (from obs)
+        scv.pl.scatter(adata, basis='umap', color='fate_prob_Macrophage')
+
+        # Gene trends along lineages
+        # cr.pl.gene_trends(adata, genes=['gene1', 'gene2'])
+        ```
+        """)
+
+else:
+    st.info("👆 scVelo解析結果のh5adファイルをアップロードして開始してください")

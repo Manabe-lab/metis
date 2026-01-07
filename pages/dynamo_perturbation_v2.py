@@ -1,0 +1,1162 @@
+"""
+Dynamo In Silico Perturbation - Accurate Shiny Implementation
+Faithfully reproduces the Shiny app computation logic
+"""
+
+import streamlit as st
+import scanpy as sc
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+import time
+import hashlib
+from helper_func import clear_old_directories, clear_old_files
+from streamlit_sortables import sort_items
+
+def _get_file_hash(file_obj):
+    """Get MD5 hash of file content for cache key"""
+    content = file_obj.getvalue()
+    return hashlib.md5(content).hexdigest()
+
+@st.cache_data
+def create_cell_color_mapping(cell_list, palette_name):
+    """
+    細胞名/クラスターと色の一貫したマッピングを作成する関数
+
+    Parameters
+    ----------
+    cell_list : list
+        細胞名/クラスター名のリスト
+    palette_name : str
+        使用する離散カラーパレット名
+
+    Returns
+    -------
+    dict
+        細胞名/クラスター名をキー、色をバリューとする辞書
+    """
+    n_cells = len(cell_list)
+    base_palette = sns.color_palette(palette_name)
+    base_n = len(base_palette)
+
+    if n_cells <= base_n:
+        colors = base_palette[:n_cells]
+    else:
+        colors = sns.color_palette(palette_name, n_colors=n_cells)
+
+    return {cell: color for cell, color in zip(cell_list, colors)}
+
+# Import dynamo
+try:
+    import dynamo as dyn
+    DYNAMO_AVAILABLE = True
+except ImportError:
+    DYNAMO_AVAILABLE = False
+
+st.set_page_config(page_title="Dynamo Perturbation (v2)", page_icon="🧬", layout="wide")
+
+st.title("🧬 In Silico Genetic Perturbation")
+
+if not DYNAMO_AVAILABLE:
+    st.error("""
+    ❌ **Dynamo is not installed**
+
+    Please install Dynamo using:
+    ```bash
+    pip install dynamo-release
+    ```
+
+    See: https://github.com/aristoteleo/dynamo-release
+    """)
+    st.stop()
+
+st.markdown("""
+Perturbation function in Dynamo can be used to either upregulate or suppress a single or
+multiple genes in a particular cell or across all cells to perform in silico genetic perturbation.
+
+Dynamo first calculates the perturbation velocity vector from the input expression value and
+the analytical Jacobian from our vector field function. Because Jacobian encodes the instantaneous
+changes of velocity of any genes after increasing any other gene, the output vector will produce the
+perturbation effect vector after propagating the genetic perturbation through the gene regulatory
+network. Then Dynamo projects the perturbation vector to low dimensional space.
+
+**Reference**: [Dynamo Perturbation Tutorial](https://dynamo-release.readthedocs.io/en/latest/notebooks/perturbation_tutorial/perturbation_tutorial.html)
+""")
+
+@st.cache_resource
+def load_h5ad_file(_file_obj, _file_hash):
+    """Load h5ad file with caching using cache_resource (no deep copy)"""
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".h5ad") as tmp:
+        tmp.write(_file_obj.getvalue())
+        tmp_path = tmp.name
+
+    adata = sc.read_h5ad(tmp_path)
+    os.unlink(tmp_path)
+
+    return adata
+
+# Initialize session state
+if "dynamo_pert_v2_temp_dir" not in st.session_state:
+    dynamo_pert_v2_temp_dir = os.path.join("temp", f"dynamo_pert_v2_{round(time.time())}")
+    os.makedirs("temp", exist_ok=True)
+    clear_old_directories("temp")
+    clear_old_files("temp")
+    os.makedirs(dynamo_pert_v2_temp_dir, exist_ok=True)
+    st.session_state.dynamo_pert_v2_temp_dir = dynamo_pert_v2_temp_dir
+else:
+    dynamo_pert_v2_temp_dir = st.session_state.dynamo_pert_v2_temp_dir
+
+if "perturbation_done" not in st.session_state:
+    st.session_state.perturbation_done = False
+
+# ========================================
+# Step 1: Upload file
+# ========================================
+st.header("Step 1: Upload Dynamo result")
+
+st.markdown("""
+**Required data**:
+- ✅ Vector field computed (`adata.uns['VecFld_*']`)
+- ✅ RNA dynamics estimated
+- ✅ Cell velocities computed
+- ✅ Embedding (UMAP, PCA, etc.)
+
+→ Use the h5ad file generated from **Dynamo Analysis** app
+""")
+
+uploaded_h5ad = st.file_uploader(
+    "Upload Dynamo result (h5ad)",
+    type=['h5ad'],
+    key="dynamo_pert_v2_h5ad_upload",
+    help="Dynamo Analysis appで生成されたh5adファイル"
+)
+
+if uploaded_h5ad is not None:
+    # Cache file hash in session_state to avoid recomputing on every rerun
+    current_file_id = f"{uploaded_h5ad.name}_{uploaded_h5ad.size}"
+    if st.session_state.get('pert_v2_file_id') != current_file_id:
+        st.session_state.pert_v2_file_id = current_file_id
+        st.session_state.pert_v2_file_hash = _get_file_hash(uploaded_h5ad)
+    file_hash = st.session_state.pert_v2_file_hash
+
+    # Load file with caching
+    with st.spinner("Loading file..."):
+        adata = load_h5ad_file(uploaded_h5ad, file_hash)
+        st.success(f"✓ Loaded: {adata.n_obs} cells, {adata.n_vars} genes")
+
+        # Check required data
+        st.subheader("Data validation")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Check for Vector Field keys
+            vecfld_keys = [k for k in adata.uns.keys() if k.startswith('VecFld')]
+            if len(vecfld_keys) > 0:
+                st.success("✓ Vector field available")
+                # Extract basis names
+                all_vf_bases = [k.replace('VecFld_', '') if k.startswith('VecFld_') else 'default' for k in vecfld_keys]
+
+                # Filter out umap/tsne/etc for Jacobian calculation (high-dimensional spaces only)
+                # These are PCA-like spaces (e.g., rna.mnn, rna.pca, pca)
+                high_dim_keywords = ['umap', 'tsne', 'phate', 'trimap']
+                vf_bases_for_jacobian = [b for b in all_vf_bases
+                                         if not any(kw in b.lower() for kw in high_dim_keywords)]
+
+                st.info(f"All Vector Fields: {', '.join(all_vf_bases)}")
+                st.info(f"High-dim Vector Fields (for Jacobian): {', '.join(vf_bases_for_jacobian)}")
+            else:
+                st.error("❌ Vector field not found")
+                st.warning("Please run Dynamo Analysis first")
+
+        with col2:
+            # Check for embeddings
+            embedding_keys = [k for k in adata.obsm.keys() if k.startswith('X_')]
+            if len(embedding_keys) > 0:
+                st.success(f"✓ Embeddings available")
+                available_bases = [k.replace('X_', '') for k in embedding_keys]
+                st.info(f"Bases: {', '.join(available_bases)}")
+            else:
+                st.error("❌ No embeddings found")
+
+        # Check for existing perturbation results
+        perturbation_keys = [k for k in adata.obsm.keys() if k.endswith('_perturbation')]
+        if len(perturbation_keys) > 0:
+            st.success(f"✓ Existing perturbation results: {', '.join(perturbation_keys)}")
+            available_pert_bases = [k.replace('X_', '').replace('_perturbation', '') for k in perturbation_keys]
+
+            use_existing = st.checkbox(
+                "既存のperturbation結果を使用する",
+                value=True,
+                key="use_existing_perturbation"
+            )
+
+            if use_existing:
+                st.caption("💡 データ読み込み後に次のステップへ進まない場合は、下記で使用するperturbation basisを選択してください")
+                if len(available_pert_bases) == 1:
+                    selected_pert_basis = available_pert_bases[0]
+                    st.info(f"Perturbation basis: **{selected_pert_basis}**")
+                else:
+                    selected_pert_basis = st.selectbox(
+                        "使用するperturbation basis:",
+                        available_pert_bases,
+                        key="select_existing_pert_basis"
+                    )
+
+                # Set session state variables for visualization
+                st.session_state.perturbation_done = True
+                st.session_state.pert_adata = adata
+                st.session_state.pert_color_keys = []
+                st.session_state.pert_basis = selected_pert_basis
+
+                # Prepare h5ad for download
+                output_path = os.path.join(dynamo_pert_v2_temp_dir, "perturbation_result.h5ad")
+                if not os.path.exists(output_path):
+                    adata.write_h5ad(output_path, compression="gzip")
+                with open(output_path, "rb") as f:
+                    st.session_state.pert_h5ad_bytes = f.read()
+
+        # Check if analysis can proceed (skip if using existing perturbation results)
+        can_proceed = (len(vecfld_keys) > 0 and len(embedding_keys) > 0 and len(vf_bases_for_jacobian) > 0)
+        using_existing = st.session_state.get('perturbation_done', False)
+
+        if not can_proceed and not using_existing:
+            st.error("""
+            ❌ **Cannot proceed with perturbation analysis**
+
+            このファイルにはDynamo解析の必須データが不足しています。
+
+            必要なデータ:
+            - ✅ Vector field (any basis)
+            - ✅ High-dimensional Vector field (PCA, MNN等 - umap/tsne以外)
+            - ✅ Low-dimensional embedding (UMAP等)
+
+            Dynamo Analysisアプリで先にvector field計算を実行してください。
+            """)
+            st.stop()
+
+        # ========================================
+        # Sidebar: Colormap selection
+        # ========================================
+        with st.sidebar:
+            st.markdown("### Visualization Options")
+
+            colormap_discrete = st.selectbox(
+                "Colormap (離散カラーマップ):",
+                ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
+                 "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
+                index=0,
+                help="カテゴリカル変数用のカラーパレット"
+            )
+
+            colormap_continuous = st.selectbox(
+                "Colormap (連続カラーマップ):",
+                ["viridis", "plasma", "inferno", "magma", "cividis",
+                 "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
+                index=0,
+                help="連続変数用のカラーパレット"
+            )
+
+        # ========================================
+        # Step 2: Perturbation Settings (Shiny app style)
+        # ========================================
+        st.header("Step 2: Perturbation Configuration")
+
+        st.subheader("Perturbation Setting")
+
+        # Number of genes to perturb (Shiny: slider 1-5)
+        # OUTSIDE form so it can be changed dynamically
+        n_genes = st.slider("Number of genes to perturb:", 1, 5, 1)
+
+        with st.form("perturbation_form"):
+            # Gene selection (Shiny: selectize for each gene)
+            selected_genes = []
+            expression_values = []
+
+            for i in range(n_genes):
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    gene = st.selectbox(
+                        f"Gene {i+1} to perform perturbation:",
+                        list(adata.var_names),
+                        key=f"target_gene_{i}"
+                    )
+                    selected_genes.append(gene)
+
+                with col2:
+                    # Shiny: slider -200 to 200, default -100
+                    expr = st.slider(
+                        f"Expression value {i+1}:",
+                        -200.0,
+                        200.0,
+                        -100.0,
+                        10.0,
+                        key=f"expression_{i}",
+                        help="Expression value to encode the genetic perturbation"
+                    )
+                    expression_values.append(expr)
+
+            st.markdown("---")
+            st.subheader("Streamline Plot Setting")
+
+            # Number of color keys (Shiny: slider 1-5)
+            n_colors = st.slider("Number of observations:", 1, 5, 1)
+
+            # Color keys selection (Shiny: selectize for each color)
+            color_keys = []
+            for i in range(n_colors):
+                color_key = st.selectbox(
+                    f"Color key {i+1}:",
+                    list(adata.obs.keys()) + list(adata.var_names),
+                    index=list(adata.obs.keys()).index('cell_type') if 'cell_type' in adata.obs.keys() else 0,
+                    key=f"base_color_{i}"
+                )
+                color_keys.append(color_key)
+
+            # Basis selection for vector field (required for Jacobian calculation)
+            st.markdown("---")
+            st.subheader("Vector Field Basis")
+
+            st.info("""
+            **High-dimensional spaces** (PCA, MNN等) をJacobian計算に使用します。
+            UMAP/tSNE等の低次元埋め込みは除外されています。
+            """)
+
+            vf_basis = st.selectbox(
+                "Vector Field basis for Jacobian calculation:",
+                vf_bases_for_jacobian,
+                help="High-dimensional space (e.g., rna.mnn, pca). Jacobian will be computed in this space."
+            )
+
+            # Use the selected basis directly
+            # e.g., "rna.mnn" will use VecFld_rna.mnn
+            jacobian_basis = vf_basis
+
+            # Embedding basis for visualization
+            streamline_basis = st.selectbox(
+                "Embedding basis for visualization:",
+                available_bases,
+                index=available_bases.index('umap') if 'umap' in available_bases else 0,
+                help="Low-dimensional space for plotting results"
+            )
+
+            # Run button
+            run_perturbation = st.form_submit_button("🚀 Run Perturbation", type="primary")
+
+        # ========================================
+        # Step 3: Run Perturbation (Exact Shiny logic)
+        # ========================================
+        if run_perturbation:
+            st.header("Step 3: Running perturbation analysis")
+
+            with st.spinner("Running in silico perturbation..."):
+                try:
+                    # EXACT SHINY LOGIC (line 143 in shiny/perturbation.py):
+                    # perturbation(adata, selected_genes, expression, emb_basis=input.streamline_basis())
+
+                    st.info(f"""
+                    **Configuration:**
+                    - Genes: {selected_genes}
+                    - Expression values: {expression_values}
+                    - Vector Field basis: {jacobian_basis}
+                    - Embedding basis: {streamline_basis}
+                    """)
+
+                    # Call Dynamo perturbation with explicit basis parameter
+                    # IMPORTANT: basis must match the high-dimensional Vector Field (e.g., rna.mnn, pca)
+                    # emb_basis is for visualization only
+
+                    # Determine the correct keys for the selected basis
+                    pca_key = f"X_{jacobian_basis}"
+                    import numpy as np
+
+                    # Validate embedding exists
+                    if pca_key not in adata.obsm:
+                        st.error(f"❌ Embedding key '{pca_key}' not found in adata.obsm")
+                        st.stop()
+
+                    # Get embedding dimension
+                    n_embedding_dims = adata.obsm[pca_key].shape[1]
+
+                    # Check for basis-specific PCA loadings
+                    # Seurat conversion stores loadings in varm, dynamo stores in uns
+                    basis_pcs_key = f"PCs_{jacobian_basis}"
+                    basis_mean_key = f"{jacobian_basis}_mean"
+                    generic_pcs_key = "PCs"
+                    generic_mean_key = "pca_mean"
+
+                    PCs = None
+                    PCs_key = None
+                    PCs_location = None  # 'varm' or 'uns'
+                    pca_mean_key = None
+                    need_recompute = False
+
+                    # First, try varm (Seurat conversion stores loadings here)
+                    if basis_pcs_key in adata.varm:
+                        PCs = adata.varm[basis_pcs_key]
+                        if PCs.shape[1] == n_embedding_dims:
+                            PCs_key = basis_pcs_key
+                            PCs_location = 'varm'
+                            st.success(f"✓ Found matching PCA loadings in varm: {basis_pcs_key} ({PCs.shape})")
+                        else:
+                            st.warning(f"⚠️ varm[{basis_pcs_key}] exists but dimensions don't match: {PCs.shape[1]} vs embedding {n_embedding_dims}")
+                            need_recompute = True
+                    # Then try uns (dynamo stores loadings here)
+                    elif basis_pcs_key in adata.uns:
+                        PCs = adata.uns[basis_pcs_key]
+                        if PCs.shape[1] == n_embedding_dims:
+                            PCs_key = basis_pcs_key
+                            PCs_location = 'uns'
+                            st.success(f"✓ Found matching PCA loadings in uns: {basis_pcs_key} ({PCs.shape})")
+                        else:
+                            st.warning(f"⚠️ uns[{basis_pcs_key}] exists but dimensions don't match: {PCs.shape[1]} vs embedding {n_embedding_dims}")
+                            need_recompute = True
+                    else:
+                        # Try generic PCs in uns
+                        if generic_pcs_key in adata.uns:
+                            PCs = adata.uns[generic_pcs_key]
+                            if PCs.shape[1] == n_embedding_dims:
+                                PCs_key = generic_pcs_key
+                                PCs_location = 'uns'
+                                st.success(f"✓ Using generic PCA loadings: {generic_pcs_key} ({PCs.shape})")
+                            else:
+                                st.warning(f"""
+                                ⚠️ **PCA loadings次元の不一致:**
+                                - 選択したbasis ({jacobian_basis}): {n_embedding_dims}次元
+                                - 利用可能なPCs: {PCs.shape[1]}次元
+
+                                **原因**: {jacobian_basis}のPCA loadingsが保存されていません。
+                                Vector Fieldは{n_embedding_dims}次元で計算されていますが、
+                                perturbationに必要なloadingsは{PCs.shape[1]}次元のものしかありません。
+                                """)
+                                need_recompute = True
+                        else:
+                            st.warning(f"⚠️ PCA loadingsが見つかりません（uns, varmともに）。新規に計算します。")
+                            need_recompute = True
+
+                    # Find mean key (check both uns keys)
+                    if basis_mean_key in adata.uns:
+                        pca_mean_key = basis_mean_key
+                    elif generic_mean_key in adata.uns:
+                        pca_mean_key = generic_mean_key
+
+                    # Recompute PCA if needed
+                    if need_recompute:
+                        # Use dynamo default 30 dimensions when recomputing PCA
+                        default_n_pca = 30
+                        st.info(f"""
+                        🔄 **PCA loadingsを{default_n_pca}次元（dynamo default）で再計算します...**
+
+                        選択したbasis ({jacobian_basis}) のPCA loadingsが見つからないか、
+                        次元が一致しないため、新規にPCAを計算します。
+                        """)
+
+                        from sklearn.decomposition import PCA as sklearn_PCA
+
+                        # Get HVG genes
+                        hvg_mask = adata.var.use_for_pca.values
+                        n_hvg = hvg_mask.sum()
+
+                        # Get expression data for HVG genes
+                        if hasattr(adata.X, 'toarray'):
+                            X_hvg = adata.X[:, hvg_mask].toarray()
+                        else:
+                            X_hvg = adata.X[:, hvg_mask]
+
+                        # Fit PCA with dynamo default 30 dimensions
+                        n_components = min(default_n_pca, n_hvg - 1)
+                        pca_model = sklearn_PCA(n_components=n_components, random_state=0)
+                        pca_model.fit(X_hvg)
+
+                        # Save recomputed PCs
+                        PCs = pca_model.components_.T  # (n_genes, n_components)
+                        adata.uns[basis_pcs_key] = PCs
+                        adata.uns[basis_mean_key] = pca_model.mean_
+                        PCs_key = basis_pcs_key
+                        PCs_location = 'uns'
+                        pca_mean_key = basis_mean_key
+
+                        st.success(f"✓ PCA loadingsを再計算しました: {basis_pcs_key} ({PCs.shape})")
+
+                    # Get stored mean
+                    if pca_mean_key is None:
+                        st.error(f"❌ PCA mean not found")
+                        st.stop()
+
+                    stored_mean = adata.uns[pca_mean_key]
+                    n_genes_full = PCs.shape[0]
+                    n_genes_mean = len(stored_mean)
+
+                    st.info(f"""
+                    **PCA parameters:**
+                    - Embedding: {pca_key} ({n_embedding_dims}次元)
+                    - PCs: {PCs_key} ({PCs.shape})
+                    - Mean: {pca_mean_key} ({n_genes_mean} genes)
+                    """)
+
+                    if n_genes_mean != n_genes_full:
+                        st.warning(f"⚠️ Mean vector size mismatch! Reconstructing full-gene mean vector...")
+
+                        # Find which genes were used for PCA
+                        pca_genes_key = f"{jacobian_basis}_genes"
+                        if pca_genes_key in adata.uns:
+                            pca_gene_names = adata.uns[pca_genes_key]
+
+                            # Find indices in adata.var_names
+                            pca_gene_indices = [i for i, g in enumerate(adata.var_names) if g in pca_gene_names]
+
+                            st.info(f"Found {len(pca_gene_indices)} PCA genes in data")
+
+                            # Calculate mean for ALL genes from actual expression data
+                            # This ensures non-PCA genes also have correct mean values
+                            st.info("Calculating mean expression for all genes from data...")
+
+                            # Use the same layer that was used for PCA (typically 'data')
+                            if 'X' in dir(adata) and adata.X is not None:
+                                # Calculate row means for all genes
+                                if hasattr(adata.X, 'toarray'):
+                                    # Sparse matrix
+                                    full_mean = np.array(adata.X.mean(axis=0)).flatten()
+                                else:
+                                    # Dense matrix
+                                    full_mean = np.mean(adata.X, axis=0)
+
+                                st.success(f"✓ Calculated mean for all {len(full_mean)} genes from expression data")
+                            else:
+                                st.error("❌ Cannot access expression data (adata.X)")
+                                st.stop()
+
+                            # Verify dimensions
+                            if len(full_mean) != n_genes_full:
+                                st.error(f"❌ Mean dimension mismatch: {len(full_mean)} vs {n_genes_full}")
+                                st.stop()
+
+                            # Store the reconstructed mean
+                            adata.uns[f"{pca_mean_key}_full"] = full_mean
+                            pca_mean_key_to_use = f"{pca_mean_key}_full"
+
+                            st.success(f"✓ Reconstructed full mean vector: {full_mean.shape}")
+
+                            # Show statistics
+                            pca_gene_set = set(pca_gene_names)
+                            non_pca_indices = [i for i, g in enumerate(adata.var_names) if g not in pca_gene_set]
+
+                            if len(non_pca_indices) > 0:
+                                non_pca_mean_sample = full_mean[non_pca_indices[:5]]
+                                st.info(f"Non-PCA gene mean (sample): {non_pca_mean_sample}")
+                        else:
+                            st.error(f"❌ Cannot find PCA genes list: {pca_genes_key}")
+                            st.error("Cannot reconstruct full mean vector. Please re-run Dynamo Analysis.")
+                            st.stop()
+                    else:
+                        pca_mean_key_to_use = pca_mean_key
+                        st.success(f"✓ Mean vector already has correct size: {n_genes_mean}")
+
+                    # Verify Vector Field key exists and handle naming convention
+                    vf_key_full = f"VecFld_{jacobian_basis}"
+
+                    if vf_key_full not in adata.uns:
+                        st.error(f"""
+                        ❌ **Vector Field key not found**
+
+                        Expected key: `{vf_key_full}`
+                        Available Vector Field keys: {vecfld_keys}
+
+                        ベクトル場のキー名が見つかりません。
+                        """)
+                        st.stop()
+
+                    # IMPORTANT: Dynamo's perturbation function extracts the suffix after the last '.'
+                    # For example, basis='rna.pca' will look for VecFld_pca (not VecFld_rna.pca)
+                    # So we need to copy VecFld_rna.pca to VecFld_pca before calling perturbation
+
+                    # Extract the suffix that Dynamo will use internally
+                    basis_suffix = jacobian_basis.split('.')[-1]  # 'rna.pca' -> 'pca'
+                    vf_key_dynamo_expects = f"VecFld_{basis_suffix}"
+
+                    # Copy Vector Field to the expected key if different
+                    if vf_key_full != vf_key_dynamo_expects:
+                        st.info(f"""
+                        🔄 **Copying Vector Field for Dynamo compatibility:**
+                        - Source: `{vf_key_full}`
+                        - Target: `{vf_key_dynamo_expects}`
+                        """)
+                        adata.uns[vf_key_dynamo_expects] = adata.uns[vf_key_full].copy()
+
+                    # CRITICAL FIX: Check for PC dimension mismatch between embedding and loadings
+                    # X_<basis> might have more components than PCs loadings matrix
+                    n_pcs_embedding = adata.obsm[pca_key].shape[1]
+                    n_pcs_loadings = PCs.shape[1]
+
+                    if n_pcs_embedding != n_pcs_loadings:
+                        st.warning(f"""
+                        ⚠️ **PC次元の不一致を検出・修正:**
+                        - Embedding ({pca_key}): {n_pcs_embedding} 成分
+                        - Loadings (PCs): {n_pcs_loadings} 成分
+
+                        Embeddingを {n_pcs_loadings} 成分に切り詰めます。
+                        """)
+
+                        # Truncate the embedding to match PCs loadings
+                        original_embedding = adata.obsm[pca_key].copy()
+                        adata.obsm[pca_key] = adata.obsm[pca_key][:, :n_pcs_loadings]
+
+                        # Also truncate velocity and other related embeddings if they exist
+                        related_keys = [
+                            f"velocity_{jacobian_basis}",
+                            f"acceleration_{jacobian_basis}",
+                            f"curvature_{jacobian_basis}",
+                            f"X_{jacobian_basis}_SparseVFC",
+                            f"velocity_{jacobian_basis}_SparseVFC"
+                        ]
+
+                        for rel_key in related_keys:
+                            if rel_key in adata.obsm and adata.obsm[rel_key].shape[1] == n_pcs_embedding:
+                                adata.obsm[rel_key] = adata.obsm[rel_key][:, :n_pcs_loadings]
+                                st.info(f"  - {rel_key} も切り詰めました")
+
+                        st.success(f"✓ Embedding dimension adjusted: {n_pcs_embedding} → {n_pcs_loadings}")
+
+                    # Check if selected genes are in the HVG set (use_for_pca=True)
+                    hvg_genes = set(adata.var_names[adata.var.use_for_pca])
+                    n_hvg = len(hvg_genes)
+                    missing_genes = [g for g in selected_genes if g not in hvg_genes]
+
+                    if missing_genes:
+                        st.error(f"""
+                        ❌ **以下の遺伝子がHVG (use_for_pca) に含まれていません:**
+                        {', '.join(missing_genes)}
+
+                        Perturbation解析にはHVG遺伝子のみ使用可能です。
+                        HVG遺伝子数: {n_hvg}
+
+                        **解決策:**
+                        1. dynamo_analysisで「Force include genes」に追加して再実行
+                        2. または、HVGに含まれる遺伝子を選択
+                        """)
+                        st.stop()
+                    else:
+                        st.success(f"✓ 選択した遺伝子 ({', '.join(selected_genes)}) はすべてHVG ({n_hvg}遺伝子) に含まれています")
+
+                    # Check if selected genes are in use_for_dynamics (required for jacobian)
+                    # If not, automatically add them
+                    if 'use_for_dynamics' in adata.var.columns:
+                        dynamics_genes = set(adata.var_names[adata.var.use_for_dynamics])
+                        missing_in_dynamics = [g for g in selected_genes if g not in dynamics_genes]
+
+                        if missing_in_dynamics:
+                            st.warning(f"⚠️ 以下の遺伝子が `use_for_dynamics` に含まれていません: {', '.join(missing_in_dynamics)}")
+                            st.info("🔄 Jacobian計算のため、自動的に `use_for_dynamics=True` に設定します...")
+
+                            for gene in missing_in_dynamics:
+                                if gene in adata.var_names:
+                                    adata.var.loc[gene, 'use_for_dynamics'] = True
+
+                            st.success(f"✓ {len(missing_in_dynamics)}個の遺伝子を use_for_dynamics に追加しました")
+                        else:
+                            st.success(f"✓ 選択した遺伝子はすべて use_for_dynamics に含まれています")
+                    else:
+                        st.warning("⚠️ use_for_dynamics 列が見つかりません。Jacobian計算でエラーが発生する可能性があります。")
+
+                    # If PCs are in varm, copy to uns for dynamo compatibility
+                    # IMPORTANT: Dynamo expects PCs to have shape (n_hvg, n_components)
+                    # but Seurat's varm has shape (n_all_genes, n_components)
+                    # We must subset to HVG genes only!
+                    if PCs_location == 'varm':
+                        st.info(f"🔄 Copying PCA loadings from varm to uns for dynamo compatibility...")
+                        full_PCs = adata.varm[PCs_key]
+                        st.caption(f"Original PCs shape (all genes): {full_PCs.shape}")
+
+                        # Subset to HVG genes only (use_for_pca)
+                        hvg_mask = adata.var['use_for_pca'].values
+                        hvg_PCs = full_PCs[hvg_mask, :]
+                        st.caption(f"Subsetted PCs shape (HVG only): {hvg_PCs.shape}")
+
+                        adata.uns[PCs_key] = hvg_PCs.copy()
+                        st.success(f"✓ Copied {PCs_key} from varm to uns (subsetted to {hvg_PCs.shape[0]} HVG genes)")
+
+                        # Also subset the mean vector to HVG genes only
+                        # Dynamo's pca_to_expr expects: X @ PCs.T + mean
+                        # If PCs is (n_hvg, n_components), mean must also be (n_hvg,)
+                        full_mean = adata.uns[pca_mean_key_to_use]
+                        st.caption(f"Original mean shape (all genes): {full_mean.shape}")
+
+                        hvg_mean = full_mean[hvg_mask]
+                        st.caption(f"Subsetted mean shape (HVG only): {hvg_mean.shape}")
+
+                        # Store the HVG-subsetted mean
+                        hvg_mean_key = f"{pca_mean_key_to_use}_hvg"
+                        adata.uns[hvg_mean_key] = hvg_mean
+                        pca_mean_key_to_use = hvg_mean_key
+                        st.success(f"✓ Mean vector also subsetted to {len(hvg_mean)} HVG genes")
+
+                    # Use the reconstructed mean key if it was created
+                    st.info(f"""
+                    **Final perturbation parameters:**
+                    - basis: {jacobian_basis}
+                    - Vector Field key (source): {vf_key_full}
+                    - Vector Field key (Dynamo expects): {vf_key_dynamo_expects}
+                    - emb_basis: {streamline_basis}
+                    - pca_key: {pca_key}
+                    - PCs_key: {PCs_key} (location: {PCs_location or 'uns'})
+                    - pca_mean_key: {pca_mean_key_to_use}
+                    - HVG (use_for_pca) genes: {n_hvg}
+                    """)
+
+                    dyn.pd.perturbation(
+                        adata,
+                        genes=selected_genes,
+                        expression=expression_values,
+                        basis=jacobian_basis,  # High-dimensional space (rna.mnn, pca, etc.)
+                        emb_basis=streamline_basis,  # Low-dimensional space for visualization
+                        pca_key=pca_key,  # Embedding key in obsm
+                        PCs_key=PCs_key,  # PCA loadings key in uns
+                        pca_mean_key=pca_mean_key_to_use  # Reconstructed full mean key
+                    )
+
+                    st.session_state.perturbation_done = True
+                    st.session_state.pert_adata = adata
+                    st.session_state.pert_color_keys = color_keys
+                    st.session_state.pert_basis = streamline_basis
+
+                    # Cache h5ad file for download (only compute once)
+                    with st.spinner("Preparing download file..."):
+                        output_path = os.path.join(dynamo_pert_v2_temp_dir, "perturbation_result.h5ad")
+
+                        if os.path.exists(output_path):
+                            try:
+                                os.remove(output_path)
+                            except OSError:
+                                pass
+
+                        adata.write_h5ad(output_path, compression="gzip")
+
+                        with open(output_path, "rb") as f:
+                            st.session_state.pert_h5ad_bytes = f.read()
+
+                    st.success("✅ Perturbation completed!")
+
+                except Exception as e:
+                    st.error(f"❌ Perturbation failed: {str(e)}")
+                    st.exception(e)
+
+        # ========================================
+        # Step 4: Visualization
+        # ========================================
+        if st.session_state.perturbation_done:
+            st.markdown("---")
+            st.header("Step 4: Results Visualization")
+
+            adata_display = st.session_state.pert_adata
+            color_keys_display = st.session_state.pert_color_keys
+            basis_display = st.session_state.pert_basis
+
+            # Get available color options
+            categorical_cols = [col for col in adata_display.obs.columns
+                               if adata_display.obs[col].dtype.name == 'category' or
+                               adata_display.obs[col].nunique() < 50]
+            continuous_cols = [col for col in adata_display.obs.columns
+                              if adata_display.obs[col].dtype.name in ['float64', 'float32', 'int64', 'int32']]
+            geometry_cols = [col for col in adata_display.obs.columns
+                            if any(key in col for key in ['speed', 'divergence', 'curl', 'acceleration', 'curvature'])]
+
+            # Color type selection
+            st.subheader("Display Options")
+            col_select1, col_select2, col_select3 = st.columns(3)
+
+            with col_select1:
+                color_type = st.radio("Color by", ["Categorical", "Continuous", "Geometric features"], index=0)
+
+            # Initialize variables
+            color_col = None
+            palette = None
+            show_cluster_labels = False
+
+            with col_select2:
+                if color_type == "Categorical" and categorical_cols:
+                    default_idx = 0
+                    for i, col in enumerate(categorical_cols):
+                        if any(key in col.lower() for key in ['cluster', 'cell_type', 'celltype', 'leiden', 'louvain']):
+                            default_idx = i
+                            break
+
+                    color_col = st.selectbox("Color column", categorical_cols, index=default_idx)
+
+                    # Cluster order management for categorical variables
+                    if color_col:
+                        cluster_list = adata_display.obs[color_col].cat.categories.tolist() if adata_display.obs[color_col].dtype.name == 'category' else sorted(adata_display.obs[color_col].unique().tolist())
+
+                        # Initialize sorted order if not exists
+                        if 'dynamo_pert_sorted_order' not in st.session_state:
+                            st.session_state.dynamo_pert_sorted_order = cluster_list.copy()
+                            st.session_state.dynamo_pert_prev_color_col = color_col
+                        elif st.session_state.get('dynamo_pert_prev_color_col') != color_col:
+                            st.session_state.dynamo_pert_sorted_order = cluster_list.copy()
+                            st.session_state.dynamo_pert_prev_color_col = color_col
+                        else:
+                            sorted_order = st.session_state.get('dynamo_pert_sorted_order')
+                            # Ensure sorted_order includes all current clusters
+                            missing_clusters = [c for c in cluster_list if c not in sorted_order]
+                            if missing_clusters:
+                                sorted_order = sorted_order + missing_clusters
+                                st.session_state.dynamo_pert_sorted_order = sorted_order
+
+                        # Color map management
+                        if 'dynamo_pert_cluster_color_map' not in st.session_state or \
+                           st.session_state.get('dynamo_pert_current_cmap', '') != colormap_discrete or \
+                           st.session_state.get('dynamo_pert_prev_color_col') != color_col:
+                            st.session_state.dynamo_pert_cluster_color_map = create_cell_color_mapping(
+                                st.session_state.dynamo_pert_sorted_order, colormap_discrete
+                            )
+                            st.session_state.dynamo_pert_current_cmap = colormap_discrete
+                        else:
+                            # Ensure existing color map has all clusters
+                            existing_map = st.session_state.dynamo_pert_cluster_color_map
+                            missing_in_map = [c for c in cluster_list if c not in existing_map]
+                            if missing_in_map:
+                                st.session_state.dynamo_pert_cluster_color_map = create_cell_color_mapping(
+                                    st.session_state.dynamo_pert_sorted_order, colormap_discrete
+                                )
+
+                        # Cluster order sorting UI in sidebar
+                        with st.sidebar:
+                            st.markdown("---")
+                            st.markdown("### Cluster Settings")
+
+                            show_cluster_labels = st.checkbox(
+                                "Show cluster labels on plot",
+                                value=True,
+                                help="各クラスターにラベルを表示（オフにすると凡例のみ表示）"
+                            )
+
+                            sort_clusters = st.checkbox("Change cluster order?")
+                            if sort_clusters:
+                                with st.form("dynamo_pert_cluster_sorter"):
+                                    sorted_order_new = sort_items(st.session_state.dynamo_pert_sorted_order.copy())
+                                    submitted_sort = st.form_submit_button("Done sorting")
+                                if submitted_sort:
+                                    st.session_state.dynamo_pert_sorted_order = sorted_order_new
+                                    current_cmap = st.session_state.get('dynamo_pert_current_cmap', colormap_discrete)
+                                    st.session_state.dynamo_pert_cluster_color_map = create_cell_color_mapping(
+                                        sorted_order_new, current_cmap
+                                    )
+                                    st.success("✓ Cluster order updated!")
+
+                        palette = st.session_state.get('dynamo_pert_cluster_color_map')
+                    else:
+                        palette = None
+
+                elif color_type == "Continuous" and continuous_cols:
+                    color_col = st.selectbox("Color column", continuous_cols)
+                    palette = None  # Use continuous colormap instead
+                    show_cluster_labels = False  # Not applicable for continuous
+
+                elif color_type == "Geometric features" and geometry_cols:
+                    color_col = st.selectbox("Geometric feature", geometry_cols)
+                    palette = None  # Use continuous colormap for geometry features
+                    show_cluster_labels = False  # Not applicable for geometric features
+
+                else:
+                    color_col = None
+                    palette = None
+                    show_cluster_labels = False
+                    st.warning("No suitable columns found for selected color type")
+
+            with col_select3:
+                fig_width = st.slider("Figure width", 2, 20, 8)
+                fig_height = st.slider("Figure height", 2, 20, 7)
+
+            # Generate plots
+            st.markdown("---")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Before Perturbation")
+
+                try:
+                    plt.close('all')
+                    fig_before, ax_before = plt.subplots(figsize=(fig_width, fig_height))
+
+                    # Determine legend display based on user preference
+                    if palette and show_cluster_labels:
+                        legend_setting = 'on data'
+                    elif palette and not show_cluster_labels:
+                        legend_setting = 'right margin'
+                    else:
+                        legend_setting = False
+
+                    if color_col:
+                        plot_kwargs = {
+                            'adata': adata_display,
+                            'color': [color_col],
+                            'basis': basis_display,
+                            'show_legend': legend_setting,
+                            'ax': ax_before,
+                            'save_show_or_return': 'return'
+                        }
+                        if palette:
+                            plot_kwargs['palette'] = palette
+                        else:
+                            plot_kwargs['cmap'] = colormap_continuous
+
+                        dyn.pl.streamline_plot(**plot_kwargs)
+                    else:
+                        dyn.pl.streamline_plot(
+                            adata_display,
+                            basis=basis_display,
+                            ax=ax_before,
+                            save_show_or_return='return'
+                        )
+
+                    st.pyplot(fig_before)
+
+                    # Save PNG, SVG, and PDF
+                    import io
+                    import re
+
+                    # PNG
+                    png_buffer = io.BytesIO()
+                    fig_before.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
+                    png_bytes = png_buffer.getvalue()
+
+                    # SVG
+                    svg_buffer = io.BytesIO()
+                    fig_before.savefig(svg_buffer, format='svg', bbox_inches='tight')
+                    svg_bytes = svg_buffer.getvalue()
+
+                    # Clean SVG: replace NaN/inf values
+                    svg_content = svg_bytes.decode('utf-8')
+                    svg_content = re.sub(r'\bnan\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_content = re.sub(r'\binf\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_content = re.sub(r'-inf\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_clean_bytes = svg_content.encode('utf-8')
+
+                    # PDF via cairosvg or svglib
+                    pdf_bytes = None
+                    pdf_error = None
+                    try:
+                        import cairosvg
+                        pdf_bytes = cairosvg.svg2pdf(bytestring=svg_clean_bytes)
+                    except Exception as e1:
+                        try:
+                            from svglib.svglib import svg2rlg
+                            from reportlab.graphics import renderPDF
+                            import tempfile
+                            with tempfile.NamedTemporaryFile(mode='wb', suffix='.svg', delete=False) as tmp:
+                                tmp.write(svg_clean_bytes)
+                                tmp_path = tmp.name
+                            drawing = svg2rlg(tmp_path)
+                            os.unlink(tmp_path)
+                            if drawing:
+                                pdf_buffer = io.BytesIO()
+                                renderPDF.drawToFile(drawing, pdf_buffer)
+                                pdf_bytes = pdf_buffer.getvalue()
+                        except Exception as e2:
+                            pdf_error = f"cairosvg: {e1} / svglib: {e2}"
+
+                    col_dl1, col_dl2, col_dl3 = st.columns(3)
+
+                    with col_dl1:
+                        st.download_button(
+                            "⬇️ PNG",
+                            png_bytes,
+                            file_name="before_perturbation.png",
+                            mime="image/png",
+                            key="png_before"
+                        )
+
+                    with col_dl2:
+                        st.download_button(
+                            "⬇️ SVG",
+                            svg_bytes,
+                            file_name="before_perturbation.svg",
+                            mime="image/svg+xml",
+                            key="svg_before"
+                        )
+
+                    with col_dl3:
+                        if pdf_bytes:
+                            st.download_button(
+                                "⬇️ PDF",
+                                pdf_bytes,
+                                file_name="before_perturbation.pdf",
+                                mime="application/pdf",
+                                key="pdf_before"
+                            )
+                        else:
+                            st.caption(f"PDF: {pdf_error or 'エラー'}")
+
+                    plt.close(fig_before)
+
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                    st.exception(e)
+
+            with col2:
+                st.subheader("After Perturbation")
+
+                try:
+                    plt.close('all')
+                    fig_after, ax_after = plt.subplots(figsize=(fig_width, fig_height))
+
+                    # Determine legend display based on user preference
+                    if palette and show_cluster_labels:
+                        legend_setting = 'on data'
+                    elif palette and not show_cluster_labels:
+                        legend_setting = 'right margin'
+                    else:
+                        legend_setting = False
+
+                    if color_col:
+                        plot_kwargs = {
+                            'adata': adata_display,
+                            'color': [color_col],
+                            'basis': basis_display + "_perturbation",
+                            'show_legend': legend_setting,
+                            'ax': ax_after,
+                            'save_show_or_return': 'return'
+                        }
+                        if palette:
+                            plot_kwargs['palette'] = palette
+                        else:
+                            plot_kwargs['cmap'] = colormap_continuous
+
+                        dyn.pl.streamline_plot(**plot_kwargs)
+                    else:
+                        dyn.pl.streamline_plot(
+                            adata_display,
+                            basis=basis_display + "_perturbation",
+                            ax=ax_after,
+                            save_show_or_return='return'
+                        )
+
+                    st.pyplot(fig_after)
+
+                    # Save PNG, SVG, and PDF
+                    import io
+                    import re
+
+                    # PNG
+                    png_buffer = io.BytesIO()
+                    fig_after.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
+                    png_bytes = png_buffer.getvalue()
+
+                    # SVG
+                    svg_buffer = io.BytesIO()
+                    fig_after.savefig(svg_buffer, format='svg', bbox_inches='tight')
+                    svg_bytes = svg_buffer.getvalue()
+
+                    # Clean SVG: replace NaN/inf values
+                    svg_content = svg_bytes.decode('utf-8')
+                    svg_content = re.sub(r'\bnan\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_content = re.sub(r'\binf\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_content = re.sub(r'-inf\b', '0', svg_content, flags=re.IGNORECASE)
+                    svg_clean_bytes = svg_content.encode('utf-8')
+
+                    # PDF via cairosvg or svglib
+                    pdf_bytes = None
+                    pdf_error = None
+                    try:
+                        import cairosvg
+                        pdf_bytes = cairosvg.svg2pdf(bytestring=svg_clean_bytes)
+                    except Exception as e1:
+                        try:
+                            from svglib.svglib import svg2rlg
+                            from reportlab.graphics import renderPDF
+                            import tempfile
+                            with tempfile.NamedTemporaryFile(mode='wb', suffix='.svg', delete=False) as tmp:
+                                tmp.write(svg_clean_bytes)
+                                tmp_path = tmp.name
+                            drawing = svg2rlg(tmp_path)
+                            os.unlink(tmp_path)
+                            if drawing:
+                                pdf_buffer = io.BytesIO()
+                                renderPDF.drawToFile(drawing, pdf_buffer)
+                                pdf_bytes = pdf_buffer.getvalue()
+                        except Exception as e2:
+                            pdf_error = f"cairosvg: {e1} / svglib: {e2}"
+
+                    col_dl1, col_dl2, col_dl3 = st.columns(3)
+
+                    with col_dl1:
+                        st.download_button(
+                            "⬇️ PNG",
+                            png_bytes,
+                            file_name="after_perturbation.png",
+                            mime="image/png",
+                            key="png_after"
+                        )
+
+                    with col_dl2:
+                        st.download_button(
+                            "⬇️ SVG",
+                            svg_bytes,
+                            file_name="after_perturbation.svg",
+                            mime="image/svg+xml",
+                            key="svg_after"
+                        )
+
+                    with col_dl3:
+                        if pdf_bytes:
+                            st.download_button(
+                                "⬇️ PDF",
+                                pdf_bytes,
+                                file_name="after_perturbation.pdf",
+                                mime="application/pdf",
+                                key="pdf_after"
+                            )
+                        else:
+                            st.caption(f"PDF: {pdf_error or 'エラー'}")
+
+                    plt.close(fig_after)
+
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                    st.exception(e)
+
+            # ========================================
+            # Step 5: Download results
+            # ========================================
+            st.markdown("---")
+            st.header("Step 5: Download results")
+
+            # Use cached h5ad bytes from session state
+            if 'pert_h5ad_bytes' in st.session_state:
+                st.download_button(
+                    label="⬇️ Download perturbation result (h5ad)",
+                    data=st.session_state.pert_h5ad_bytes,
+                    file_name=f"perturbation_result.h5ad",
+                    mime="application/octet-stream",
+                    type="primary"
+                )
+            else:
+                st.warning("⚠️ h5adファイルが準備されていません。もう一度摂動解析を実行してください。")
+
+            st.info("""
+            ### Next Steps
+
+            ダウンロードしたh5adファイルには摂動後の結果が含まれています：
+            - Perturbation embedding (`X_{basis}_perturbation`)
+
+            #### Pythonでの追加解析:
+            ```python
+            import dynamo as dyn
+            import scanpy as sc
+
+            # Load result
+            adata = sc.read_h5ad('perturbation_result.h5ad')
+
+            # Visualize perturbation effects
+            dyn.pl.streamline_plot(adata, basis='umap_perturbation')
+            ```
+
+            詳細は [Dynamo Documentation](https://dynamo-release.readthedocs.io/) を参照してください。
+            """)
+
+else:
+    st.info("👆 Dynamo解析済みh5adファイルをアップロードして開始してください。")

@@ -20,12 +20,62 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="METIS",
-    page_icon="🧝🏻‍♀️",
+    page_icon="Metis_favicon.png",
     layout="wide"
 )
+
+# Close all sections while keeping Streamlit internal state in sync
+components.html("""
+<script>
+function closeAllSectionsProper() {
+    const doc = window.parent.document;
+    const headers = doc.querySelectorAll('[data-testid="stNavSectionHeader"]');
+
+    let closedCount = 0;
+
+    headers.forEach((header, idx) => {
+        // Check if next element is visible
+        const nextSibling = header.nextElementSibling;
+        const isExpanded = nextSibling &&
+                          (nextSibling.style.display !== 'none' &&
+                           nextSibling.offsetHeight > 0);
+
+        if (isExpanded) {
+            console.log(`Closing section ${idx} via click`);
+            // Properly call Streamlit handler
+            header.click();
+            closedCount++;
+        }
+    });
+
+    console.log(`Closed ${closedCount} sections`);
+    return closedCount;
+}
+
+// Execute only on initial load
+if (!sessionStorage.getItem('sections-properly-closed')) {
+    window.addEventListener('load', () => {
+        // Wait for Streamlit initialization
+        setTimeout(() => {
+            const closed = closeAllSectionsProper();
+            if (closed > 0) {
+                sessionStorage.setItem('sections-properly-closed', 'true');
+            }
+        }, 1000);
+
+        // Re-execute just in case
+        setTimeout(() => {
+            closeAllSectionsProper();
+        }, 2000);
+    });
+}
+</script>
+""", height=0)
+
 
 # Home page function
 def home():
@@ -34,7 +84,7 @@ def home():
     logo_path = os.path.join(os.path.dirname(__file__), "Metis_logo.png")
     if os.path.exists(logo_path):
         st.image(logo_path, width=150)
-    
+
     st.markdown(
     """
     #### ***M***olecular ***E***xploration and ***T***ranscriptomic ***I***nvestigation ***S***uite
@@ -62,7 +112,7 @@ def home():
 
     #### Data Normalization/Manipulation
     - __Count Data Normalization:__
-    RNA-seq count data normalization, QC PCA, heatmap, box plot and other preprocessing 
+    RNA-seq count data normalization, QC PCA, heatmap, box plot and other preprocessing
 
     - __Homer or DEseq2 to Data:__
     Convert Homer output files to data-only files
@@ -83,6 +133,13 @@ def home():
     - __Spread Sheet:__
     Spreadsheet editor
 
+    - __Batch removal by Combat-seq:__
+    Batch removal using Combat-seq
+
+    - __Filter X/Y Chromosome Genes:__
+    Filter genes on X/Y chromosomes (remove/extract/classify). Supports 10x Genomics and HOMER annotation.
+    Multiple delimiters (newline, tab, comma, space) for gene list input.
+
     #### Gene name conversion
     - __Update Gene Symbol:__
     Update gene symbols in Homer output or general data files (first column is Symbol)
@@ -97,6 +154,9 @@ def home():
 
     - __GMT Mouse Human Conversion:__
     Convert gene symbols in gene set files (gmt files) used in GSEA. Format validation for gmt files is also available.
+
+    - __Microarray Gene Name Filter:__
+    Extract and filter gene information from microarray data. Select gene name column to place in first column. Supports duplicate gene aggregation.
 
 
     #### Data Analysis
@@ -121,9 +181,6 @@ def home():
     - __Make ranking file for GSEA:__
     Create GSEA ranking files
 
-    - __Batch removal by Combat-seq:__
-    Batch removal using Combat-seq
-
     - __impulseDE2:__
     Time course analysis using impulseDE2
 
@@ -134,11 +191,17 @@ def home():
     Compare significantly different genes from DEA results
 
     - __Compare ratios:__
-    Statistical analysis of ratio data using t-test and β regression on logit transformed data
+    Statistical analysis of ratio data using t-test and beta regression on logit transformed data
+
+    - __KS Test Distribution Analysis:__
+    Two-group distribution comparison using Kolmogorov-Smirnov test and Anderson-Darling test
 
     #### Data Visualization
     - __PCA:__
     PCA, UMAP, tSNE, MDS
+
+    - __PCA statistics:__
+    Statistical analysis of PCA principal component scores and covariates. OLS (standard/robust SE), LMM (linear mixed model), Freedman-Lane permutation test for multiple comparison adjusted p-values. Estimated marginal means (EMM) calculation supported.
 
     - __Volcano plot__
 
@@ -184,8 +247,27 @@ def home():
     - __Random pseudo-replicates:__
     Create pseudo-replicates by random cell splitting
 
+    - __memento DE analysis:__
+    Differential expression analysis using memento
+
+    - __memento 2D analysis:__
+    memento 2D analysis
+
+    - __scCODA compositional analysis:__
+    Differential analysis of cell type composition using scCODA hierarchical Bayesian model for synthetic data
+
+    - __Add metadata to h5ad:__
+    Add metadata from another h5ad or TSV file to h5ad file. Match by cell barcode
+
+    - __CellTypist annotation:__
+    Automatic cell type annotation using machine learning. Supports 60 pre-trained models (Human/Mouse tissues)
+
+    #### SCENIC
     - __SCENIC heatmap:__
     Heatmap visualization of SCENIC gene regulatory networks
+
+    - __Prepare regulon data for heatmap:__
+    Preprocess SCENIC regulon data for heatmap
 
     - __SCENIC CSI:__
     Calculate connection specificity index (CSI) of SCENIC regulons
@@ -196,9 +278,52 @@ def home():
     - __SCENIC multinetwork analysis:__
     Network visualization of SCENIC regulons centered on multiple transcription factors and targets
 
+    #### RNA velocity
+    - __Data filtering:__
+    Filter and merge loom files generated by velocyto based on cells in h5ad file
+
+    - __scVelo analysis:__
+    RNA velocity analysis using scVelo
+
+    - __scVelo visualization:__
+    Visualization of scVelo analysis results (velocity stream, grid, phase portraits, etc.)
+
+    - __CellRank analysis:__
+    Cell fate and lineage analysis using CellRank
+
+    - __CellRank visualization:__
+    Visualization of CellRank analysis results (terminal states, fate probabilities, gene trends, etc.)
+
+    - __DeepVelo analysis:__
+    Deep learning-based RNA velocity estimation (recommended to run in separate environment)
+
+    - __Pseudotime gene expression:__
+    Visualization of gene expression trends along pseudotime and cluster density
+
+    - __Dynamo analysis:__
+    Advanced RNA velocity analysis and vector field reconstruction using Dynamo
+
+    - __Dynamo visualization:__
+    Visualization of Dynamo analysis results (streamline, vector field, topography, geometric features, etc.)
+
+    - __Dynamo perturbation:__
+    Gene perturbation simulation analysis
+
+    - __Dynamo LAP:__
+    Least Action Path analysis for computing optimal transition paths between cell states
+
+    - __TFvelo analysis:__
+    Transcription factor velocity analysis
+
+    - __VeloViz:__
+    2D embedding considering RNA velocity information. Unlike traditional UMAP/tSNE, differentiation direction is more clearly visualized
+
     #### Cell communication
     - __LIANA LR analysis:__
     Ligand-receptor analysis using LIANA+
+
+    - __LIANA comparison:__
+    LIANA condition comparison
 
     - __CellChat:__
     CellChat analysis from h5ad files - faithful Python implementation of R version
@@ -254,6 +379,9 @@ def home():
     - __Convert bed to fasta:__
     Can also handle MACS peak files
 
+    - __Denoise bedgraph bigwig:__
+    Denoise CUT&RUN data (bedgraph/bigwig format)
+
     """
     )
 
@@ -270,6 +398,8 @@ pg = st.navigation({
         st.Page("pages/merge_data.py", title="Merge Data Files"),
         st.Page("pages/5_Filter Log Z-score.py", title="Filter and Transform Data"),
         st.Page("pages/SpreadSheet.py", title="Spread Sheet"),
+        st.Page("pages/combat-seq.py", title="Batch removal by Combat-seq"),
+        st.Page("pages/filter_xy_genes.py", title="Filter X/Y Chromosome Genes"),
     ],
     "Gene name conversion 🔁": [
         st.Page("pages/2_Update Gene Symbol.py", title="Update Gene Symbol"),
@@ -277,6 +407,7 @@ pg = st.navigation({
         st.Page("pages/Ensembl2Symbol.py", title="Ensembl ID to Gene Symbol"),
         st.Page("pages/mouse-human.py", title="Mouse Human Symbol Conversion"),
         st.Page("pages/gmt-mouse-human.py", title="GMT Mouse Human Conversion"),
+        st.Page("pages/microarray_gene_filter.py", title="Microarray Gene Name Filter"),
     ],
     "Data Analysis 🧮": [
         st.Page("pages/6_Calc_DESeq2.py", title="DESeq2 etc"),
@@ -286,14 +417,15 @@ pg = st.navigation({
         st.Page("pages/DE_rpy2.py", title="DE method comparison"),
         st.Page("pages/permutation_test.py", title="Permutation test"),
         st.Page("pages/8_rnkgene.py", title="Make ranking file for GSEA"),
-        st.Page("pages/combat-seq.py", title="Batch removal by Combat-seq"),
         st.Page("pages/impulsede2-streamlit-app.py", title="impulseDE2"),
         st.Page("pages/rnaseq-mfuzz-streamlit-app.py", title="Mfuzz clustering"),
         st.Page("pages/CompareDE.py", title="DEA result comparison"),
         st.Page("pages/analyze_freq.py", title="Compare ratios"),
+        st.Page("pages/KStest.py", title="KS Test Distribution Analysis"),
     ],
     "Data Visualization 🌋": [
         st.Page("pages/pca.py", title="PCA"),
+        st.Page("pages/pca_statistics.py", title="PCA statistics"),
         st.Page("pages/7_Volcano Plot.py", title="Volcano plot"),
         st.Page("pages/Heatmap.py", title="Heatmap"),
         st.Page("pages/Boxplot.py", title="Box_Violin plot"),
@@ -317,11 +449,31 @@ pg = st.navigation({
         st.Page("pages/pseudoreplicates.py", title="Random pseudo-replicates"),
         st.Page("pages/Memento.py", title="memento DE analysis"),
         st.Page("pages/Memento2D.py", title="memento 2D analysis"),
+        st.Page("pages/sccoda_analysis.py", title="scCODA compositional analysis"),
+        st.Page("pages/add_metadata.py", title="Add metadata to h5ad"),
+        st.Page("pages/celltypist.py", title="CellTypist annotation"),
+    ],
+    "SCENIC 🎭": [
         st.Page("pages/SCENICviewer.py", title="SCENIC heatmap"),
         st.Page("pages/prepare_scenic_data.py", title="Prepare regulon data for heatmap"),
         st.Page("pages/SCENICcsi.py", title="SCENIC CSI"),
         st.Page("pages/SCENIC_network.py", title="SCENIC network analysis"),
         st.Page("pages/SCENIC_multinetwork.py", title="SCENIC multinetwork analysis"),
+    ],
+    "RNA velocity 🚀": [
+        st.Page("pages/velocity_filter.py", title="Data filtering"),
+        st.Page("pages/velocity_analysis.py", title="scVelo analysis"),
+        st.Page("pages/velocity_visualization.py", title="scVelo visualization"),
+        st.Page("pages/cellrank_analysis.py", title="CellRank analysis"),
+        st.Page("pages/cellrank_visualization.py", title="CellRank visualization"),
+        st.Page("pages/deepvelo_analysis.py", title="DeepVelo analysis"),
+        st.Page("pages/pseudotime_gene_expression.py", title="Pseudotime gene expression"),
+        st.Page("pages/dynamo_analysis.py", title="Dynamo analysis"),
+        st.Page("pages/dynamo_visualization.py", title="Dynamo visualization"),
+        st.Page("pages/dynamo_perturbation_v2.py", title="Dynamo perturbation"),
+        st.Page("pages/dynamo_lap_correct.py", title="Dynamo LAP"),
+        st.Page("pages/TFvelo.py", title="TFvelo analysis"),
+        st.Page("pages/veloviz.py", title="VeloViz"),
     ],
     "Cell communication 💬": [
         st.Page("pages/liana_steady.py", title="LIANA LR analysis"),
@@ -330,6 +482,13 @@ pg = st.navigation({
         st.Page("pages/cellchat_comparison.py", title="CellChat comparison"),
         st.Page("pages/cellchat_permutation.py", title="CellChat permutation test"),
         st.Page("pages/cellchatR2py.py", title="CellChat R qs to python"),
+    ],
+    "scRNA file operation 🗄": [
+        st.Page("pages/download.py", title="Download public data for SCALA and cellxgene"),
+        st.Page("pages/fileexplorer.py", title="File explorer"),
+        st.Page("pages/ftp.py", title="File uploader"),
+        st.Page("pages/filebrowser.py", title="SCALA file browser"),
+        st.Page("pages/data_file_browser.py", title="Data file browser"),
     ],
     "ChIP-seq 🧬": [
         st.Page("pages/bam-sorter.py", title="Sort BAM file"),

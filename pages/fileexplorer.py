@@ -101,24 +101,24 @@ async def modify_item(item_path, item_type):
 async def create_directory_with_permissions(path):
     loop = asyncio.get_event_loop()
     try:
-        # ディレクトリを作成（lambda関数を使用）
+        # deirekutorithemakebecome（lambdarelnumtheuseuse）
         await loop.run_in_executor(executor, lambda: os.makedirs(path, exist_ok=True))
 
-        # ユーザー情報を取得
+        # yu-za-infoinfothegetget
         uid = os.getuid()
         user = pwd.getpwuid(uid).pw_name
 
-        # グループ情報を取得（例: 'sftp'グループ）
+        # Groupinfoinfothegetget（Example: 'sftp'Group）
         try:
             gid = grp.getgrnam('sftp').gr_gid
         except KeyError:
-            # 'sftp'グループが存在しない場合、ユーザーのプライマリグループを使用
+            # 'sftp'Groupisexistatshinotplacematch、yu-za-ofpuraimariGrouptheuseuse
             gid = pwd.getpwuid(uid).pw_gid
 
-        # 所有者とグループを設定
+        # lochavepersonandGrouptheSettings
         await loop.run_in_executor(executor, os.chown, path, uid, gid)
 
-        # パーミッションを設定 (770 = rwxrwx---)
+        # pa-mishiyontheSettings (770 = rwxrwx---)
         await loop.run_in_executor(executor, os.chmod, path, 0o770)
 
         return f"Directory created successfully. Owner: {user}, Group: {grp.getgrgid(gid).gr_name}"
@@ -257,7 +257,7 @@ async def main():
             else:
                 st.error(result)
 
-            # ディレクトリ作成の詳細情報を表示
+            # deirekutorimakebecomeofdetailfineinfoinfotheDisplay
             st.write("Debug Information:")
             st.write(f"Attempted to create directory: {new_dir_path}")
             st.write(f"Current working directory: {os.getcwd()}")
@@ -273,7 +273,7 @@ async def main():
             except Exception as e:
                 st.write(f"Error getting parent directory info: {e}")
 
-    # 現在のディレクトリの権限情報を表示
+    # currentofdeirekutoriofauthlimitinfoinfotheDisplay
     current_path = st.session_state.current_path
     try:
         stat_info = os.stat(current_path)
@@ -282,7 +282,7 @@ async def main():
             group = grp.getgrgid(stat_info.st_gid).gr_name
         except KeyError:
             group = f"Unknown ({stat_info.st_gid})"
-        permissions = oct(stat_info.st_mode)[-3:]  # 最後の3桁（8進数）を取得
+        permissions = oct(stat_info.st_mode)[-3:]  # mostafterof3桁（8prognum）thegetget
 
         st.write(f"Current directory: {current_path}")
         st.write(f"Owner: {owner}")

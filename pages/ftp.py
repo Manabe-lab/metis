@@ -12,7 +12,7 @@ import threading
 from typing import Optional
 import tempfile
 
-# Streamlitの設定
+# StreamlitofSettings
 st.set_page_config(
     page_title="File Uploader",
     page_icon="📁",
@@ -20,11 +20,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# 定数設定
+# setnumSettings
 CHUNK_SIZE = 1024 * 1024  # 1MB
-TIMEOUT = 300  # 5分
+TIMEOUT = 300  # 5div
 MAX_RETRIES = 3
-RETRY_DELAY = 5  # 5秒
+RETRY_DELAY = 5  # 5sec
 
 def list_dirs(dir_path):
     try:
@@ -36,7 +36,7 @@ def list_dirs(dir_path):
 async def save_uploaded_file_with_retry(uploaded_file, destination_path, processed_size, total_size, total_progress):
     for attempt in range(MAX_RETRIES):
         try:
-            # 一時ファイルを使用して保存
+            # onetimeFiletheuseuseshiteSave
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_path = temp_file.name
                 
@@ -49,11 +49,11 @@ async def save_uploaded_file_with_retry(uploaded_file, destination_path, process
                     await temp_out.write(chunk)
                     position += len(chunk)
                     
-                    # 全体の進捗を更新
+                    # allbodyofprogprogthefurthernew
                     total_processed = processed_size + position
                     total_progress.progress(min(1.0, total_processed / total_size))
 
-            # 保存先ディレクトリの作成とファイルの移動
+            # SavefirstdeirekutoriofmakebecomeandFileofmovemove
             os.makedirs(os.path.dirname(destination_path), exist_ok=True)
             shutil.move(temp_path, destination_path)
             return True
@@ -78,7 +78,7 @@ async def process_upload_queue(upload_queue, base_path, total_size, total_progre
     while True:
         try:
             upload_info = await upload_queue.get()
-            if upload_info is None:  # 終了シグナル
+            if upload_info is None:  # endshigunaru
                 break
                 
             uploaded_file = upload_info
@@ -108,31 +108,31 @@ def process_uploaded_files(uploaded_files, base_path):
     async def main():
         upload_queue = asyncio.Queue()
         
-        # 全体のサイズを計算
+        # allbodyofsaizutheCalculation
         total_size = sum(file.size for file in uploaded_files)
         st.write(f"Total size to upload: {total_size / (1024 * 1024):.2f} MB")
         
-        # 全体の進捗バー
+        # allbodyofprogprogba-
         progress_container = st.empty()
         total_progress = progress_container.progress(0)
         start_time = datetime.now()
         
-        # ワーカータスクの作成
+        # wa-ka-tasukuofmakebecome
         workers = [asyncio.create_task(process_upload_queue(upload_queue, base_path, total_size, total_progress))
-                  for _ in range(3)]  # 同時処理数を3に制限
+                  for _ in range(3)]  # sametimeprocprocnumthe3tocontrollimit
         
-        # ファイルをキューに追加
+        # Filethekiyu-toaddadd
         for file in uploaded_files:
             await upload_queue.put(file)
             
-        # 終了シグナルの送信
+        # endshigunaruofsendtrust
         for _ in workers:
             await upload_queue.put(None)
             
-        # すべてのワーカーの完了を待つ
+        # allofwa-ka-ofCompletethewaittsu
         await asyncio.gather(*workers)
         
-        # 完了時の表示
+        # CompletetimeofDisplay
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         progress_container.empty()
@@ -140,7 +140,7 @@ def process_uploaded_files(uploaded_files, base_path):
     
     asyncio.run(main())
 
-# セッション状態の初期化
+# seshiyonstatestateofinitialize
 if 'key_count' not in st.session_state:
    st.session_state['key_count'] = 1
 
@@ -155,12 +155,12 @@ SCALAorcellxgene = st.radio(
     index=0
 )
 
-# ベースディレクトリの設定
+# be-sudeirekutoriofSettings
 if 'dir_path' not in st.session_state:
     st.session_state['dir_path'] = '/home/lab/sftp-data/SCALA-data/SCALA-download/Personal_folders'
     st.session_state['home_dir'] = '/home/lab/sftp-data/SCALA-data/SCALA-download/Personal_folders'
 
-# アップロード先の切り替え
+# Uploadfirstofcutriswape
 if SCALAorcellxgene != st.session_state['SCALAorcellxgene']:
     if SCALAorcellxgene == "SCALA":
         st.session_state['home_dir'] = '/home/lab/sftp-data/SCALA-data/SCALA-download/Personal_folders'
@@ -173,7 +173,7 @@ if SCALAorcellxgene != st.session_state['SCALAorcellxgene']:
     st.session_state['SCALAorcellxgene'] = SCALAorcellxgene
     st.rerun()
 
-# ディレクトリ選択UI
+# deirekutoriSelectUI
 st.markdown("### Select the folder to store the file\n")
 st.markdown("##### Now selected directory is " + st.session_state.dir_path.replace(st.session_state['home_dir'], ''))
 dirs = list_dirs(st.session_state['dir_path'])
@@ -190,7 +190,7 @@ elif (choice == '..') and (len(st.session_state['dir_path']) > len(st.session_st
     st.session_state['dir_path'] = os.path.dirname(st.session_state['dir_path'])
     st.session_state['key_count'] += 2
 
-# 新規ディレクトリ作成UI
+# newruledeirekutorimakebecomeUI
 st.markdown("###### To make a new directory in " + st.session_state.dir_path.replace(st.session_state['home_dir'], '') + ':')
 new_dir_name = st.text_input('Type a name for the new directory', value="", key=st.session_state['key_count'] + 1)
 
@@ -206,7 +206,7 @@ if st.button("Make a new directory"):
             except Exception as e:
                 st.error(f"Error creating directory: {str(e)}")
 
-# ファイルアップロードUI
+# FileUploadUI
 st.write("")
 target_dir = st.session_state["dir_path"].replace(st.session_state['home_dir'], "")
 if st.button(f'Select this folder: {target_dir}', type='primary') or st.session_state["dir_path"] != st.session_state['home_dir']:
@@ -219,7 +219,7 @@ if st.button(f'Select this folder: {target_dir}', type='primary') or st.session_
 
     st.markdown('---\n')
 
-    # ファイルアップローダー
+    # Fileapuro-da-
     uploaded_files = st.file_uploader(
         "Choose files or folders to upload", 
         type=None, 

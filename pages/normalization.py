@@ -227,21 +227,21 @@ if uploaded_file is not None:
     Gene_column = content[0]
 
     if "Annotation/Divergence" in content:
-         # colnamesの変換
+         # colnamesofchangechange
         search_word = r'([^\ \(]*)\ \(.*'
 
         for i in range(1, len(content)):
             match = re.search(search_word, content[i])
             if match:
                 content[i] = match.group(1).replace(' ', '_')
-        df.columns = content # 一旦名前を変更
-        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+        df.columns = content # oneoncenamebeforethechangefurther
+        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
         pattern = "([^|]*)"
         repatter = re.compile(pattern)
         f_annotation = lambda x: repatter.match(x).group(1)
         df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
       #  st.write(df.head())
-        # annotation/divergence以前を除く
+        # annotation/divergencebeforetheremoveku
         df = df.loc[:,'Annotation/Divergence':]
       #  st.write(df.head())
         content = df.columns.tolist()
@@ -488,11 +488,11 @@ if uploaded_file is not None:
             import rpy2.robjects as ro
             from rpy2.robjects.packages import importr
             from rpy2.robjects.vectors import StrVector
-            f = ro.r("source('./pages/deseq2_func.R')") # full pathが必要
+            f = ro.r("source('./pages/deseq2_func.R')") # full pathisrequired
 
-            condition = [str(i) for i in df.columns.tolist()] #error防止
-            group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
-            group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+            condition = [str(i) for i in df.columns.tolist()] #errorpreventstop
+            group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
+            group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
             df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
             df_b = pd.DataFrame({'Batch': group_condition}, index=condition)
             df = df.astype(float)
@@ -636,7 +636,7 @@ if uploaded_file is not None:
                 ro.r('colnames(cts) <- c(' + ','.join([f'"{c}"' for c in df.columns]) + ')')
                 ro.r('rownames(cts) <- c(' + ','.join([f'"{r}"' for r in df.index]) + ')')
 
-                #まずベクターに変換 (use vst_rlog_condition for DESeq2)
+                #mazubekuta-tochangechange (use vst_rlog_condition for DESeq2)
                 r_condition =  ro.StrVector(vst_rlog_condition)
                 ro.r.assign('condition', r_condition)
                 ro.r.assign('temp_dir', temp_dir)
@@ -655,7 +655,7 @@ if uploaded_file is not None:
                     else:
                         ro.r('calc_vst_no_group()')
 
-                # df_conv = ro.conversion.rpy2py(rld) うまくいかない
+                # df_conv = ro.conversion.rpy2py(rld) umakuikanot
                 rld_path = temp_dir + '/rld.tsv'
                 df_conv = pd.read_csv(rld_path, sep = '\t', header = 0)
                 content = df_conv.columns.tolist()
@@ -674,7 +674,7 @@ if uploaded_file is not None:
                     st.write("Batch to R:")
                     st.write(batch_code)
 
-                    ro.r(f'''batch <- c({batch_code})''')#うまく渡せないのでベタ書き
+                    ro.r(f'''batch <- c({batch_code})''')#umakutransfersenotofwithbetawriteki
 
                     ro.r(f'''
                     library(limma)
@@ -726,7 +726,7 @@ if uploaded_file is not None:
                 log_transform = "None"
 
         else:
-            st.session_state.use_R = False # rlog, vstでない
+            st.session_state.use_R = False # rlog, vstwithnot
 
         if (convert_to not in ['rlog', 'vst']) or (rlog_finish):
 
@@ -773,7 +773,7 @@ if uploaded_file is not None:
             # RLE plot for normalized data
             st.markdown("### RLE (Relative Log Expression) Plot - Normalized Data")
             
-            with st.expander("ℹ️ RLE Plotについて"):
+            with st.expander("ℹ️ RLE Plottotsuite"):
                 st.info("""
                 **RLE (Relative Log Expression) Plot** explanation:
                 
@@ -831,11 +831,11 @@ if uploaded_file is not None:
 
             st.session_state.df = df_conv
 
-                # Mean-SD Comparison Plotを追加
+                # Mean-SD Comparison Plottheaddadd
             fig_mean_sd = plot_mean_sd_comparison(df, df_conv)
             st.pyplot(fig_mean_sd)
 
-            # グループ別Mean-SDプロット（rlog/vstでgroupがTrueの場合のみ）
+            # GroupsepMean-SDpuroto（rlog/vstwithgroupisTrueofplacematchofmi）
             if convert_to in ['rlog', 'vst'] and group and 'vst_rlog_condition' in locals():
                 st.markdown("---")
                 st.markdown("### Mean-SD Comparison by Group")
@@ -856,15 +856,15 @@ if uploaded_file is not None:
                 df_conv = df_z
                 st.markdown("#### Normalized data are standardized.")
                 
-                # Z-score標準化後のデータを表示
+                # Z-scoremarklevelizeafterofDatatheDisplay
                 st.write('Z-score standardized:')
                 st.write(df_conv.iloc[:4,:7])
                 
-                # Z-score標準化後のボックスプロット
+                # Z-scoremarklevelizeafterofbokusupuroto
                 st.markdown("##### Distribution after Z-score standardization")
                 fig_zscore, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
                 
-                # ボックスプロット
+                # bokusupuroto
                 ax1 = sns.boxplot(data=df_conv, ax=ax1)
                 ax1.set_ylabel("Z-score", fontsize=14)
                 ax1.set_xlabel("Samples", fontsize=14)
@@ -875,7 +875,7 @@ if uploaded_file is not None:
                 ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90, fontsize=8)
                 ax1.tick_params(axis='y', labelsize=8)
                 
-                # ヒストグラム（全データの分布）
+                # hisutoguramu（allDataofdivdist）
                 ax2.hist(df_conv.values.flatten(), bins=50, edgecolor='black', alpha=0.7)
                 ax2.set_xlabel("Z-score", fontsize=14)
                 ax2.set_ylabel("Frequency", fontsize=14)
@@ -888,7 +888,7 @@ if uploaded_file is not None:
                 plt.tight_layout()
                 st.pyplot(fig_zscore)
                 
-                # 統計情報を表示
+                # StatisticalinfoinfotheDisplay
                 with st.expander("📊 Z-score statistics"):
                     col1, col2 = st.columns(2)
                     with col1:

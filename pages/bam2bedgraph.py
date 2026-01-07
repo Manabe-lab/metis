@@ -6,7 +6,7 @@ import zipfile
 import shutil
 from helper_func import mk_temp_dir
 
-# temp内に保存する
+# tempintoSavedo
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
@@ -60,14 +60,14 @@ def main():
                 output_files = []
                 total_files = len(uploaded_files)
 
-                # プログレスバーの初期化
+                # puroguresuba-ofinitialize
                 progress_bar = st.progress(0)
                 status_text = st.empty()
 
                 for i, uploaded_file in enumerate(uploaded_files):
                     sample_name = os.path.splitext(uploaded_file.name)[0]
                     
-                    # ステータス更新
+                    # sute-tasufurthernew
                     status_text.text(f"Processing {sample_name}... ({i+1}/{total_files})")
                     
                     bam_path = os.path.join(temp_dir, uploaded_file.name)
@@ -77,20 +77,20 @@ def main():
                     output_file = process_bam_file(bam_path, sample_name, genome_file)
                     output_files.append(output_file)
 
-                    # プログレスバー更新
+                    # puroguresuba-furthernew
                     progress_bar.progress((i + 1) / total_files)
 
-                # ZIPファイルの作成
+                # ZIPFileofmakebecome
                 status_text.text("Creating ZIP file...")
                 zip_path = os.path.join(temp_dir, "results.zip")
                 with zipfile.ZipFile(zip_path, "w") as zip_file:
                     for file in output_files:
                         zip_file.write(file, os.path.basename(file))
 
-                # 完了メッセージ
+                # Completemese-ji
                 status_text.text("Processing complete!")
 
-                # ダウンロードボタンの表示
+                # DownloadbotanofDisplay
                 with open(zip_path, "rb") as f:
                     st.download_button(
                         label="Download Results",

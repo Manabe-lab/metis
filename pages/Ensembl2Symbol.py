@@ -67,7 +67,7 @@ if uploaded_file is not None:
 
         ens_id = []
         converted_id = []
-        p = re.compile(r'([^\.]*)') # transcript等の.1, .2等を除いてサーチする
+        p = re.compile(r'([^\.]*)') # transcripteqof.1, .2eqtheremoveitesa-chido
         n= 0
         removed = []
         exist_id = []
@@ -77,8 +77,8 @@ if uploaded_file is not None:
             i_word = p.match(i).group(1)
             try:
                 new_id = dic[i_word]
-            except: #結果がないときはgene nameでサーチ
-                ens_id.append(i_word) # どちらも存在しないとき
+            except: #Resultisnotandkiisgene namewithsa-chi
+                ens_id.append(i_word) # dochiramoexistatshinotandki
                 removed.append(i_word)
                 converted_id.append(i_word)
                 removed_genes.append([i_word,gene])
@@ -131,14 +131,14 @@ if uploaded_file is not None:
 
     if st.button('You can aggregate duplicates'):
         dup_gene = set(df.index[df.index.duplicated(keep=False)])
-        df_nodup = df[~df.index.duplicated(keep='first')] # indexの重複をもとに削除
+        df_nodup = df[~df.index.duplicated(keep='first')] # indexofweightmultithemoandtodeleteremove
         if agg_method == "Mean":
             df_mean = grouping.mean(numeric_only=True)
         else:
             df_mean = grouping.max(numeric_only=True)
 
         for i in dup_gene:
-            # 列名を明示的に指定して値を代入
+            # colnametheclearshowaltopointsetshitevalthesubin
             df_nodup.loc[i, df_mean.columns] = df_mean.loc[i, df_mean.columns].values
 
         st.write(df_nodup.loc[list(dup_gene),:].sort_index())

@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 
 
-#March-1 Sept-1対応
+#March-1 Sept-1pairrespond
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -137,7 +137,7 @@ if use_upload == 'Yes':
                 df = df.iloc[:,7:]
                 colnames = df.columns.tolist()
                 colnames[0] = 'Gene'
-                # colnamesの変換
+                # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
                 for i in range(1, len(colnames)):
                     match = re.search(search_word, colnames[i])
@@ -160,20 +160,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # oneoncenamebeforethechangefurther
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # annotation/divergencebeforetheremoveku
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -207,7 +207,7 @@ if df is not None:
 
 
 
-#　データを送る前にすべてゼロのデータは除くべき
+#　DatathesendrubeforetoallzeroofDataisremovekubeki
 
 
-# refが指定されているときはファイル名を調整する?
+# refispointsetsareteexistandkiisFilenametheadjustarrangedo?

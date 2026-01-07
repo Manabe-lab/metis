@@ -27,7 +27,7 @@ def read_h5ad(file):
 
 
 def process_adata(adata, max_splits=3, sample_col=None, cell_type=None, dim_use='X_umap'):
-    # "sample"と"cell_type"の組み合わせでグループ化
+    # "sample"and"cell_type"ofsetmimatchwasewithGroupize
     if sample_col is not None:
         adata.obs['group'] = (
             adata.obs[cell_type].astype(str) + '_' +
@@ -45,11 +45,11 @@ def process_adata(adata, max_splits=3, sample_col=None, cell_type=None, dim_use=
         group_adata = adata[adata.obs['group'] == group]
         n_samples = len(group_adata)
 
-        # グループのサンプル数に基づいてn_splitsを調整
+        # GroupofSamplenumtobaseduiten_splitstheadjustarrange
         n_splits = min(max_splits, n_samples)
 
         if n_splits == 1:
-            # サンプルが1つしかない場合、分割せずにそのまま使用
+            # Sampleis1tsushikanotplacematch、divratiosezutosoofmamauseuse
             split_adata = group_adata
             count_sum = np.sum(split_adata.raw.X.toarray(), axis=0)
             umap_mean = np.mean(split_adata.obsm[dim_use], axis=0)
@@ -63,18 +63,18 @@ def process_adata(adata, max_splits=3, sample_col=None, cell_type=None, dim_use=
                 new_obs_entry[sample_col] = split_adata.obs[sample_col].iloc[0]
             new_obs.append(new_obs_entry)
             new_X.append(count_sum)
-        #    new_raw_X.append(count_sum)  # 元のカウントデータ
+        #    new_raw_X.append(count_sum)  # sourceofkauntoData
             new_umap.append(umap_mean)
         else:
-            # n分割
+            # ndivratio
             kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
             for i, (_, split_idx) in enumerate(kf.split(group_adata.obs_names)):
                 split_adata = group_adata[group_adata.obs_names[split_idx]]
-                # カウントデータの和を計算
+                # kauntoDataofsumtheCalculation
                 count_sum = np.sum(split_adata.raw.X.toarray(), axis=0)
-                # UMAPの平均値を計算
+                # UMAPofflatavgvaltheCalculation
                 umap_mean = np.mean(split_adata.obsm[dim_use], axis=0)
-                # 新しいデータを追加
+                # newshiiDatatheaddadd
                 new_obs_entry = {
                     cell_type: split_adata.obs[cell_type].iloc[0],
                     'group': group,
@@ -85,13 +85,13 @@ def process_adata(adata, max_splits=3, sample_col=None, cell_type=None, dim_use=
                     new_obs_entry[sample_col] = split_adata.obs[sample_col].iloc[0]
                 new_obs.append(new_obs_entry)
                 new_X.append(count_sum)
-           #     new_raw_X.append(count_sum)  # 元のカウントデータ
+           #     new_raw_X.append(count_sum)  # sourceofkauntoData
                 new_umap.append(umap_mean)
 
-    # 新しいAnnDataオブジェクトを作成
+    # newshiiAnnDataobujiekutothemakebecome
     new_obs = pd.DataFrame(new_obs)
     new_X = np.vstack(new_X)
-#    new_X = np.array(new_X) #これではうまくいかない
+#    new_X = np.array(new_X) #korewithisumakuikanot
  #   st.write(new_X)
  #   new_raw_X = np.array(new_raw_X)
     new_umap = np.array(new_umap)
@@ -203,13 +203,13 @@ if uploaded_file is not None:
 		st.write(df.head())
 
 		categories = adata_sub.obs[cell_type].cat.categories.tolist()
-		# 各カテゴリーに基づいてデータフレームを分割
+		# eachkategori-tobaseduiteDatafure-muthedivratio
 
 		df_dict = {category: df.filter(regex=f'^{category}') for category in categories}
 
 
 
-		# 結果を表示
+		# ResulttheDisplay
 		for category, df_split in df_dict.items():
 			st.write(f"\n{category}:")
 			st.write(df_split.head())

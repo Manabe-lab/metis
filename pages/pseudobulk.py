@@ -68,7 +68,7 @@ def read_h5ad(file):
 @st.cache_data
 def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode="sum", cache_key=None, skip_checks=False):
     if mode == "mean_then_logit":
-        # まず平均を計算
+        # mazuflatavgtheCalculation
         pdata = dc.get_pseudobulk(
             _adata,
             groups_col=groups_col,
@@ -79,8 +79,8 @@ def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode
             min_counts=0,
             skip_checks=skip_checks
         )
-        # logit変換を適用
-        # 0と1の値を調整
+        # logitchangechangethefituse
+        # 0and1ofvaltheadjustarrange
         eps = 1e-6
         X = pdata.X.copy()
         X = np.clip(X, eps, 1-eps)
@@ -100,19 +100,19 @@ def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode
 
 @st.cache_data
 def calc_pseudobulk2(_adata, groups_col, sample_col, min_cells, min_counts, mode="sum", cache_key=None, skip_checks=False):
-    # まず通常のpseudolulk計算
+    # mazupassnormalofpseudolulkCalculation
     if mode == "mean_then_logit":
         pdata = dc.get_pseudobulk(
             _adata,
             groups_col=groups_col,
             sample_col=sample_col,
             layer='counts',
-            mode='mean',  # まず平均を計算
+            mode='mean',  # mazuflatavgtheCalculation
             min_cells=min_cells,
             min_counts=min_counts,
             skip_checks=skip_checks
         )
-        # logit変換を後から適用
+        # logitchangechangetheafterfromfituse
         eps = 1e-6
         X = pdata.X.copy()
         X = np.clip(X, eps, 1-eps)
@@ -283,10 +283,10 @@ st.write("To calculate mean values using normalized data, use adata.X with summa
 
 if uploaded_file is not None:
     adata = read_h5ad(uploaded_file)
-    # adata.raw.Xのデータをadata.Xへ
+    # adata.raw.XofDatatheadata.Xhe
     if not use_X:
         adata.X = adata.raw.X
-    else:  # use_X = Trueの場合
+    else:  # use_X = Trueofplacematch
         adata.layers['counts'] = adata.X
 
     nan_count, inf_count = clean_counts_layer(adata)
@@ -401,22 +401,22 @@ if uploaded_file is not None:
             skip_checks_flag = True
 
         if one_cell:
-            pdata.obs['One_cell'] = 'one_cell_type' #pdataにも追加する
+            pdata.obs['One_cell'] = 'one_cell_type' #pdatatomoaddadddo
         st.write(pdata.obs.head(3))
 
         st.markdown("#### All data without QC")
 
         dc.plot_psbulk_samples(pdata, groupby=[sample_col, groups_col], figsize=(12, 4))
         fig = plt.gcf() 
-        st.pyplot(fig)  # 明示的に図をst.pyplot()に渡す
-        plt.close(fig)  # メモリを解放するために図を閉じる
+        st.pyplot(fig)  # clearshowaltofigthest.pyplot()totransfersu
+        plt.close(fig)  # memorithesolvereldofortofigthe閉jiru
 
 
 
         # Get pseudo-bulk profile
         pdata =  calc_pseudobulk2(adata, groups_col, sample_col, min_cells, min_counts, mode=method, cache_key=cache_key,  skip_checks=skip_checks_flag)
         if one_cell:
-            pdata.obs['One_cell'] = 'one_cell_type' #pdataにも追加する
+            pdata.obs['One_cell'] = 'one_cell_type' #pdatatomoaddadddo
 
         st.markdown('#### After QC')
 
@@ -472,12 +472,12 @@ if uploaded_file is not None:
             if assemble_all:
                 dict_keys = list(reshaped_df_dict.keys())
                 df_all = reshaped_df_dict[dict_keys[0]]
-                # 元々のカラム名を保持
+                # source々ofkaramunamethekeephold
                 df_all.columns = [col for col in df_all.columns]
                 
                 for x in range(len(dict_keys)-1):
                     df_temp = reshaped_df_dict[dict_keys[x+1]]
-                    # 元々のカラム名を保持
+                    # source々ofkaramunamethekeephold
                     df_temp.columns = [col for col in df_temp.columns]
                     df_all = pd.concat([df_all, df_temp], axis=1)
             

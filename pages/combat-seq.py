@@ -1,8 +1,8 @@
-#!!!!!!!!!!!!!! pip install rpy2==3.5.1  新しいバージョンはエラーが出る
+#!!!!!!!!!!!!!! pip install rpy2==3.5.1  newshiiba-jiyonisErrorisoutru
 
-# 基本的にglobal変数で計算する。
-# pythonからassgnされるのはglobal変数
-# pycombatに
+# basemainaltoglobalchangenumwithCalculationdo。
+# pythonfromassgnsareruofisglobalchangenum
+# pycombatto
 
 import streamlit as st
 import csv
@@ -18,7 +18,7 @@ import time
 import sys
 from inmoose.pycombat import pycombat_seq
 
-#March-1 Sept-1対応
+#March-1 Sept-1pairrespond
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -97,11 +97,11 @@ def calc_barplot(data, ylabel):
     ax.set_ylabel(ylabel, fontsize = 14)
     return fig
 
-# temp内に保存する
+# tempintoSavedo
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
-    #古いdirecotryとファイルを削除する
+    #oldidirecotryandFilethedeleteremovedo
     temp_dir = "temp/" + str(round(time.time()))
     if not os.path.exists('temp'):
         os.mkdir('temp')
@@ -127,7 +127,7 @@ else:
         os.mkdir(res_dir)
 
 
-st.markdown("### Raw count dataを使う")
+st.markdown("### Raw count datatheuseu")
 
 
 use_upload = 'Yes'
@@ -140,11 +140,11 @@ if 'df' in st.session_state:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        # Homer対応
+        # Homerpairrespond
         if "Transcript/RepeatID" in df.columns[0]:
             df = df.iloc[:,8:]
             st.write(df.head())
-        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+        if "Row_name" in df.columns.to_list(): # Row_nametheincludemuandki
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -166,7 +166,7 @@ if use_upload == 'Yes':
                 df = df.iloc[:,7:]
                 colnames = df.columns.tolist()
                 colnames[0] = 'Gene'
-                # colnamesの変換
+                # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
                 for i in range(1, len(colnames)):
                     match = re.search(search_word, colnames[i])
@@ -189,20 +189,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # oneoncenamebeforethechangefurther
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # annotation/divergencebeforetheremoveku
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -222,13 +222,13 @@ if use_upload == 'Yes':
 if df is not None:
     st.write('Original gene number:  ' + str(len(df)))
 
-    # floatに変換 誤射悟入
+    # floattochangechange errcast悟in
     df = df.astype(float)
     df = df.round(0)
 
-    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+    df = df.loc[~(df==0).all(axis=1)] #all0ofrowtheremoveku
 
-########## excel対応?
+########## excelpairrespond?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -269,15 +269,15 @@ if df is not None:
         st.pyplot(f2)
 
 
-    if any(df.sum() == 0): # count 0の列を除く
+    if any(df.sum() == 0): # count 0ofcoltheremoveku
         st.markdown('#### There are the samples that have counts = 0')
         st.write('They are removed. Now data are:')
         df = df.drop(df.columns[df.sum() == 0].to_list(), axis = 1)
         st.write(df.head())
 
-    condition = [str(i) for i in df.columns.tolist()] #error防止
-    group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
-    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+    condition = [str(i) for i in df.columns.tolist()] #errorpreventstop
+    group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
+    group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
 
 
 #    df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
@@ -318,8 +318,8 @@ if df is not None:
     if st.button('Run Combat-seq'):
 
 
-        #まずRのdfに変換
-        st.session_state.df = None #ここで消去する
+        #mazuRofdftochangechange
+        st.session_state.df = None #kokowithdeletermdo
 
         adjusted_df = pycombat_seq(df,batch)
         st.write(adjusted_df.head())

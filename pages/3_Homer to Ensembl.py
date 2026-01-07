@@ -34,7 +34,7 @@ if uploaded_file is not None:
     else:
         df = pd.read_csv(uploaded_file, sep = '\t', index_col = 0)
 
-    # Homerの場合はrefseq idをもとに変換する
+    # Homerofplacematchisrefseq idthemoandtochangechangedo
     st.markdown("### Original")
     st.write('data lengths: ' + str(len(df)))
     st.write(df.head(3))
@@ -76,19 +76,19 @@ if uploaded_file is not None:
     for i in gene_list: # Homer Refseq ID
         if data_type == "Homer":
             ann = df.loc[i, 'Annotation/Divergence']
-            gene = p.match(ann).group(1) # annotation divergenceのsymbol
+            gene = p.match(ann).group(1) # annotation divergenceofsymbol
         else:
             gene = i
         try:
             new_id = refseq[i]
-        except: #結果がないときはgene nameでサーチ
+        except: #Resultisnotandkiisgene namewithsa-chi
             try:
                  new_id = dic[gene]
             except:
                 try:
                     new_symbol = synonym[gene]
                 except:
-                    ens_id.append(i) # どちらも存在しないとき
+                    ens_id.append(i) # dochiramoexistatshinotandki
                     removed.append(i)
                     converted_id.append(i)
                     removed_genes.append([i,gene])
@@ -96,7 +96,7 @@ if uploaded_file is not None:
                     try:
                         new_id = dic[new_symbol]
                     except:
-                        ens_id.append(i) # どちらも存在しないとき
+                        ens_id.append(i) # dochiramoexistatshinotandki
                         removed.append(i)
                         converted_id.append(i)
                         removed_genes.append([i, gene])
@@ -168,7 +168,7 @@ if uploaded_file is not None:
 
     if st.button('You can aggregate duplicates'):
         dup_gene = set(df.index[df.index.duplicated( keep=False)])
-        df_nodup = df[~df.index.duplicated(keep='first')] # indexの重複をもとに削除
+        df_nodup = df[~df.index.duplicated(keep='first')] # indexofweightmultithemoandtodeleteremove
         if agg_method == "Mean":
             df_mean = grouping.mean(numeric_only = True)
         else:

@@ -20,19 +20,19 @@ from streamlit_sortables import sort_items
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    細胞名/クラスター/状態と色の一貫したマッピングを作成する関数
+    Cellname/Cluster/statestateandcolorofonethroughshitamapinguthemakebecomedorelnum
 
     Parameters
     ----------
     cell_list : list
-        細胞名/クラスター名/状態名のリスト
+        Cellname/Clustername/statestatenameofrisuto
     palette_name : str
-        使用する離散カラーパレット名
+        useusedosepscatterkara-paretoname
 
     Returns
     -------
     dict
-        細胞名/クラスター名/状態名をキー、色をバリューとする辞書
+        Cellname/Clustername/statestatenametheki-、colorthebariyu-anddowordwrite
     """
     n_cells = len(cell_list)
     base_palette = sns.color_palette(palette_name)
@@ -49,16 +49,16 @@ st.set_page_config(page_title="CellRank Visualization", page_icon="🎯", layout
 
 st.title("🎯 CellRank Visualization")
 st.markdown("""
-CellRank解析結果を可視化します。
+CellRankAnalysisResulttheVisualizationshimasu。
 
-### 可視化の種類
-1. **Terminal states**: 終末状態のUMAP表示
-2. **Fate probabilities**: 各終末状態への運命確率
-3. **Initial states**: 初期状態（計算されている場合）
-4. **Fate probability heatmap**: 運命確率のヒートマップ
-5. **Gene trends**: 系統に沿った遺伝子発現トレンド
+### Visualizationofkindtype
+1. **Terminal states**: endendstatestateofUMAPDisplay
+2. **Fate probabilities**: eachendendstatestateheofruncmdcertainrate
+3. **Initial states**: initialstatestate（Calculationsareteexistplacematch）
+4. **Fate probability heatmap**: runcmdcertainrateofhi-tomapu
+5. **Gene trends**: sysunifytoalongtaGeneExpressiontorendo
 
-### 参考
+### refthink
 - [CellRank Visualization](https://cellrank.readthedocs.io/en/stable/api.html#plotting)
 """)
 
@@ -82,7 +82,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file (CellRank result)",
     type=['h5ad'],
     key="cellrank_vis_h5ad_upload",
-    help="CellRank analysisアプリで生成されたh5adファイル"
+    help="CellRank analysisapuriwithgenbecomesaretah5adFile"
 )
 
 if uploaded_h5ad is not None:
@@ -290,8 +290,8 @@ if uploaded_h5ad is not None:
         st.error(f"""
         ❌ **Missing required data: {', '.join(required_data)}**
 
-        このファイルはCellRank解析結果ではないようです。
-        CellRank analysisアプリで解析したh5adファイルをアップロードしてください。
+        koofFileisCellRankAnalysisResultwithisnotlikewithsu。
+        CellRank analysisapuriwithAnalysisshitah5adFiletheUploadshitekudasai。
         """)
         st.stop()
 
@@ -320,46 +320,46 @@ if uploaded_h5ad is not None:
 
     with st.expander("📚 Visualization Guide", expanded=False):
         st.markdown("""
-        ### Embedding Basis（埋め込み空間）
-        - **複数選択可能**: UMAP、tSNE、PCA等を同時に選択できます
-        - 各embeddingに対して個別のプロットが生成されます
-        - デフォルトでUMAPが選択されます（利用可能な場合）
+        ### Embedding Basis（fillmeintomiemptybetween）
+        - **multinumSelectpossible**: UMAP、tSNE、PCAeqthesametimetoSelectwithkimasu
+        - eachembeddingtopairshitepiecesepofpurotoisgenbecomesaremasu
+        - defuorutowithUMAPisSelectsaremasu（useusepossiblenaplacematch）
 
-        ### Terminal States（終末状態）
-        - 細胞分化の最終的な運命状態をembedding上に表示
-        - 各細胞がどの終末状態に属するかを色分け
-        - **Show legend**: 凡例の表示/非表示を切り替え
+        ### Terminal States（endendstatestate）
+        - CelldivizeoffinalalnaruncmdstatestatetheembeddinguptoDisplay
+        - eachCellisdoofendendstatestatetobelongdokathecolordivke
+        - **Show legend**: legendExampleofDisplay/nonDisplaythecutriswape
 
-        ### Terminal States Settings（サイドバー）
-        - **Discrete colormap**: 状態の色を変更可能
-        - **Change terminal state order**: 状態の表示順序をドラッグ&ドロップで変更
-        - 順序変更は色の割り当てにも反映されます
+        ### Terminal States Settings（saidoba-）
+        - **Discrete colormap**: statestateofcolorthechangefurtherpossible
+        - **Change terminal state order**: statestateofDisplayorderorderthedoragu&doropuwithchangefurther
+        - orderorderchangefurtheriscolorofratioricurrenttetomoantimapsaremasu
 
-        ### Fate Probabilities（運命確率）
-        - 各細胞が各終末状態に到達する確率をヒートマップで表示
-        - 確率は0-1の範囲で、全ての状態への確率の合計は1
-        - **Continuous colormap**: ヒートマップのカラースケールを選択
-        - 複数の終末状態を選択して個別に可視化可能
+        ### Fate Probabilities（runcmdcertainrate）
+        - eachCelliseachendendstatestatetoarrivereachdocertainratethehi-tomapuwithDisplay
+        - certainrateis0-1ofrangesurrwith、allteofstatestateheofcertainrateofmatchcalcis1
+        - **Continuous colormap**: hi-tomapuofkara-suke-rutheSelect
+        - multinumofendendstatestatetheSelectshitepieceseptoVisualizationpossible
 
-        ### Initial States（初期状態）
-        - 細胞の初期状態（計算されている場合のみ表示）
-        - 分化の出発点となる細胞集団を可視化
+        ### Initial States（initialstatestate）
+        - Cellofinitialstatestate（CalculationsareteexistplacematchofmiDisplay）
+        - divizeofoutoccurpointandbecomeCellgathergrouptheVisualization
 
-        ### Fate Probability Heatmap（運命確率ヒートマップ）
-        - 全細胞 × 全終末状態の確率を一括表示
-        - **Cluster cells**: 細胞を運命確率で階層的クラスタリング
-        - 2000細胞以上の場合は自動サンプリング
+        ### Fate Probability Heatmap（runcmdcertainratehi-tomapu）
+        - allCell × allendendstatestateofcertainratetheone包Display
+        - **Cluster cells**: Celltheruncmdcertainratewithtierlayeralkurasutaringu
+        - 2000Cellorupofplacematchisselfmovesanpuringu
 
-        ### Gene Expression Trends（遺伝子発現トレンド）
-        - 特定の終末状態への系統（lineage）に沿った遺伝子発現変化
-        - 分化過程での遺伝子制御メカニズムを理解
-        - 運命確率でソートした細胞に対する発現パターンを表示
-        - 平滑化曲線と生データの散布図を組み合わせて表示
+        ### Gene Expression Trends（GeneExpressiontorendo）
+        - specsetofendendstatestateheofsysunify（lineage）toalongtaGeneExpressionchangeize
+        - divizeoverextentwithofGenecontrolctrlmekanizumutheprocsolve
+        - runcmdcertainratewithso-toshitaCelltopairdoExpressionpata-ntheDisplay
+        - flatsmoothizecurvelineandgenDataofscatterdistfigthesetmimatchwaseteDisplay
 
-        ### Download（ダウンロード）
-        - **PNG format**: 高解像度ビットマップ（300 DPI）
-        - **PDF format**: ベクター形式（論文投稿・印刷に最適）
-        - 生成された全てのプロットが両形式でダウンロード可能
+        ### Download（Download）
+        - **PNG format**: highsolveimgdegreebitomapu（300 DPI）
+        - **PDF format**: bekuta-shapeformat（logictext投稿,print刷tomostfit）
+        - genbecomesaretaallteofpurotoisbothshapeformatwithDownloadpossible
         """)
 
     # Visualization type
@@ -372,7 +372,7 @@ if uploaded_h5ad is not None:
             "Fate probability heatmap",
             "Gene expression trends",
         ],
-        help="可視化のタイプを選択"
+        help="VisualizationoftaiputheSelect"
     )
 
     # Sidebar for advanced options
@@ -385,22 +385,22 @@ if uploaded_h5ad is not None:
 
         if uses_discrete:
             colormap_discrete = st.selectbox(
-                "Colormap (離散カラーマップ):",
+                "Colormap (sepscatterkara-mapu):",
                 ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
                  "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
                 index=0,
-                help="カテゴリカル変数（Terminal/Initial states）用のカラーパレット"
+                help="kategorikaruchangenum（Terminal/Initial states）useofkara-pareto"
             )
         else:
             colormap_discrete = "tab10"  # Default when not used
 
         if uses_continuous:
             colormap_continuous = st.selectbox(
-                "Colormap (連続カラーマップ):",
+                "Colormap (connectcontinuekara-mapu):",
                 ["viridis", "plasma", "inferno", "magma", "cividis",
                  "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
                 index=0,
-                help="連続変数（fate probability）用のカラーマップ"
+                help="connectcontinuechangenum（fate probability）useofkara-mapu"
             )
         else:
             colormap_continuous = "viridis"  # Default when not used
@@ -411,7 +411,7 @@ if uploaded_h5ad is not None:
         show_legend = st.checkbox(
             "Show legend",
             value=True,
-            help="凡例/レジェンドを表示するかどうか"
+            help="legendExample/rejiendotheDisplaydowhether"
         )
 
         st.markdown("---")
@@ -419,21 +419,21 @@ if uploaded_h5ad is not None:
 
         # Dot size and alpha controls
         dot_size = st.slider(
-            "Dot size (細胞のサイズ)",
+            "Dot size (Cellofsaizu)",
             min_value=1,
             max_value=200,
             value=10,
             step=5,
-            help="散布図上の細胞ドットのサイズ"
+            help="scatterdistfigupofCelldotoofsaizu"
         )
 
         dot_alpha = st.slider(
-            "Dot alpha (細胞の透明度)",
+            "Dot alpha (Celloftranscleardegree)",
             min_value=0.1,
             max_value=1.0,
             value=0.8,
             step=0.1,
-            help="細胞ドットの透明度（0.1=透明、1.0=不透明）"
+            help="Celldotooftranscleardegree（0.1=transclear、1.0=nottransclear）"
         )
 
     st.markdown("---")
@@ -452,10 +452,10 @@ if uploaded_h5ad is not None:
             default_basis = available_bases[0]
 
         basis_selections = st.multiselect(
-            "Embedding basis (可視化する埋め込み空間)",
+            "Embedding basis (Visualizationdofillmeintomiemptybetween)",
             available_bases,
             default=[default_basis] if default_basis else [],
-            help="可視化に使用する埋め込み空間を選択。複数選択すると各embeddingに対してプロットを生成します"
+            help="VisualizationtouseusedofillmeintomiemptybetweentheSelect。multinumSelectdoandeachembeddingtopairshitepurotothegenbecomeshimasu"
         )
 
         if not basis_selections:
@@ -518,7 +518,7 @@ if uploaded_h5ad is not None:
             "Terminal states to visualize",
             terminal_states,
             default=terminal_states,
-            help="表示する終末状態を選択"
+            help="DisplaydoendendstatestatetheSelect"
         )
 
         if not states_to_show:
@@ -535,34 +535,34 @@ if uploaded_h5ad is not None:
         additional_color = st.selectbox(
             "Additional annotation (optional)",
             ["None"] + [col for col in adata.obs.columns if adata.obs[col].dtype.name == 'category'],
-            help="追加のアノテーション（クラスター等）"
+            help="addaddofanote-shiyon（Clustereq）"
         )
 
     elif viz_type == "Gene expression trends":
         st.subheader("Gene trend settings")
 
         st.info("""
-        💡 **Tip:** より詳細な解析には **Pseudotime Gene Expression** appもご利用ください。
+        💡 **Tip:** thandetailfinenaAnalysistois **Pseudotime Gene Expression** appmogouseusekudasai。
 
-        同じh5adファイルで以下が可能です：
-        - Pseudotime selectionで `fate_prob_{state}` を選択
-        - ヒートマップやスタックエリアなど多様な可視化
-        - Z-score正規化やクラスター密度解析
-        - 複数遺伝子のオーバーレイ表示
+        sameh5adFilewithorbelowispossiblewithsu：
+        - Pseudotime selectionwith `fate_prob_{state}` theSelect
+        - hi-tomapuyasutakueriaetcmanymannernaVisualization
+        - Z-scoreNormalizationyaClusterdensedegreeAnalysis
+        - multinumGeneofo-ba-reiDisplay
         """)
 
         # Select terminal state
         selected_state = st.selectbox(
             "Terminal state for lineage",
             terminal_states,
-            help="遺伝子トレンドを表示する終末状態を選択"
+            help="GenetorendotheDisplaydoendendstatestatetheSelect"
         )
 
         # Gene selection
         gene_selection_method = st.radio(
             "Gene selection method",
             ["Manual selection", "Top variable genes"],
-            help="表示する遺伝子の選択方法"
+            help="DisplaydoGeneofSelectwaymethod"
         )
 
         if gene_selection_method == "Manual selection":
@@ -570,7 +570,7 @@ if uploaded_h5ad is not None:
                 "Select genes",
                 gene_list,
                 max_selections=20,
-                help="表示する遺伝子を選択（最大20個）"
+                help="DisplaydoGenetheSelect（maximum20piece）"
             )
         else:
             n_genes = st.slider("Number of top genes", 5, 50, 10, 5)
@@ -924,4 +924,4 @@ if uploaded_h5ad is not None:
                 st.exception(e)
 
 else:
-    st.info("👆 CellRank解析結果のh5adファイルをアップロードして開始してください")
+    st.info("👆 CellRankAnalysisResultofh5adFiletheUploadshitestartshitekudasai")

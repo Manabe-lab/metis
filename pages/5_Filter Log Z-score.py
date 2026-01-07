@@ -27,20 +27,20 @@ def homer_clean(df):
     content = df.columns.tolist()
     Gene_column = content[0]
     if "Annotation/Divergence" in content:
-         # colnamesの変換
+         # colnamesofchangechange
         search_word = '([^\ \(]*)\ \(.*'
 
         for i in range(1, len(content)):
             match = re.search(search_word, content[i])
             if match:
                 content[i] = match.group(1).replace(' ', '_')
-        df.columns = content # 一旦名前を変更
-        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+        df.columns = content # oneoncenamebeforethechangefurther
+        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
         pattern = "([^|]*)"
         repatter = re.compile(pattern)
         f_annotation = lambda x: repatter.match(x).group(1)
         df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-        # annotation/divergence以前を除く
+        # annotation/divergencebeforetheremoveku
         df = df.loc[:,'Annotation/Divergence':]
         content = df.columns.tolist()
         content[0] = 'Gene'
@@ -49,7 +49,7 @@ def homer_clean(df):
         df.set_index("Gene", inplace = True)
     return(df)
 
-if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+if 'filename_add' not in globals(): #mostfirstfromyaridirectshitobecomeandkitobeforeofDatathekeephold
  #   st.write('file name kept')
     filename_add = ""
 
@@ -97,7 +97,7 @@ if uploaded_file is not None:
     else:
         df = read_excel(uploaded_file, index_col = 0)
 
-    # excel並びにHomer対応
+    # excelalignbitoHomerpairrespond
     df = homer_clean(df)
 
 
@@ -128,7 +128,7 @@ if uploaded_file is not None:
     if input_file_format == 'column = gene':
         df = df.T
     if nonzero:
-        df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+        df = df.loc[~(df==0).all(axis=1)] #all0ofrowtheremoveku
 
     if min_val != f_inf:
         df = df[df.apply(min, axis=1) > min_val]
@@ -136,7 +136,7 @@ if uploaded_file is not None:
             filename_add = '.min' + str(min_val) + filename_add
 
     if max_val != f_inf:
-        df =  df[df.apply(max, axis=1) > max_val] #ここがminだと、0が一つでもあれば削除される。
+        df =  df[df.apply(max, axis=1) > max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
         if "max" not in filename_add:
             filename_add = '.max' + str(max_val) + filename_add
 

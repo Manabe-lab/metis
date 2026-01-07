@@ -25,7 +25,7 @@ import matplotlib.colors as mcolors
 
 @st.cache_data
 def get_light_colors():
-    # matplotlibの名前付き色から"light"で始まる色を抽出
+    # matplotlibofnamebeforeattachkicolorfrom"light"withstartmarucolortheextractout
     light_colors = [color for color in mcolors.CSS4_COLORS if color.startswith('light')]
     return light_colors
 
@@ -35,7 +35,7 @@ def assign_colors_to_objects(objects):
     color_dict = {}
     
     for i, obj in enumerate(objects):
-        # 利用可能な色の数で循環させる
+        # useusepossiblenacolorofnumwith循ringsaseru
         color = light_colors[i % len(light_colors)]
         color_dict[obj.name] = color  
     return color_dict
@@ -48,7 +48,7 @@ def bubble(bubble_file):
 
 def convert_pdf_to_images(pdf_path):
     pdf = pymupdf.open(pdf_path)
-    page = pdf[0]  # 最初のページを取得
+    page = pdf[0]  # mostfirstofpe-jithegetget
     pix = page.get_pixmap()
     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
     return img
@@ -56,11 +56,11 @@ def convert_pdf_to_images(pdf_path):
 def main():
     st.title("PyWGCNA Objects Comparison")
 
-    # temp内に保存する
+    # tempintoSavedo
     # --- Initialising SessionState ---
     if "temp_dir" not in st.session_state:
         st.session_state.temp_dir = None
-        #古いdirecotryとファイルを削除する
+        #oldidirecotryandFilethedeleteremovedo
         temp_dir = "temp/" + str(round(time.time()))
         if not os.path.exists('temp'):
             os.mkdir('temp')
@@ -113,7 +113,7 @@ def main():
                     cutoff = st.number_input("#### Jaccard Similarity Cutoff", value = 0.2)
                 st.subheader("Jaccard Similarity Plot")
 
-                # WGCNAオブジェクトのリストに対して色を割り当てる
+                # WGCNAobujiekutoofrisutotopairshitecolortheratioricurrentteru
 
                 color = assign_colors_to_objects(pywgcnas)
 
@@ -121,12 +121,12 @@ def main():
                 comparison.plotJaccardSimilarity(color=color, cutoff=cutoff, plot_format="pdf", file_name=jaccard_file)
 
                 try:
-                    # PDFを画像に変換
+                    # PDFthedrawimgtochangechange
                     img = convert_pdf_to_images(jaccard_file + '.pdf')
-                    # 画像を表示
+                    # drawimgtheDisplay
                     st.image(img, use_column_width=True)
                 except Exception as e:
-                    st.error(f"エラーが発生しました: {str(e)}")
+                    st.error(f"Errorisoccurgenshimashita: {str(e)}")
                     st.write("Probably nothing pass the threshold")  
 
                 # Heatmap Comparison
@@ -135,12 +135,12 @@ def main():
                 comparison.plotHeatmapComparison(plot_format="pdf", file_name=heatmap_file)
 
                 try:
-                    # PDFを画像に変換
+                    # PDFthedrawimgtochangechange
                     img = convert_pdf_to_images(heatmap_file + '.pdf')
-                    # 画像を表示
+                    # drawimgtheDisplay
                     st.image(img, use_column_width=True)
                 except Exception as e:
-                    st.error(f"エラーが発生しました: {str(e)}")    
+                    st.error(f"Errorisoccurgenshimashita: {str(e)}")    
 
                 # Bubble Comparison
                 st.subheader("Bubble Comparison")
@@ -148,12 +148,12 @@ def main():
                 comparison.plotBubbleComparison(color=color, plot_format="pdf", file_name=bubble_file)
 
                 try:
-                    # PDFを画像に変換
+                    # PDFthedrawimgtochangechange
                     img = convert_pdf_to_images(bubble_file + '.pdf')
-                    # 画像を表示
+                    # drawimgtheDisplay
                     st.image(img, use_column_width=True)
                 except Exception as e:
-                    st.error(f"エラーが発生しました: {str(e)}")    
+                    st.error(f"Errorisoccurgenshimashita: {str(e)}")    
 
                 # Save Comparison
                 comparison_file = os.path.join(temp_dir, f"comparison_{base_filename}")

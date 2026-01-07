@@ -33,7 +33,7 @@ def create_zip(directory):
     with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
         for root, _, files in os.walk(directory):
             for file in files:
-                if not file.endswith('.bam'):  # BAMファイルを除外
+                if not file.endswith('.bam'):  # BAMFiletheremoveout
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, directory)
                     zip_file.write(file_path, arcname)
@@ -143,8 +143,8 @@ if st.button("Run MACS3 callpeak"):
             # Run MACS3 callpeak
             stdout, stderr = run_command(cmd, "Running MACS3 callpeak")
 
-            if stderr and "Done!" in stderr:  # MACS3の実行が成功した場合
-                # Create ZIP file for download (BAMファイルは除外される)
+            if stderr and "Done!" in stderr:  # MACS3ofRunisSuccessshitaplacematch
+                # Create ZIP file for download (BAMFileisremoveoutsareru)
                 st.subheader("Download Results")
                 zip_buffer = create_zip(temp_dir)
                 st.download_button(

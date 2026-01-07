@@ -56,7 +56,7 @@ if uploaded_file is not None:
         colnames = df.columns.tolist()
         colnames[0] = 'Gene'
 
-    # colnamesの変換
+    # colnamesofchangechange
     search_word = '([^\ \(]*)\ \(.*'
 
     if rlog:
@@ -77,9 +77,9 @@ if uploaded_file is not None:
 
     df.columns = colnames
     if refseq:
-        df['RefSeq'] = df['RefSeq'].astype(str) # excel対応
+        df['RefSeq'] = df['RefSeq'].astype(str) # excelpairrespond
     else:
-        df['Gene'] = df['Gene'].astype(str) # excel対応
+        df['Gene'] = df['Gene'].astype(str) # excelpairrespond
 
 
     pattern = "([^|]*)"
@@ -88,7 +88,7 @@ if uploaded_file is not None:
     df.iloc[:,0] = df.iloc[:,0].apply(f_annotation)
 
 
-########## excel対応?
+########## excelpairrespond?
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
         st.write(df[df.isnull().any(axis=1)])

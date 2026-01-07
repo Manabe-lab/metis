@@ -9,11 +9,11 @@ import os
 import tempfile
 import traceback
 
-# アプリのタイトルとヘッダー
+# apurioftaitoruandheda-
 st.title("CellChat QS Converter")
-st.markdown("CellChat QSファイルをPython用pickleファイルに変換するツール")
+st.markdown("CellChat QSFilethePythonusepickleFiletochangechangedotsu-ru")
 
-# R環境の初期化 (セッション開始時に一度だけ実行)
+# Rringboundofinitialize (seshiyonstarttimetoonedegreedakeRun)
 @st.cache_resource
 def initialize_r_environment():
     pandas2ri.activate()
@@ -21,53 +21,53 @@ def initialize_r_environment():
     try:
         base = importr('base')
         qs = importr('qs')
-        # CellChatもインポート
+        # CellChatmoinpo-to
         ro.r('library(CellChat)')
         return True
     except Exception as e:
-        st.error(f"R環境の初期化に失敗しました: {str(e)}")
-        st.error("必要なRパッケージ(CellChat, qs)がインストールされているか確認してください。")
+        st.error(f"Rringboundofinitializetofailfailshimashita: {str(e)}")
+        st.error("requirednaRpake-ji(CellChat, qs)isinsuto-rusareteexistkaConfirmshitekudasai。")
         return False
 
-# R環境を初期化
+# Rringboundtheinitialize
 r_initialized = initialize_r_environment()
 
-# QSファイルを処理する関数
+# QSFiletheprocprocdorelnum
 def process_qs_file(uploaded_file):
-    # 一時ファイルに保存
+    # onetimeFiletoSave
     with tempfile.NamedTemporaryFile(suffix='.qs', delete=False) as tmp_file:
         tmp_file.write(uploaded_file.getvalue())
         tmp_path = tmp_file.name
     
     try:
-        # 特殊文字をエスケープ
+        # specspecialtextchartheesuke-pu
         tmp_path_escaped = tmp_path.replace('\\', '\\\\')
         
-        # 最も単純なアプローチ: まずRで変数を設定し、それを使用する
+        # mostmosimplepurenaapuro-chi: mazuRwithchangenumtheSettingsshi、soretheuseusedo
         ro.r(f'temp_file_path <- "{tmp_path_escaped}"')
         
         r_code = """
         library(CellChat)
         library(qs)
 
-        # QSファイルを読み込む
+        # QSFilethereadmiintomu
         tryCatch({
             cellchat_obj <- qs::qread(temp_file_path)
             
-            # 必要なデータを抽出
+            # requirednaDatatheextractout
             extracted_data <- list()
 
-            # 1. メタデータ
+            # 1. metaData
             if (!is.null(cellchat_obj@meta)) {
                 extracted_data$meta <- as.data.frame(cellchat_obj@meta)
             }
 
-            # 2. ネットワーク情報
+            # 2. Networkinfoinfo
             if (!is.null(cellchat_obj@net$prob)) {
-                # 確率行列
+                # certainraterowcol
                 extracted_data$net_prob <- cellchat_obj@net$prob
                 
-                # 次元名を個別に保存
+                # nextsourcenamethepieceseptoSave
                 if (!is.null(dimnames(cellchat_obj@net$prob)[[1]])) {
                     extracted_data$dim_rows <- dimnames(cellchat_obj@net$prob)[[1]]
                 }
@@ -91,7 +91,7 @@ def process_qs_file(uploaded_file):
                 extracted_data$net_count <- as.matrix(cellchat_obj@net$count)
             }
 
-            # 3. パスウェイ情報
+            # 3. pasuueiinfoinfo
             if (!is.null(cellchat_obj@netP$pathways)) {
                 extracted_data$pathways <- cellchat_obj@netP$pathways
             }
@@ -100,42 +100,42 @@ def process_qs_file(uploaded_file):
                 extracted_data$netP_prob <- cellchat_obj@netP$prob
             }
 
-            # 4. LR情報
+            # 4. LRinfoinfo
             if (!is.null(cellchat_obj@LR$LRsig)) {
                 extracted_data$lr_sig <- as.data.frame(cellchat_obj@LR$LRsig)
             }
 
-            # 返り値
+            # returnrival
             extracted_data
         }, error = function(e) {
-            list(error = paste("QSファイルの読み込みエラー:", e$message))
+            list(error = paste("QSFileofLoadingError:", e$message))
         })
         """
         
-        # Rコードを実行
+        # Rko-dotheRun
         result_r = ro.r(r_code)
         
-        # エラーチェック
+        # Errorchieku
         if isinstance(result_r, ro.vectors.ListVector) and 'error' in result_r.names:
             error_msg = result_r.rx2('error')
-            st.error(f"QSファイルの処理に失敗しました: {error_msg}")
+            st.error(f"QSFileofprocproctofailfailshimashita: {error_msg}")
             return None
 
-        # 結果の変換
+        # Resultofchangechange
         cellchat_data = {}
         for key in result_r.names:
             try:
-                # キーの型によって変換方法を変える
+                # ki-oftypetoyotechangechangewaymethodthechangeeru
                 if key in ["net_prob", "net_pval", "netP_prob"]:
-                    # R配列からNumPy配列への変換
+                    # RdistcolfromNumPydistcolheofchangechange
                     cellchat_data[key] = np.array(result_r.rx2(key))
                 else:
-                    # その他のオブジェクトはpandas2riで変換
+                    # soofotherofobujiekutoispandas2riwithchangechange
                     r_value = result_r.rx2(key)
                     try:
                         cellchat_data[key] = pandas2ri.rpy2py(r_value)
                     except Exception as e2:
-                        # 変換に失敗した場合、基本的な方法でデータを取得
+                        # changechangetofailfailshitaplacematch、basemainalnawaymethodwithDatathegetget
                         if isinstance(r_value, ro.vectors.StrVector):
                             cellchat_data[key] = list(r_value)
                         elif isinstance(r_value, ro.vectors.FloatVector):
@@ -144,35 +144,35 @@ def process_qs_file(uploaded_file):
                             cellchat_data[key] = list(r_value)
                         else:
                             cellchat_data[key] = str(r_value)
-                st.success(f"{key}を正常に抽出しました")
+                st.success(f"{key}thecorrectnormaltoextractoutshimashita")
             except Exception as e:
-                st.warning(f"{key}の変換に失敗しました: {e}")
+                st.warning(f"{key}ofchangechangetofailfailshimashita: {e}")
                 st.warning(traceback.format_exc())
 
-        # 次元名の整理
+        # nextsourcenameofarrangeproc
         if all(key in cellchat_data for key in ['dim_rows', 'dim_cols', 'dim_paths']):
             cellchat_data['net_prob_dims'] = {
                 'rows': cellchat_data['dim_rows'],
                 'cols': cellchat_data['dim_cols'],
                 'pathways': cellchat_data['dim_paths']
             }
-            # 個別の次元キーを削除（オプション）
+            # piecesepofnextsourceki-thedeleteremove（Option）
             for key in ['dim_rows', 'dim_cols', 'dim_paths']:
                 if key in cellchat_data:
                     del cellchat_data[key]
 
-        # 結果を整形
+        # Resultthearrangeshape
         result = format_cellchat_for_visualization(cellchat_data)
         
-        # 一時ファイルの削除
+        # onetimeFileofdeleteremove
         os.unlink(tmp_path)
         
         return result
         
     except Exception as e:
-        st.error(f"処理中にエラーが発生しました: {e}")
+        st.error(f"ProcessingtoErrorisoccurgenshimashita: {e}")
         st.error(traceback.format_exc())
-        # 一時ファイルの削除を試みる
+        # onetimeFileofdeleteremovethetrymiru
         try:
             os.unlink(tmp_path)
         except:
@@ -180,52 +180,52 @@ def process_qs_file(uploaded_file):
         return None
 
 def format_cellchat_for_visualization(cellchat_data):
-    """抽出したデータをcellchat_vis.pyのビジュアライゼーション用に整形する"""
-    # cellchat.pyの出力形式に合わせてデータを構造化
+    """extractoutshitaDatathecellchat_vis.pyofbijiyuaraize-shiyonusetoarrangeshapedo"""
+    # cellchat.pyofOutputshapeformattomatchwaseteDatathestructmakeize
     result = {}
     
-    # 1. ネットワーク情報
-    # 3次元配列のprobとpvalがあるか確認
+    # 1. Networkinfoinfo
+    # 3nextsourcedistcolofprobandpvalisexistkaConfirm
     has_3d_prob = 'net_prob' in cellchat_data and isinstance(cellchat_data['net_prob'], np.ndarray) and cellchat_data['net_prob'].ndim == 3
     has_3d_pval = 'net_pval' in cellchat_data and isinstance(cellchat_data['net_pval'], np.ndarray) and cellchat_data['net_pval'].ndim == 3
     
     result['net'] = {}
     
-    # probとpvalが3次元の場合のみ設定
+    # probandpvalis3nextsourceofplacematchofmiSettings
     if has_3d_prob:
         result['net']["prob"] = cellchat_data['net_prob']
     else:
-        # データがなければ空の3次元配列を作成
+        # Dataisnakerebaemptyof3nextsourcedistcolthemakebecome
         if 'net_prob_dims' in cellchat_data and all(key in cellchat_data['net_prob_dims'] for key in ['rows', 'cols']):
             rows = len(cellchat_data['net_prob_dims']['rows'])
             cols = len(cellchat_data['net_prob_dims']['cols'])
             paths = len(cellchat_data['net_prob_dims'].get('pathways', []))
-            # 少なくとも1つのパスウェイを保証
+            # fewnakuandmo1tsuofpasuueithekeepproof
             paths = max(1, paths)
             result['net']["prob"] = np.zeros((rows, cols, paths))
         else:
-            # 次元情報もない場合は最小サイズの配列
+            # nextsourceinfoinfomonotplacematchisminimumsaizuofdistcol
             result['net']["prob"] = np.zeros((1, 1, 1))
     
     if has_3d_pval:
         result['net']["pval"] = cellchat_data['net_pval']
     else:
-        # probと同じサイズの配列を作成
+        # probandsamesaizuofdistcolthemakebecome
         result['net']["pval"] = np.ones_like(result['net']["prob"])
     
-    # 次元名の情報を追加
+    # nextsourcenameofinfoinfotheaddadd
     if 'net_prob_dims' in cellchat_data:
         dims = cellchat_data['net_prob_dims']
         cell_types_rows = dims.get('rows', [])
         cell_types_cols = dims.get('cols', [])
         pathways = dims.get('pathways', [])
         
-        # 文字列リストに変換
+        # textcharcolrisutotochangechange
         cell_types_rows = [str(ct) for ct in cell_types_rows]
         cell_types_cols = [str(ct) for ct in cell_types_cols]
         pathways = [str(p) for p in pathways]
         
-        # 最小限のサイズを保証
+        # minimumlimitofsaizuthekeepproof
         if not cell_types_rows:
             cell_types_rows = [f"Cell_{i}" for i in range(result['net']["prob"].shape[0])]
         if not cell_types_cols:
@@ -239,7 +239,7 @@ def format_cellchat_for_visualization(cellchat_data):
             pathways
         ]
     else:
-        # 次元名がない場合は配列のサイズに合わせて生成
+        # nextsourcenameisnotplacematchisdistcolofsaizutomatchwasetegenbecome
         shape = result['net']["prob"].shape
         result['net']['dimnames'] = [
             [f"Cell_{i}" for i in range(shape[0])],
@@ -247,21 +247,21 @@ def format_cellchat_for_visualization(cellchat_data):
             [f"Pathway_{i}" for i in range(shape[2])]
         ]
     
-    # 集計したweight行列を作成
+    # gathercalcshitaweightrowcolthemakebecome
     cell_types = result['net']['dimnames'][0]
     num_cells = len(cell_types)
     
-    # 全パスウェイにわたる合計（集計ネットワーク）
+    # allpasuueitowatarumatchcalc（gathercalcNetwork）
     prob_sum = np.sum(result['net']["prob"], axis=2)
     
-    # weight行列とcount行列をDataFrameに変換
+    # weightrowcolandcountrowcoltheDataFrametochangechange
     result['net']["weight"] = prob_sum
     result['net']["count"] = (prob_sum > 0).astype(int)
     
-    # 集計ネットワークの中心性を計算（NetworkXを使用）
+    # gathercalcNetworkofmidcenternaturetheCalculation（NetworkXtheuseuse）
     import networkx as nx
     
-    # 初期化
+    # initialize
     net_centr = {
         'outdeg': np.zeros(num_cells),
         'indeg': np.zeros(num_cells),
@@ -276,41 +276,41 @@ def format_cellchat_for_visualization(cellchat_data):
         'info': np.zeros(num_cells)
     }
     
-    # ネットワークが有効（エッジがある）場合のみ計算
+    # Networkisvalid（ejiisexist）placematchofmiCalculation
     if np.any(prob_sum > 0):
-        # グラフ作成
+        # gurafumakebecome
         G = nx.DiGraph()
         for i in range(num_cells):
             G.add_node(i, name=cell_types[i])
         
-        # エッジ追加
+        # ejiaddadd
         for i in range(num_cells):
             for j in range(num_cells):
                 if prob_sum[i, j] > 0:
                     G.add_edge(i, j, weight=float(prob_sum[i, j]))
         
-        # 出入次数（加重/非加重）
+        # outinnextnum（addweight/nonaddweight）
         for i in range(num_cells):
-            # 加重次数
+            # addweightnextnum
             net_centr['outdeg'][i] = sum(G[i][j]['weight'] for j in G.successors(i)) if i in G else 0
             net_centr['indeg'][i] = sum(G[j][i]['weight'] for j in G.predecessors(i)) if i in G else 0
             
-            # 非加重次数
+            # nonaddweightnextnum
             net_centr['outdeg_unweighted'][i] = G.out_degree(i) if i in G else 0
             net_centr['indeg_unweighted'][i] = G.in_degree(i) if i in G else 0
         
-        # 重み逆数グラフ（媒介中心性用）
+        # weightmiinvnumgurafu（mediumviamidcenternatureuse）
         G_inv = G.copy()
         for u, v, d in G_inv.edges(data=True):
             if d['weight'] > 0:
                 d['weight'] = 1.0 / d['weight']
         
         try:
-            # 媒介中心性
+            # mediumviamidcenternature
             betweenness = nx.betweenness_centrality(G_inv, weight='weight')
             for i in range(num_cells):
                 net_centr['betweenness'][i] = betweenness.get(i, 0)
-                # flowbetはbetweennessで代用
+                # flowbetisbetweennesswithsubuse
                 net_centr['flowbet'][i] = betweenness.get(i, 0)
         except:
             pass
@@ -324,7 +324,7 @@ def format_cellchat_for_visualization(cellchat_data):
             pass
         
         try:
-            # HubとAuthority
+            # HubandAuthority
             hub, authority = nx.hits(G, max_iter=1000)
             for i in range(num_cells):
                 net_centr['hub'][i] = hub.get(i, 0)
@@ -333,71 +333,71 @@ def format_cellchat_for_visualization(cellchat_data):
             pass
         
         try:
-            # 固有ベクトル中心性
+            # fixhavebekutorumidcenternature
             eigen = nx.eigenvector_centrality(G, weight='weight', max_iter=1000)
             for i in range(num_cells):
                 net_centr['eigen'][i] = eigen.get(i, 0)
         except:
             pass
         
-        # Information Centrality - カスタム計算（近似）
+        # Information Centrality - kasutamuCalculation（nearlike）
         try:
-            # info中心性の簡易近似 (正規化したdegreeとbetweennessの組み合わせ)
+            # infomidcenternatureofsimpleeasynearlike (Normalizationshitadegreeandbetweennessofsetmimatchwase)
             in_degree = np.array([net_centr['indeg'][i] for i in range(num_cells)])
             out_degree = np.array([net_centr['outdeg'][i] for i in range(num_cells)])
             between = np.array([net_centr['betweenness'][i] for i in range(num_cells)])
             
-            # 正規化
+            # Normalization
             norm_in = in_degree / (np.max(in_degree) if np.max(in_degree) > 0 else 1)
             norm_out = out_degree / (np.max(out_degree) if np.max(out_degree) > 0 else 1)
             norm_between = between / (np.max(between) if np.max(between) > 0 else 1)
             
-            # 情報中心性を合成
+            # infoinfomidcenternaturethematchbecome
             info_score = (norm_in + norm_out + norm_between) / 3
             for i in range(num_cells):
                 net_centr['info'][i] = info_score[i]
         except:
             pass
     
-    # 中心性指標をnetに追加
+    # midcenternaturepointmarkthenettoaddadd
     result['net']['centr'] = net_centr
     
-    # 2. パスウェイ情報
+    # 2. pasuueiinfoinfo
     result['netP'] = {}
     
-    # パスウェイ情報の追加
+    # pasuueiinfoinfoofaddadd
     if 'pathways' in cellchat_data and cellchat_data['pathways'] is not None:
         result['netP']['pathways'] = cellchat_data['pathways']
     elif 'net_prob_dims' in cellchat_data and 'pathways' in cellchat_data['net_prob_dims']:
         result['netP']['pathways'] = cellchat_data['net_prob_dims']['pathways']
     else:
-        # それでも見つからない場合はnet['dimnames']から取得
+        # sorewithmoviewtsufromnotplacematchisnet['dimnames']fromgetget
         if 'dimnames' in result['net'] and len(result['net']['dimnames']) > 2:
             result['netP']['pathways'] = result['net']['dimnames'][2]
         else:
             result['netP']['pathways'] = [f"Pathway_{i}" for i in range(result['net']["prob"].shape[2])]
     
-    # ネットワーク確率情報の追加
+    # Networkcertainrateinfoinfoofaddadd
     if 'netP_prob' in cellchat_data and cellchat_data['netP_prob'] is not None:
         result['netP']['prob'] = cellchat_data['netP_prob']
     else:
-        # netP_probがない場合、パスウェイごとの集計を行う
+        # netP_probisnotplacematch、pasuueigoandofgathercalctherowu
         prob = result['net']["prob"]
         num_pathways = len(result['netP']['pathways'])
         
-        # 各パスウェイの総和を計算
+        # eachpasuueioftotalsumtheCalculation
         netP_prob = np.zeros((num_cells, num_cells, num_pathways))
         for k in range(min(prob.shape[2], num_pathways)):
             netP_prob[:, :, k] = prob[:, :, k]
         
         result['netP']['prob'] = netP_prob
     
-    # netP用の中心性情報を計算
+    # netPuseofmidcenternatureinfoinfotheCalculation
     netP_centr = {}
     
-    # 各パスウェイについて中心性を計算
+    # eachpasuueitotsuitemidcenternaturetheCalculation
     for k in range(min(result['netP']['prob'].shape[2], len(result['netP']['pathways']))):
-        # このパスウェイの初期中心性辞書
+        # koofpasuueiofinitialmidcenternaturewordwrite
         netP_centr[k] = {
             'outdeg': np.zeros(num_cells),
             'indeg': np.zeros(num_cells),
@@ -412,44 +412,44 @@ def format_cellchat_for_visualization(cellchat_data):
             'info': np.zeros(num_cells)
         }
         
-        # パスウェイ行列
+        # pasuueirowcol
         pathway_weight = result['netP']['prob'][:, :, k]
         
-        # ネットワークが有効（エッジがある）場合のみ計算
+        # Networkisvalid（ejiisexist）placematchofmiCalculation
         if np.any(pathway_weight > 0):
-            # グラフ作成
+            # gurafumakebecome
             G_pathway = nx.DiGraph()
             for i in range(num_cells):
                 G_pathway.add_node(i, name=cell_types[i])
             
-            # エッジ追加
+            # ejiaddadd
             for i in range(num_cells):
                 for j in range(num_cells):
                     if pathway_weight[i, j] > 0:
                         G_pathway.add_edge(i, j, weight=float(pathway_weight[i, j]))
             
-            # 出入次数（加重/非加重）
+            # outinnextnum（addweight/nonaddweight）
             for i in range(num_cells):
-                # 加重次数
+                # addweightnextnum
                 netP_centr[k]['outdeg'][i] = sum(G_pathway[i][j]['weight'] for j in G_pathway.successors(i)) if i in G_pathway else 0
                 netP_centr[k]['indeg'][i] = sum(G_pathway[j][i]['weight'] for j in G_pathway.predecessors(i)) if i in G_pathway else 0
                 
-                # 非加重次数
+                # nonaddweightnextnum
                 netP_centr[k]['outdeg_unweighted'][i] = G_pathway.out_degree(i) if i in G_pathway else 0
                 netP_centr[k]['indeg_unweighted'][i] = G_pathway.in_degree(i) if i in G_pathway else 0
             
-            # 重み逆数グラフ（媒介中心性用）
+            # weightmiinvnumgurafu（mediumviamidcenternatureuse）
             G_inv = G_pathway.copy()
             for u, v, d in G_inv.edges(data=True):
                 if d['weight'] > 0:
                     d['weight'] = 1.0 / d['weight']
             
             try:
-                # 媒介中心性
+                # mediumviamidcenternature
                 betweenness = nx.betweenness_centrality(G_inv, weight='weight')
                 for i in range(num_cells):
                     netP_centr[k]['betweenness'][i] = betweenness.get(i, 0)
-                    # flowbetはbetweennessで代用
+                    # flowbetisbetweennesswithsubuse
                     netP_centr[k]['flowbet'][i] = betweenness.get(i, 0)
             except:
                 pass
@@ -463,7 +463,7 @@ def format_cellchat_for_visualization(cellchat_data):
                 pass
             
             try:
-                # HubとAuthority
+                # HubandAuthority
                 hub, authority = nx.hits(G_pathway, max_iter=1000)
                 for i in range(num_cells):
                     netP_centr[k]['hub'][i] = hub.get(i, 0)
@@ -472,42 +472,42 @@ def format_cellchat_for_visualization(cellchat_data):
                 pass
             
             try:
-                # 固有ベクトル中心性
+                # fixhavebekutorumidcenternature
                 eigen = nx.eigenvector_centrality(G_pathway, weight='weight', max_iter=1000)
                 for i in range(num_cells):
                     netP_centr[k]['eigen'][i] = eigen.get(i, 0)
             except:
                 pass
             
-            # Information Centrality - カスタム計算
+            # Information Centrality - kasutamuCalculation
             try:
-                # info中心性の簡易近似 (正規化したdegreeとbetweennessの組み合わせ)
+                # infomidcenternatureofsimpleeasynearlike (Normalizationshitadegreeandbetweennessofsetmimatchwase)
                 in_degree = np.array([netP_centr[k]['indeg'][i] for i in range(num_cells)])
                 out_degree = np.array([netP_centr[k]['outdeg'][i] for i in range(num_cells)])
                 between = np.array([netP_centr[k]['betweenness'][i] for i in range(num_cells)])
                 
-                # 正規化
+                # Normalization
                 norm_in = in_degree / (np.max(in_degree) if np.max(in_degree) > 0 else 1)
                 norm_out = out_degree / (np.max(out_degree) if np.max(out_degree) > 0 else 1)
                 norm_between = between / (np.max(between) if np.max(between) > 0 else 1)
                 
-                # 情報中心性を合成
+                # infoinfomidcenternaturethematchbecome
                 info_score = (norm_in + norm_out + norm_between) / 3
                 for i in range(num_cells):
                     netP_centr[k]['info'][i] = info_score[i]
             except:
                 pass
     
-    # 中心性情報を追加
+    # midcenternatureinfoinfotheaddadd
     result['netP']['centr'] = netP_centr
     
-    # 3. 結果DataFrame作成
-    # 細胞タイプ名とパスウェイ名を取得
+    # 3. ResultDataFramemakebecome
+    # Cell typenameandpasuueinamethegetget
     cell_types_rows = result['net']['dimnames'][0]
     cell_types_cols = result['net']['dimnames'][1]
     pathways = result['net']['dimnames'][2]
     
-    # prob, pval配列から相互作用データを抽出
+    # prob, pvaldistcolfromInteractionDatatheextractout
     prob = result['net']["prob"]
     pval = result['net']["pval"]
     
@@ -516,14 +516,14 @@ def format_cellchat_for_visualization(cellchat_data):
         for j in range(prob.shape[1]):
             for k in range(min(prob.shape[2], len(pathways))):
                 if prob[i, j, k] > 0:
-                    # 相互作用名
+                    # Interactionname
                     interaction_name = pathways[k] if k < len(pathways) else f"interaction_{k}"
                     
-                    # リガンド-レセプター情報（あれば）
+                    # Ligand-reseputa-infoinfo（areba）
                     ligand = ""
                     receptor = ""
                     
-                    # LR情報取得
+                    # LRinfoinfogetget
                     if 'lr_sig' in cellchat_data and isinstance(cellchat_data['lr_sig'], pd.DataFrame):
                         lr_df = cellchat_data['lr_sig']
                         if interaction_name in lr_df.index:
@@ -544,53 +544,53 @@ def format_cellchat_for_visualization(cellchat_data):
     
     result['results'] = pd.DataFrame(results_data)
     
-    # 4. ネットワークサマリー作成
-    # 細胞タイプごとの集計（probの合計）
+    # 4. Networksamari-makebecome
+    # Cell typegoandofgathercalc（probofmatchcalc）
     prob = result['net']["prob"]
     strength_matrix = np.sum(prob, axis=2)
     
-    # DataFrameに変換
+    # DataFrametochangechange
     strength_df = pd.DataFrame(strength_matrix, 
                               index=cell_types, 
                               columns=cell_types)
     
-    # カウント行列（非ゼロの相互作用数）
+    # kauntorowcol（nonzeroofInteractionnum）
     count_matrix = np.sum(prob > 0, axis=2)
     count_df = pd.DataFrame(count_matrix,
                            index=cell_types,
                            columns=cell_types)
     
-    # 送受信総量
+    # sendrecvtrusttotalamount
     outgoing = pd.Series(np.sum(strength_matrix, axis=1), index=cell_types)
     incoming = pd.Series(np.sum(strength_matrix, axis=0), index=cell_types)
     
-    # LR寄与度の計算
+    # LRcontribgivedegreeofCalculation
     lr_contribution = np.zeros(prob.shape[2])
     for k in range(prob.shape[2]):
         lr_contribution[k] = np.sum(prob[:, :, k])
     
-    # ネットワーク中心性データフレームを作成
+    # NetworkmidcenternatureDatafure-muthemakebecome
     network_centrality_dict = {
         'cell_type': cell_types,
     }
     
-    # 各中心性指標をディクショナリに追加
+    # eachmidcenternaturepointmarkthedeikushiyonaritoaddadd
     for metric in ['outdeg', 'indeg', 'outdeg_unweighted', 'indeg_unweighted', 
                   'betweenness', 'page_rank', 'hub', 'authority', 'eigen', 'flowbet', 'info']:
         network_centrality_dict[metric] = net_centr[metric]
     
     network_centrality = pd.DataFrame(network_centrality_dict)
     
-    # コア中心性指標をより意味のある名前に変更（シグナリング役割分析用）
+    # koamidcenternaturepointmarkthethanmeanmeanofexistnamebeforetochangefurther（shigunaringuroleratiodivanalyzeuse）
     role_data = {
         'cell_type': cell_types,
-        'sender': net_centr['outdeg'],        # 送信者としての役割
-        'receiver': net_centr['indeg'],       # 受信者としての役割
-        'mediator': net_centr['flowbet'],     # 仲介者としての役割
-        'influencer': net_centr['info']       # 影響力としての役割
+        'sender': net_centr['outdeg'],        # sendtrustpersonandshiteofroleratio
+        'receiver': net_centr['indeg'],       # recvtrustpersonandshiteofroleratio
+        'mediator': net_centr['flowbet'],     # 仲viapersonandshiteofroleratio
+        'influencer': net_centr['info']       # shadoweffectpowerandshiteofroleratio
     }
     
-    # 役割データフレームを作成
+    # roleratioDatafure-muthemakebecome
     signaling_role = pd.DataFrame(role_data)
     
     result['network'] = {
@@ -600,36 +600,36 @@ def format_cellchat_for_visualization(cellchat_data):
         'incoming': incoming,
         'lr_contribution': lr_contribution,
         'network_centrality': network_centrality,
-        'signaling_role': signaling_role      # シグナリング役割分析用
+        'signaling_role': signaling_role      # shigunaringuroleratiodivanalyzeuse
     }
     
-    # 5. メタデータ情報
+    # 5. metaDatainfoinfo
     if 'meta' in cellchat_data:
         result['meta'] = cellchat_data['meta']
     
-    # 6. GroupBy情報（デフォルト設定）
-    result['groupby'] = 'cell.ident'  # デフォルト値
+    # 6. GroupByinfoinfo（defuorutoSettings）
+    result['groupby'] = 'cell.ident'  # defuorutoval
     
-    # 7. LR情報
+    # 7. LRinfoinfo
     if 'lr_sig' in cellchat_data:
         result['lr_sig'] = cellchat_data['lr_sig']
     
-    # 8. adata情報 - 疑似的なanndata構造を作成
+    # 8. adatainfoinfo - doubtlikealnaanndatastructmakethemakebecome
     from types import SimpleNamespace
     
-    # adataオブジェクトを作成
+    # adataobujiekutothemakebecome
     adata = SimpleNamespace()
     
-    # メタデータを追加
+    # metaDatatheaddadd
     if 'meta' in cellchat_data and isinstance(cellchat_data['meta'], pd.DataFrame):
         adata.obs = cellchat_data['meta']
     else:
         adata.obs = pd.DataFrame(index=cell_types)
     
-    # 遺伝子名リストを抽出
+    # Genenamerisutotheextractout
     gene_names = []
     
-    # LRsigからリガンドとレセプター情報を抽出
+    # LRsigfromLigandandreseputa-infoinfotheextractout
     if 'lr_sig' in cellchat_data and isinstance(cellchat_data['lr_sig'], pd.DataFrame):
         lr_df = cellchat_data['lr_sig']
         if 'ligand' in lr_df.columns:
@@ -639,89 +639,89 @@ def format_cellchat_for_visualization(cellchat_data):
             receptors = lr_df['receptor'].dropna().astype(str).unique()
             gene_names.extend(receptors)
     
-    # 遺伝子名がない場合のフォールバック
+    # Genenameisnotplacematchoffuo-rubaku
     if not gene_names:
         gene_names = ["Gene1", "Gene2", "Gene3"]
     
-    # 重複を削除
+    # weightmultithedeleteremove
     gene_names = sorted(list(set(gene_names)))
     
-    # AnnDataのvar属性とvar_namesを模倣
+    # AnnDataofvarbelongnatureandvar_namesthemodel倣
     adata.var_names = pd.Index(gene_names)
     adata.var = pd.DataFrame(index=adata.var_names)
     
-    # AnnDataのshape属性を追加
+    # AnnDataofshapebelongnaturetheaddadd
     adata.shape = (len(adata.obs), len(adata.var_names))
     
-    # X属性を追加
+    # Xbelongnaturetheaddadd
     adata.X = np.zeros(adata.shape)
     
     result['adata'] = adata
     
     return result
 
-# メイン処理
+# meinprocproc
 if r_initialized:
-    # ファイルアップローダー
-    uploaded_file = st.file_uploader("CellChat QSファイルをアップロード", type=["qs"])
+    # Fileapuro-da-
+    uploaded_file = st.file_uploader("CellChat QSFiletheUpload", type=["qs"])
     
     if uploaded_file is not None:
-        st.info(f"ファイル「{uploaded_file.name}」を処理しています...")
+        st.info(f"File「{uploaded_file.name}」theprocprocshiteimasu...")
         
-        with st.spinner("QSファイルを処理中..."):
+        with st.spinner("QSFiletheProcessing..."):
             result = process_qs_file(uploaded_file)
         
         if result is not None:
-            st.success("QSファイルの変換が完了しました！")
+            st.success("QSFileofchangechangeisCompleteshimashita！")
             
-            # 結果の概要を表示
-            st.subheader("変換結果の概要")
+            # ResultofoverviewneedtheDisplay
+            st.subheader("changechangeResultofoverviewneed")
             
-            # 細胞タイプ情報の表示
+            # Cell typeinfoinfoofDisplay
             if 'net' in result and 'dimnames' in result['net'] and len(result['net']['dimnames']) > 0:
                 cell_types = result['net']['dimnames'][0]
                 cell_count = len(cell_types)
                 if cell_count > 0:
-                    st.write(f"検出された細胞タイプ数: {cell_count}")
+                    st.write(f"checkoutsaretaCell typenum: {cell_count}")
                     if cell_count <= 20:
-                        st.write(f"細胞タイプ: {', '.join(cell_types)}")
+                        st.write(f"Cell type: {', '.join(cell_types)}")
                     else:
-                        with st.expander("細胞タイプ一覧"):
+                        with st.expander("Cell typeonebrowse"):
                             st.write(", ".join(cell_types))
             
-            # パスウェイ情報の表示
+            # pasuueiinfoinfoofDisplay
             if 'netP' in result and 'pathways' in result['netP'] and result['netP']['pathways'] is not None:
                 pathways = result['netP']['pathways']
                 pathway_count = len(pathways)
                 if pathway_count > 0:
-                    st.write(f"シグナル経路数: {pathway_count}")
+                    st.write(f"shigunaruPathwaynum: {pathway_count}")
                     if pathway_count <= 10:
-                        st.write(f"シグナル経路: {', '.join(pathways)}")
+                        st.write(f"shigunaruPathway: {', '.join(pathways)}")
                     else:
-                        with st.expander("シグナル経路一覧"):
+                        with st.expander("shigunaruPathwayonebrowse"):
                             st.write(", ".join(pathways))
             
-            # 相互作用情報の表示
+            # InteractioninfoinfoofDisplay
             if 'results' in result and not result['results'].empty:
-                st.write(f"抽出された相互作用数: {len(result['results'])}")
-                with st.expander("相互作用データのサンプル（上位5件）"):
+                st.write(f"extractoutsaretaInteractionnum: {len(result['results'])}")
+                with st.expander("InteractionDataofSample（uprank5item）"):
                     st.dataframe(result['results'].head())
             
-            # 結果をPickleファイルに保存
+            # ResultthePickleFiletoSave
             output_filename = os.path.splitext(uploaded_file.name)[0] + "_python.pkl"
             pickle_data = pickle.dumps(result)
             
-            # ダウンロードボタン
+            # Downloadbotan
             st.download_button(
-                label="変換結果をダウンロード",
+                label="changechangeResulttheDownload",
                 data=pickle_data,
                 file_name=output_filename,
                 mime="application/octet-stream"
             )
             
             st.info("""
-            ダウンロードしたpickleファイルは、cellchat.pyでCellChatの可視化に使用できます。
-            Streamlitアプリにアップロードするか、コード内でpickle.load()を使用してロードしてください。
+            DownloadshitapickleFileis、cellchat.pywithCellChatofVisualizationtouseusewithkimasu。
+            StreamlitapuritoUploaddoka、ko-doinwithpickle.load()theuseuseshitero-doshitekudasai。
             """)
 else:
-    st.error("R環境の初期化に失敗したため、アプリを実行できません。必要なパッケージがインストールされているか確認してください。")
+    st.error("Rringboundofinitializetofailfailshitafor、apuritheRunwithkimasen。requirednapake-jiisinsuto-rusareteexistkaConfirmshitekudasai。")

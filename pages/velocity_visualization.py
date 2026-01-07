@@ -19,19 +19,19 @@ from streamlit_sortables import sort_items
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    細胞名/クラスターと色の一貫したマッピングを作成する関数
+    Cellname/Clusterandcolorofonethroughshitamapinguthemakebecomedorelnum
 
     Parameters
     ----------
     cell_list : list
-        細胞名/クラスター名のリスト
+        Cellname/Clusternameofrisuto
     palette_name : str
-        使用する離散カラーパレット名
+        useusedosepscatterkara-paretoname
 
     Returns
     -------
     dict
-        細胞名/クラスター名をキー、色をバリューとする辞書
+        Cellname/Clusternametheki-、colorthebariyu-anddowordwrite
     """
     n_cells = len(cell_list)
     base_palette = sns.color_palette(palette_name)
@@ -48,20 +48,20 @@ st.set_page_config(page_title="scVelo Visualization", page_icon="🌊", layout="
 
 st.title("🌊 scVelo Visualization")
 st.markdown("""
-scVelo解析結果を可視化します。
+scVeloAnalysisResulttheVisualizationshimasu。
 
-### 可視化の種類
-1. **Velocity embedding stream**: 連続的なvelocityフロー
-2. **Velocity embedding grid**: グリッド状のvelocity矢印
-3. **Phase portraits**: Spliced/unspliced遺伝子動態
-4. **Velocity confidence**: Velocityの信頼度
-5. **Velocity pseudotime**: Velocityベースの疑似時間
-6. **Gene-specific velocity**: 特定遺伝子のvelocity
-7. **PAGA**: Partition-based graph abstraction（クラスター間接続性）
+### Visualizationofkindtype
+1. **Velocity embedding stream**: connectcontinuealnavelocityfuro-
+2. **Velocity embedding grid**: guridostateofvelocityarrowprint
+3. **Phase portraits**: Spliced/unsplicedGenemovestate
+4. **Velocity confidence**: Velocityoftrustrelydegree
+5. **Velocity pseudotime**: Velocitybe-suofdoubtliketimebetween
+6. **Gene-specific velocity**: specsetGeneofvelocity
+7. **PAGA**: Partition-based graph abstraction（Clusterbetweenconnectcontinuenature）
 
-**注:** Pseudotimeにおける遺伝子発現変化は **Pseudotime gene expression** appで可視化できます。
+**note:** PseudotimetookeruGeneExpressionchangeizeis **Pseudotime gene expression** appwithVisualizationwithkimasu。
 
-### 参考
+### refthink
 - [scVelo Basics](https://scvelo.readthedocs.io/en/stable/VelocityBasics.html)
 - [PAGA](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.paga.html)
 """)
@@ -86,7 +86,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file (scVelo result)",
     type=['h5ad'],
     key="velocity_vis_h5ad_upload",
-    help="scVelo analysisアプリで生成されたh5adファイル"
+    help="scVelo analysisapuriwithgenbecomesaretah5adFile"
 )
 
 if uploaded_h5ad is not None:
@@ -212,8 +212,8 @@ if uploaded_h5ad is not None:
         st.error(f"""
         ❌ **Missing required data: {', '.join(required_data)}**
 
-        このファイルはscVelo解析結果ではないようです。
-        scVelo analysisアプリで解析したh5adファイルをアップロードしてください。
+        koofFileisscVeloAnalysisResultwithisnotlikewithsu。
+        scVelo analysisapuriwithAnalysisshitah5adFiletheUploadshitekudasai。
         """)
         st.stop()
 
@@ -291,7 +291,7 @@ if uploaded_h5ad is not None:
                     "Select velocity to visualize",
                     source_names,
                     index=0,  # Default to first (scVelo)
-                    help="異なるvelocity計算結果を切り替えて比較できます"
+                    help="diffbecomevelocityCalculationResultthecutriswapeteComparisonwithkimasu"
                 )
             with col_vel2:
                 if "scVelo" in selected_velocity:
@@ -369,49 +369,49 @@ if uploaded_h5ad is not None:
 
     with st.expander("📚 Visualization Guide", expanded=False):
         st.markdown("""
-        ### Embedding Basis（埋め込み空間）
-        - **複数選択可能**: UMAP、tSNE、PCA等を同時に選択できます
-        - 各embeddingに対して個別のプロットが生成されます
-        - デフォルトでUMAPが選択されます（利用可能な場合）
+        ### Embedding Basis（fillmeintomiemptybetween）
+        - **multinumSelectpossible**: UMAP、tSNE、PCAeqthesametimetoSelectwithkimasu
+        - eachembeddingtopairshitepiecesepofpurotoisgenbecomesaremasu
+        - defuorutowithUMAPisSelectsaremasu（useusepossiblenaplacematch）
 
-        ### Coloring（色付け）
-        - **Cluster identity**: メタデータから色付けする列を選択
-        - **Discrete colormap**: カテゴリカル変数用（クラスター、細胞タイプ等）
-          - 可視化タイプに応じて自動的に表示/非表示が切り替わります
-        - **Continuous colormap**: 連続変数用（遺伝子発現、pseudotime等）
-          - 可視化タイプに応じて自動的に表示/非表示が切り替わります
-        - **Show cluster names**: 凡例の表示/非表示を切り替え
+        ### Coloring（colorattachke）
+        - **Cluster identity**: metaDatafromcolorattachkedocoltheSelect
+        - **Discrete colormap**: kategorikaruchangenumuse（Cluster、Cell typeeq）
+          - VisualizationtaiputorespondjiteselfmovealtoDisplay/nonDisplayiscutriswapwarimasu
+        - **Continuous colormap**: connectcontinuechangenumuse（GeneExpression、pseudotimeeq）
+          - VisualizationtaiputorespondjiteselfmovealtoDisplay/nonDisplayiscutriswapwarimasu
+        - **Show cluster names**: legendExampleofDisplay/nonDisplaythecutriswape
 
-        ### Cluster Settings（サイドバー）
-        - **Change cluster order**: クラスターの表示順序をドラッグ&ドロップで変更
-        - 順序変更は色の割り当てにも反映されます
+        ### Cluster Settings（saidoba-）
+        - **Change cluster order**: ClusterofDisplayorderorderthedoragu&doropuwithchangefurther
+        - orderorderchangefurtheriscolorofratioricurrenttetomoantimapsaremasu
 
         ### Velocity Plots
-        - **Stream plot**: 連続的なvelocityフロー
-          - 全体的な流れと軌跡を把握
+        - **Stream plot**: connectcontinuealnavelocityfuro-
+          - allbodyalnaflowreandtracktracethe把握
           - Advanced options: density, smoothing, min_mass
-        - **Grid plot**: グリッド状のvelocity矢印
-          - 個々の細胞のvelocity方向を詳細に把握
+        - **Grid plot**: guridostateofvelocityarrowprint
+          - piece々ofCellofvelocitywaydirthedetailfineto把握
           - Advanced options: scale, min_mass, alpha (transparency)
 
-        ### Advanced Options（詳細設定）
-        - **Stream density**: ストリームラインの密度（0.5-3.0）
-        - **Smoothing**: ストリームラインの滑らかさ（0.0-1.0）
-        - **Min mass**: 矢印を表示する最小質量（閾値）
-        - **Scale**: 矢印のスケール（0.1-2.0）
-        - **Alpha**: 矢印の透明度（0.1-1.0）
+        ### Advanced Options（detailfineSettings）
+        - **Stream density**: sutori-murainofdensedegree（0.5-3.0）
+        - **Smoothing**: sutori-murainofsmoothrakasa（0.0-1.0）
+        - **Min mass**: arrowprinttheDisplaydominimumqualityamount（Threshold）
+        - **Scale**: arrowprintofsuke-ru（0.1-2.0）
+        - **Alpha**: arrowprintoftranscleardegree（0.1-1.0）
 
         ### PAGA (Partition-based graph abstraction)
-        - クラスター間の接続性を可視化
-        - Velocity-directed PAGAはクラスター間の方向性のある遷移を表示
-        - **PAGA graph**: クラスター間の接続グラフ
-        - **PAGA compare**: PAGAグラフとUMAP/tSNEの比較表示
-        - PAGAが計算されていない場合は表示されません
+        - ClusterbetweenofconnectcontinuenaturetheVisualization
+        - Velocity-directed PAGAisClusterbetweenofwaydirnatureofexisttransitmovetheDisplay
+        - **PAGA graph**: Clusterbetweenofconnectcontinuegurafu
+        - **PAGA compare**: PAGAgurafuandUMAP/tSNEofComparisonDisplay
+        - PAGAisCalculationsareteinotplacematchisDisplaysaremasen
 
-        ### Download（ダウンロード）
-        - **PNG format**: 高解像度ビットマップ（300 DPI）
-        - **PDF format**: ベクター形式（論文投稿・印刷に最適）
-        - 生成された全てのプロットが両形式でダウンロード可能
+        ### Download（Download）
+        - **PNG format**: highsolveimgdegreebitomapu（300 DPI）
+        - **PDF format**: bekuta-shapeformat（logictext投稿,print刷tomostfit）
+        - genbecomesaretaallteofpurotoisbothshapeformatwithDownloadpossible
         """)
 
     # Check if PAGA is available
@@ -433,7 +433,7 @@ if uploaded_h5ad is not None:
     viz_type = st.selectbox(
         "Visualization type",
         viz_types,
-        help="可視化のタイプを選択"
+        help="VisualizationoftaiputheSelect"
     )
 
     if not has_paga and viz_type == "PAGA":
@@ -449,11 +449,11 @@ if uploaded_h5ad is not None:
 
         if uses_discrete:
             colormap_discrete = st.selectbox(
-                "Colormap (離散カラーマップ):",
+                "Colormap (sepscatterkara-mapu):",
                 ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
                  "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
                 index=0,
-                help="カテゴリカル変数用のカラーパレット"
+                help="kategorikaruchangenumuseofkara-pareto"
             )
         else:
             # Set default for non-discrete viz types
@@ -461,11 +461,11 @@ if uploaded_h5ad is not None:
 
         if uses_continuous:
             colormap_continuous = st.selectbox(
-                "Colormap (連続カラーマップ):",
+                "Colormap (connectcontinuekara-mapu):",
                 ["viridis", "plasma", "inferno", "magma", "cividis",
                  "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
                 index=0,
-                help="連続変数用のカラーマップ"
+                help="connectcontinuechangenumuseofkara-mapu"
             )
         else:
             # Set default for non-continuous viz types
@@ -477,7 +477,7 @@ if uploaded_h5ad is not None:
         show_legend = st.checkbox(
             "Show cluster names (legend)",
             value=True,
-            help="クラスター名/カテゴリ名の凡例を表示するかどうか"
+            help="Clustername/kategorinameoflegendExampletheDisplaydowhether"
         )
 
         st.markdown("---")
@@ -485,21 +485,21 @@ if uploaded_h5ad is not None:
 
         # Dot size and alpha controls
         dot_size = st.slider(
-            "Dot size (細胞のサイズ)",
+            "Dot size (Cellofsaizu)",
             min_value=1,
             max_value=200,
             value=10,
             step=5,
-            help="散布図上の細胞ドットのサイズ"
+            help="scatterdistfigupofCelldotoofsaizu"
         )
 
         dot_alpha = st.slider(
-            "Dot alpha (細胞の透明度)",
+            "Dot alpha (Celloftranscleardegree)",
             min_value=0.1,
             max_value=1.0,
             value=0.8,
             step=0.1,
-            help="細胞ドットの透明度（0.1=透明、1.0=不透明）"
+            help="Celldotooftranscleardegree（0.1=transclear、1.0=nottransclear）"
         )
 
     st.markdown("---")
@@ -519,10 +519,10 @@ if uploaded_h5ad is not None:
             default_basis = available_bases[0]
 
         basis_selections = st.multiselect(
-            "Embedding basis (可視化する埋め込み空間)",
+            "Embedding basis (Visualizationdofillmeintomiemptybetween)",
             available_bases,
             default=[default_basis] if default_basis else [],
-            help="可視化に使用する埋め込み空間を選択。複数選択すると各embeddingに対してプロットを生成します"
+            help="VisualizationtouseusedofillmeintomiemptybetweentheSelect。multinumSelectdoandeachembeddingtopairshitepurotothegenbecomeshimasu"
         )
 
         if not basis_selections:
@@ -536,7 +536,7 @@ if uploaded_h5ad is not None:
                 "Cluster identity (color by)",
                 ["None"] + categorical_columns,
                 index=1 if len(categorical_columns) > 0 else 0,
-                help="メタデータから色付けする列を選択"
+                help="metaDatafromcolorattachkedocoltheSelect"
             )
 
     # Split by option - placed outside col2 but below cluster selection
@@ -544,14 +544,14 @@ if uploaded_h5ad is not None:
         split_by_enabled = st.checkbox(
             "Split plots by metadata",
             value=False,
-            help="メタデータの各カテゴリごとに個別のプロットを作成"
+            help="metaDataofeachkategorigoandtopiecesepofpurotothemakebecome"
         )
 
         if split_by_enabled:
             split_by_column = st.selectbox(
                 "Select column to split by",
                 categorical_columns,
-                help="この列の各カテゴリごとにプロットを分割"
+                help="koofcolofeachkategorigoandtopurotothedivratio"
             )
         else:
             split_by_column = None
@@ -702,13 +702,13 @@ if uploaded_h5ad is not None:
             col1, col2, col3 = st.columns(3)
             with col1:
                 stream_density = st.slider("Stream density", 0.5, 3.0, 1.0, 0.1,
-                                          help="ストリームラインの密度")
+                                          help="sutori-murainofdensedegree")
             with col2:
                 stream_smooth = st.slider("Smoothing", 0.0, 1.0, 0.5, 0.1,
-                                         help="ストリームラインの滑らかさ")
+                                         help="sutori-murainofsmoothrakasa")
             with col3:
                 stream_min_mass = st.slider("Min mass", 0.0, 10.0, 1.0, 0.5,
-                                           help="矢印を表示する最小質量（閾値）")
+                                           help="arrowprinttheDisplaydominimumqualityamount（Threshold）")
 
     elif viz_type == "Velocity embedding grid":
         st.subheader("Grid plot parameters")
@@ -725,13 +725,13 @@ if uploaded_h5ad is not None:
             col1, col2, col3 = st.columns(3)
             with col1:
                 grid_scale = st.slider("Scale", 0.1, 2.0, 1.0, 0.1,
-                                      help="矢印のスケール")
+                                      help="arrowprintofsuke-ru")
             with col2:
                 grid_min_mass = st.slider("Min mass", 0.0, 10.0, 1.0, 0.5,
-                                         help="矢印を表示する最小質量（閾値）")
+                                         help="arrowprinttheDisplaydominimumqualityamount（Threshold）")
             with col3:
                 grid_alpha = st.slider("Alpha (transparency)", 0.1, 1.0, 1.0, 0.1,
-                                      help="矢印の透明度")
+                                      help="arrowprintoftranscleardegree")
 
     elif viz_type == "Phase portraits":
         st.subheader("Phase portrait parameters")
@@ -742,7 +742,7 @@ if uploaded_h5ad is not None:
         gene_selection_method = st.radio(
             "Gene selection method",
             ["Top velocity genes", "Manual selection"],
-            help="Top velocity genes: 最も高いvelocityを持つ遺伝子を自動選択"
+            help="Top velocity genes: mostmohighivelocitytheholdtsuGenetheselfmoveSelect"
         )
 
         if gene_selection_method == "Manual selection":
@@ -750,7 +750,7 @@ if uploaded_h5ad is not None:
                 "Select genes",
                 gene_list,
                 max_selections=20,
-                help="表示する遺伝子を選択（最大20個）"
+                help="DisplaydoGenetheSelect（maximum20piece）"
             )
         else:
             selected_genes = None
@@ -761,7 +761,7 @@ if uploaded_h5ad is not None:
             "Select genes",
             gene_list,
             max_selections=10,
-            help="表示する遺伝子を選択（最大10個）"
+            help="DisplaydoGenetheSelect（maximum10piece）"
         )
 
     elif viz_type == "PAGA":
@@ -770,7 +770,7 @@ if uploaded_h5ad is not None:
         paga_plot_type = st.radio(
             "Plot type",
             ["PAGA graph", "PAGA compare"],
-            help="PAGA graph: クラスター間接続グラフのみ\nPAGA compare: PAGAグラフとUMAP/tSNEの比較"
+            help="PAGA graph: Clusterbetweenconnectcontinuegurafuofmi\nPAGA compare: PAGAgurafuandUMAP/tSNEofComparison"
         )
 
         # Common parameters for both plot types
@@ -779,19 +779,19 @@ if uploaded_h5ad is not None:
             paga_threshold = st.slider(
                 "Edge threshold",
                 0.0, 1.0, 0.01, 0.01,
-                help="表示するエッジの閾値（低い値ほど多くの接続を表示）"
+                help="DisplaydoejiofThreshold（lowivalhodomanykuofconnectcontinuetheDisplay）"
             )
         with col2:
             paga_node_size_scale = st.slider(
                 "Node size scale",
                 0.5, 5.0, 1.0, 0.5,
-                help="ノードサイズのスケール"
+                help="no-dosaizuofsuke-ru"
             )
         with col3:
             paga_arrowsize = st.slider(
                 "Arrow size",
                 0, 30, 15, 1,
-                help="方向性を示す矢印のサイズ（0で矢印なし）"
+                help="waydirnaturetheshowsuarrowprintofsaizu（0witharrowprintnashi）"
             )
 
     # Figure size
@@ -872,7 +872,7 @@ if uploaded_h5ad is not None:
                                 fig_files_pdf.append(fig_path_pdf)
                             except ValueError as pdf_error:
                                 if "finite" in str(pdf_error):
-                                    st.warning(f"⚠️ PDF保存をスキップ ({file_suffix}): データに無限大/NaNが含まれています")
+                                    st.warning(f"⚠️ PDFSavethesukipu ({file_suffix}): Datatonolimitbig/NaNisincludemareteimasu")
                                 else:
                                     raise
 
@@ -933,7 +933,7 @@ if uploaded_h5ad is not None:
                                 fig_files_pdf.append(fig_path_pdf)
                             except ValueError as pdf_error:
                                 if "finite" in str(pdf_error):
-                                    st.warning(f"⚠️ PDF保存をスキップ ({file_suffix}): データに無限大/NaNが含まれています")
+                                    st.warning(f"⚠️ PDFSavethesukipu ({file_suffix}): Datatonolimitbig/NaNisincludemareteimasu")
                                 else:
                                     raise
 
@@ -957,14 +957,14 @@ if uploaded_h5ad is not None:
 
                             **Error:** {str(e)}
 
-                            **原因:** scvelo v0.3.4 と pandas 2.0+ の互換性問題
+                            **plaincause:** scvelo v0.3.4 and pandas 2.0+ ofmutualchangenaturequesttopic
                             - `AttributeError: property 'categories' of 'Categorical' object has no setter`
 
-                            **解決方法:**
-                            1. `rank_velocity_genes.py` を修正
+                            **solvedetwaymethod:**
+                            1. `rank_velocity_genes.py` themodcorrect
                                - Line 173-177: `cat.reorder_categories()` → `cat.set_categories()`
                                - Line 191-197: `cat.categories = ...` → `cat.rename_categories()`
-                            2. または "Manual selection" で遺伝子を手動選択してください
+                            2. alsois "Manual selection" withGenethehandmoveSelectshitekudasai
                             """)
                             genes_to_plot = []
 
@@ -999,7 +999,7 @@ if uploaded_h5ad is not None:
                             fig_files_pdf.append(fig_path_pdf)
                         except ValueError as pdf_error:
                             if "finite" in str(pdf_error):
-                                st.warning("⚠️ PDF保存をスキップ: データに無限大/NaNが含まれています")
+                                st.warning("⚠️ PDFSavethesukipu: Datatonolimitbig/NaNisincludemareteimasu")
                             else:
                                 raise
 
@@ -1041,7 +1041,7 @@ if uploaded_h5ad is not None:
                             fig_files_pdf.append(fig_path_pdf)
                         except ValueError as pdf_error:
                             if "finite" in str(pdf_error):
-                                st.warning(f"⚠️ PDF保存をスキップ ({b}): データに無限大/NaNが含まれています")
+                                st.warning(f"⚠️ PDFSavethesukipu ({b}): Datatonolimitbig/NaNisincludemareteimasu")
                             else:
                                 raise
 
@@ -1091,7 +1091,7 @@ if uploaded_h5ad is not None:
                             fig_files_pdf.append(fig_path_pdf)
                         except ValueError as pdf_error:
                             if "finite" in str(pdf_error):
-                                st.warning(f"⚠️ PDF保存をスキップ ({b}): データに無限大/NaNが含まれています")
+                                st.warning(f"⚠️ PDFSavethesukipu ({b}): Datatonolimitbig/NaNisincludemareteimasu")
                             else:
                                 raise
 
@@ -1174,7 +1174,7 @@ if uploaded_h5ad is not None:
                                         fig_files_pdf.append(fig_path_pdf)
                                     except ValueError as pdf_error:
                                         if "finite" in str(pdf_error):
-                                            st.warning(f"⚠️ PDF保存をスキップ ({file_suffix}): データに無限大/NaNが含まれています")
+                                            st.warning(f"⚠️ PDFSavethesukipu ({file_suffix}): Datatonolimitbig/NaNisincludemareteimasu")
                                         else:
                                             raise
 
@@ -1221,7 +1221,7 @@ if uploaded_h5ad is not None:
                                 fig_files_pdf.append(fig_path_pdf)
                             except ValueError as pdf_error:
                                 if "finite" in str(pdf_error):
-                                    st.warning("⚠️ PDF保存をスキップ: データに無限大/NaNが含まれています")
+                                    st.warning("⚠️ PDFSavethesukipu: Datatonolimitbig/NaNisincludemareteimasu")
                                 else:
                                     raise
 
@@ -1268,7 +1268,7 @@ if uploaded_h5ad is not None:
                                     fig_files_pdf.append(fig_path_pdf)
                                 except ValueError as pdf_error:
                                     if "finite" in str(pdf_error):
-                                        st.warning(f"⚠️ PDF保存をスキップ ({b}): データに無限大/NaNが含まれています")
+                                        st.warning(f"⚠️ PDFSavethesukipu ({b}): Datatonolimitbig/NaNisincludemareteimasu")
                                     else:
                                         raise
 
@@ -1326,4 +1326,4 @@ if uploaded_h5ad is not None:
                 st.exception(e)
 
 else:
-    st.info("👆 scVelo解析結果のh5adファイルをアップロードして開始してください")
+    st.info("👆 scVeloAnalysisResultofh5adFiletheUploadshitestartshitekudasai")

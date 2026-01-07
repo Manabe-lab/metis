@@ -149,11 +149,11 @@ if 'df' in st.session_state:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        # Homer対応
+        # Homerpairrespond
         if "Transcript/RepeatID" in df.columns[0]:
             df = df.iloc[:,8:]
             st.write(df.head())
-        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+        if "Row_name" in df.columns.to_list(): # Row_nametheincludemuandki
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -202,24 +202,24 @@ if use_upload == 'Yes':
             if input_file_type == "csv":
                 df = read_csv(uploaded_file, index_col = 0)
             elif input_file_type == "excel" :
-                df = read_excel(uploaded_file, index_col = 0) #cacheされるfunctionを使う
+                df = read_excel(uploaded_file, index_col = 0) #cachesarerufunctiontheuseu
             elif input_file_type ==  'Homer-excel':
                 df = read_excel(uploaded_file)
             elif input_file_type == "Homer":
                 df = read_csv(uploaded_file, sep = '\t')
             else:
                 df = read_csv(uploaded_file, sep = '\t', index_col = 0)
-        except: # excel fileを明示していないとき
+        except: # excel filetheclearshowshiteinotandki
             df = read_excel(uploaded_file)
             nonexplicit_excel = True
 
-    ##### Homerの変換部分
+    ##### Homerofchangechangepartdiv
         if input_file_type == "Homer":
             df = df.iloc[:,7:]
             colnames = df.columns.tolist()
             colnames[0] = 'Gene'
 
-            # colnamesの変換
+            # colnamesofchangechange
             search_word = '([^\ \(]*)\ \(.*'
 
             for i in range(1, len(colnames)):
@@ -236,30 +236,30 @@ if use_upload == 'Yes':
 
             df.set_index("Gene", inplace = True)
 
-        else: # excelでは明示的にしない。
+        else: # excelwithisclearshowaltoshinot。
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # oneoncenamebeforethechangefurther
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # annotation/divergencebeforetheremoveku
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
                 df.columns = content
                 st.write("Converted Annotation/Divergence to gene symbols.")
                 df.set_index("Gene", inplace = True)
-            elif nonexplicit_excel: # excel fileを明示していないとき
+            elif nonexplicit_excel: # excel filetheclearshowshiteinotandki
                 df.set_index(content[0], inplace = True)
 
 
@@ -279,7 +279,7 @@ if use_upload == 'Yes':
 
 if df is not None:
 
-########## excel対応?
+########## excelpairrespond?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -338,7 +338,7 @@ if df is not None:
                 from rpy2.robjects.vectors import StrVector
                 import pyper
                 r = pyper.R(use_pandas=True)
-                f = ro.r("source('./pages/deseq2_func.R')") # full pathが必要
+                f = ro.r("source('./pages/deseq2_func.R')") # full pathisrequired
                 condition = [str(i) for i in df.columns.tolist()]
                 group_condition = remove_common_suffix(condition) #Remove common suffix elements
                 group_condition = [remove_sample_num(x) for x in group_condition] #Remove trailing numbers
@@ -358,7 +358,7 @@ if df is not None:
                 r("saveRDS(df, 'pyper_df.RDS')")
 
                 ro.r("cts <- readRDS('pyper_df.RDS')")
-                #まずベクターに変換
+                #mazubekuta-tochangechange
                 r_condition =  ro.StrVector(condition)
                 ro.r.assign('condition', r_condition)
 #                batch = ["No batch"]
@@ -371,7 +371,7 @@ if df is not None:
                     calc_rlog()
                 else:
                     calc_rlog_no_group()
-                # df_conv = ro.conversion.rpy2py(rld) うまくいかない
+                # df_conv = ro.conversion.rpy2py(rld) umakuikanot
                 df_conv = pd.read_csv('temp/rld.tsv', sep = '\t', header = 0)
                 content = df_conv.columns.tolist()
                 content[0] = 'Gene'
@@ -404,7 +404,7 @@ if df is not None:
 
 
         if max_val != f_inf:
-            df =  df[df.apply(max, axis=1) > max_val] #ここがminだと、0が一つでもあれば削除される。
+            df =  df[df.apply(max, axis=1) > max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
 
         if delta_val > 1:
             df = df[df.apply(max, axis=1) > df.apply(min, axis=1) + delta_val]
@@ -420,7 +420,7 @@ if df is not None:
             df = df[df.apply(max, axis=1) <= high_min_val]
 
         if high_max_val != p_inf:
-            df =  df[df.apply(min, axis=1) <= high_max_val] #ここがminだと、0が一つでもあれば削除される。
+            df =  df[df.apply(min, axis=1) <= high_max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
 
         if top_n != p_inf:
             top_ix = df.mean(axis = 1).sort_values(ascending=False).head(10).index
@@ -436,13 +436,13 @@ if df is not None:
             "Log transformation:",
             ('None', 'asinh','log2(x+1)', 'ln(x+1)', 'log10(x+1)'), key='None')
 
-    condition = [str(i) for i in df.columns.tolist()] #error防止
+    condition = [str(i) for i in df.columns.tolist()] #errorpreventstop
     label2show = df.columns.to_list()
     category = st.checkbox('Set color groups and/or change labels??', value=True)
     st.write("###### Uncheck this to set individual colors for each point.")
     if category:
         condition = [str(i) for i in condition] # https://stackoverflow.com/questions/69578431/how-to-fix-streamlitapiexception-expected-bytes-got-a-int-object-conver
-        # エラーが出るためすべてリストの内容をstrに変換してからdfを作る
+        # Errorisoutruforallrisutoofincontentthestrtochangechangeshitefromdfthemakeru
 #        df_f = pd.DataFrame(df.columns.tolist(), index = df.columns.tolist() , columns = ["Group"]).copy()
         group_condition = remove_common_suffix(condition) #Remove common suffix elements
         group_condition = [remove_sample_num(x) for x in group_condition] #Remove trailing numbers
@@ -486,11 +486,11 @@ if df is not None:
             if ',' not in genes:
                 gene_list = genes.split(' ')
             else:
-                genes =  ''.join(genes.split()) #空白を除く
+                genes =  ''.join(genes.split()) #emptywhitetheremoveku
                 gene_list = genes.split(',')
-            genes = list(filter(lambda x: x != "", genes)) #空白を除く
+            genes = list(filter(lambda x: x != "", genes)) #emptywhitetheremoveku
 
-            # intersectを取る
+            # intersectthegetru
             gene_list = set(df.index.tolist()) & set(gene_list)
             df = df.loc[list(gene_list),:]
     st.markdown('---')
@@ -866,7 +866,7 @@ if df is not None:
             pca_col_name = results['pca_col_name']
             df_stored = results['df']
 
-            # PCA score tableのダウンロード
+            # PCA score tableofDownload
             pca_score_tsv = convert_df(df_pca)
             pca_score_file_name = file_name_head + '.PCA_scores.tsv'
             st.download_button(label="Download PCA scores table",
@@ -875,7 +875,7 @@ if df is not None:
                                 mime='text/csv',
                                 help='Table containing sample names and PC scores. Can be used for statistical analysis in pca_statistics.py.')
 
-            # Loadings matrixのダウンロード
+            # Loadings matrixofDownload
             loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
             loading_matrix = pd.DataFrame(loadings, columns=pca_col_name, index=df_stored.index)
             loading_tsv = convert_df(loading_matrix)

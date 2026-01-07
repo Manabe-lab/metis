@@ -23,19 +23,19 @@ def _get_file_hash(file_obj):
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    細胞名/クラスターと色の一貫したマッピングを作成する関数
+    Cellname/Clusterandcolorofonethroughshitamapinguthemakebecomedorelnum
 
     Parameters
     ----------
     cell_list : list
-        細胞名/クラスター名のリスト
+        Cellname/Clusternameofrisuto
     palette_name : str
-        使用する離散カラーパレット名
+        useusedosepscatterkara-paretoname
 
     Returns
     -------
     dict
-        細胞名/クラスター名をキー、色をバリューとする辞書
+        Cellname/Clusternametheki-、colorthebariyu-anddowordwrite
     """
     n_cells = len(cell_list)
     base_palette = sns.color_palette(palette_name)
@@ -131,7 +131,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload Dynamo result (h5ad)",
     type=['h5ad'],
     key="dynamo_pert_v2_h5ad_upload",
-    help="Dynamo Analysis appで生成されたh5adファイル"
+    help="Dynamo Analysis appwithgenbecomesaretah5adFile"
 )
 
 if uploaded_h5ad is not None:
@@ -189,19 +189,19 @@ if uploaded_h5ad is not None:
             available_pert_bases = [k.replace('X_', '').replace('_perturbation', '') for k in perturbation_keys]
 
             use_existing = st.checkbox(
-                "既存のperturbation結果を使用する",
+                "alreadyexistofperturbationResulttheuseusedo",
                 value=True,
                 key="use_existing_perturbation"
             )
 
             if use_existing:
-                st.caption("💡 データ読み込み後に次のステップへ進まない場合は、下記で使用するperturbation basisを選択してください")
+                st.caption("💡 DataLoadingaftertonextofsutepuheprogmanotplacematchis、belowrecwithuseusedoperturbation basistheSelectshitekudasai")
                 if len(available_pert_bases) == 1:
                     selected_pert_basis = available_pert_bases[0]
                     st.info(f"Perturbation basis: **{selected_pert_basis}**")
                 else:
                     selected_pert_basis = st.selectbox(
-                        "使用するperturbation basis:",
+                        "useusedoperturbation basis:",
                         available_pert_bases,
                         key="select_existing_pert_basis"
                     )
@@ -227,14 +227,14 @@ if uploaded_h5ad is not None:
             st.error("""
             ❌ **Cannot proceed with perturbation analysis**
 
-            このファイルにはDynamo解析の必須データが不足しています。
+            koofFiletoisDynamoAnalysisofmustmustDataisnotenoughshiteimasu。
 
-            必要なデータ:
+            requirednaData:
             - ✅ Vector field (any basis)
-            - ✅ High-dimensional Vector field (PCA, MNN等 - umap/tsne以外)
-            - ✅ Low-dimensional embedding (UMAP等)
+            - ✅ High-dimensional Vector field (PCA, MNNeq - umap/tsneorout)
+            - ✅ Low-dimensional embedding (UMAPeq)
 
-            Dynamo Analysisアプリで先にvector field計算を実行してください。
+            Dynamo Analysisapuriwithfirsttovector fieldCalculationtheRunshitekudasai。
             """)
             st.stop()
 
@@ -245,19 +245,19 @@ if uploaded_h5ad is not None:
             st.markdown("### Visualization Options")
 
             colormap_discrete = st.selectbox(
-                "Colormap (離散カラーマップ):",
+                "Colormap (sepscatterkara-mapu):",
                 ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
                  "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
                 index=0,
-                help="カテゴリカル変数用のカラーパレット"
+                help="kategorikaruchangenumuseofkara-pareto"
             )
 
             colormap_continuous = st.selectbox(
-                "Colormap (連続カラーマップ):",
+                "Colormap (connectcontinuekara-mapu):",
                 ["viridis", "plasma", "inferno", "magma", "cividis",
                  "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
                 index=0,
-                help="連続変数用のカラーパレット"
+                help="connectcontinuechangenumuseofkara-pareto"
             )
 
         # ========================================
@@ -322,8 +322,8 @@ if uploaded_h5ad is not None:
             st.subheader("Vector Field Basis")
 
             st.info("""
-            **High-dimensional spaces** (PCA, MNN等) をJacobian計算に使用します。
-            UMAP/tSNE等の低次元埋め込みは除外されています。
+            **High-dimensional spaces** (PCA, MNNeq) theJacobianCalculationtouseuseshimasu。
+            UMAP/tSNEeqoflownextsourcefillmeintomiisremoveoutsareteimasu。
             """)
 
             vf_basis = st.selectbox(
@@ -425,17 +425,17 @@ if uploaded_h5ad is not None:
                                 st.success(f"✓ Using generic PCA loadings: {generic_pcs_key} ({PCs.shape})")
                             else:
                                 st.warning(f"""
-                                ⚠️ **PCA loadings次元の不一致:**
-                                - 選択したbasis ({jacobian_basis}): {n_embedding_dims}次元
-                                - 利用可能なPCs: {PCs.shape[1]}次元
+                                ⚠️ **PCA loadingsnextsourceofnotonecause:**
+                                - Selectshitabasis ({jacobian_basis}): {n_embedding_dims}nextsource
+                                - useusepossiblenaPCs: {PCs.shape[1]}nextsource
 
-                                **原因**: {jacobian_basis}のPCA loadingsが保存されていません。
-                                Vector Fieldは{n_embedding_dims}次元で計算されていますが、
-                                perturbationに必要なloadingsは{PCs.shape[1]}次元のものしかありません。
+                                **plaincause**: {jacobian_basis}ofPCA loadingsisSavesareteimasen。
+                                Vector Fieldis{n_embedding_dims}nextsourcewithCalculationsareteimasuis、
+                                perturbationtorequirednaloadingsis{PCs.shape[1]}nextsourceofmoofshikaarimasen。
                                 """)
                                 need_recompute = True
                         else:
-                            st.warning(f"⚠️ PCA loadingsが見つかりません（uns, varmともに）。新規に計算します。")
+                            st.warning(f"⚠️ PCA loadingsisviewtsukarimasen（uns, varmandmoto）。newruletoCalculationshimasu。")
                             need_recompute = True
 
                     # Find mean key (check both uns keys)
@@ -449,10 +449,10 @@ if uploaded_h5ad is not None:
                         # Use dynamo default 30 dimensions when recomputing PCA
                         default_n_pca = 30
                         st.info(f"""
-                        🔄 **PCA loadingsを{default_n_pca}次元（dynamo default）で再計算します...**
+                        🔄 **PCA loadingsthe{default_n_pca}nextsource（dynamo default）withreCalculationshimasu...**
 
-                        選択したbasis ({jacobian_basis}) のPCA loadingsが見つからないか、
-                        次元が一致しないため、新規にPCAを計算します。
+                        Selectshitabasis ({jacobian_basis}) ofPCA loadingsisviewtsufromnotka、
+                        nextsourceisonecauseshinotfor、newruletoPCAtheCalculationshimasu。
                         """)
 
                         from sklearn.decomposition import PCA as sklearn_PCA
@@ -480,7 +480,7 @@ if uploaded_h5ad is not None:
                         PCs_location = 'uns'
                         pca_mean_key = basis_mean_key
 
-                        st.success(f"✓ PCA loadingsを再計算しました: {basis_pcs_key} ({PCs.shape})")
+                        st.success(f"✓ PCA loadingsthereCalculationshimashita: {basis_pcs_key} ({PCs.shape})")
 
                     # Get stored mean
                     if pca_mean_key is None:
@@ -493,7 +493,7 @@ if uploaded_h5ad is not None:
 
                     st.info(f"""
                     **PCA parameters:**
-                    - Embedding: {pca_key} ({n_embedding_dims}次元)
+                    - Embedding: {pca_key} ({n_embedding_dims}nextsource)
                     - PCs: {PCs_key} ({PCs.shape})
                     - Mean: {pca_mean_key} ({n_genes_mean} genes)
                     """)
@@ -566,7 +566,7 @@ if uploaded_h5ad is not None:
                         Expected key: `{vf_key_full}`
                         Available Vector Field keys: {vecfld_keys}
 
-                        ベクトル場のキー名が見つかりません。
+                        bekutoruplaceofki-nameisviewtsukarimasen。
                         """)
                         st.stop()
 
@@ -594,11 +594,11 @@ if uploaded_h5ad is not None:
 
                     if n_pcs_embedding != n_pcs_loadings:
                         st.warning(f"""
-                        ⚠️ **PC次元の不一致を検出・修正:**
-                        - Embedding ({pca_key}): {n_pcs_embedding} 成分
-                        - Loadings (PCs): {n_pcs_loadings} 成分
+                        ⚠️ **PCnextsourceofnotonecausethecheckout,modcorrect:**
+                        - Embedding ({pca_key}): {n_pcs_embedding} becomediv
+                        - Loadings (PCs): {n_pcs_loadings} becomediv
 
-                        Embeddingを {n_pcs_loadings} 成分に切り詰めます。
+                        Embeddingthe {n_pcs_loadings} becomedivtocutripackmemasu。
                         """)
 
                         # Truncate the embedding to match PCs loadings
@@ -617,7 +617,7 @@ if uploaded_h5ad is not None:
                         for rel_key in related_keys:
                             if rel_key in adata.obsm and adata.obsm[rel_key].shape[1] == n_pcs_embedding:
                                 adata.obsm[rel_key] = adata.obsm[rel_key][:, :n_pcs_loadings]
-                                st.info(f"  - {rel_key} も切り詰めました")
+                                st.info(f"  - {rel_key} mocutripackmemashita")
 
                         st.success(f"✓ Embedding dimension adjusted: {n_pcs_embedding} → {n_pcs_loadings}")
 
@@ -628,19 +628,19 @@ if uploaded_h5ad is not None:
 
                     if missing_genes:
                         st.error(f"""
-                        ❌ **以下の遺伝子がHVG (use_for_pca) に含まれていません:**
+                        ❌ **orbelowofGeneisHVG (use_for_pca) toincludemareteimasen:**
                         {', '.join(missing_genes)}
 
-                        Perturbation解析にはHVG遺伝子のみ使用可能です。
-                        HVG遺伝子数: {n_hvg}
+                        PerturbationAnalysistoisHVGGeneofmiuseusepossiblewithsu。
+                        HVGGenenum: {n_hvg}
 
-                        **解決策:**
-                        1. dynamo_analysisで「Force include genes」に追加して再実行
-                        2. または、HVGに含まれる遺伝子を選択
+                        **solvedetplan:**
+                        1. dynamo_analysiswith「Force include genes」toaddaddshitereRun
+                        2. alsois、HVGtoincludemareruGenetheSelect
                         """)
                         st.stop()
                     else:
-                        st.success(f"✓ 選択した遺伝子 ({', '.join(selected_genes)}) はすべてHVG ({n_hvg}遺伝子) に含まれています")
+                        st.success(f"✓ SelectshitaGene ({', '.join(selected_genes)}) isallHVG ({n_hvg}Gene) toincludemareteimasu")
 
                     # Check if selected genes are in use_for_dynamics (required for jacobian)
                     # If not, automatically add them
@@ -649,18 +649,18 @@ if uploaded_h5ad is not None:
                         missing_in_dynamics = [g for g in selected_genes if g not in dynamics_genes]
 
                         if missing_in_dynamics:
-                            st.warning(f"⚠️ 以下の遺伝子が `use_for_dynamics` に含まれていません: {', '.join(missing_in_dynamics)}")
-                            st.info("🔄 Jacobian計算のため、自動的に `use_for_dynamics=True` に設定します...")
+                            st.warning(f"⚠️ orbelowofGeneis `use_for_dynamics` toincludemareteimasen: {', '.join(missing_in_dynamics)}")
+                            st.info("🔄 JacobianCalculationoffor、selfmovealto `use_for_dynamics=True` toSettingsshimasu...")
 
                             for gene in missing_in_dynamics:
                                 if gene in adata.var_names:
                                     adata.var.loc[gene, 'use_for_dynamics'] = True
 
-                            st.success(f"✓ {len(missing_in_dynamics)}個の遺伝子を use_for_dynamics に追加しました")
+                            st.success(f"✓ {len(missing_in_dynamics)}pieceofGenethe use_for_dynamics toaddaddshimashita")
                         else:
-                            st.success(f"✓ 選択した遺伝子はすべて use_for_dynamics に含まれています")
+                            st.success(f"✓ SelectshitaGeneisall use_for_dynamics toincludemareteimasu")
                     else:
-                        st.warning("⚠️ use_for_dynamics 列が見つかりません。Jacobian計算でエラーが発生する可能性があります。")
+                        st.warning("⚠️ use_for_dynamics colisviewtsukarimasen。JacobianCalculationwithErrorisoccurgendopossiblenatureisarimasu。")
 
                     # If PCs are in varm, copy to uns for dynamo compatibility
                     # IMPORTANT: Dynamo expects PCs to have shape (n_hvg, n_components)
@@ -830,7 +830,7 @@ if uploaded_h5ad is not None:
                             show_cluster_labels = st.checkbox(
                                 "Show cluster labels on plot",
                                 value=True,
-                                help="各クラスターにラベルを表示（オフにすると凡例のみ表示）"
+                                help="eachClustertoraberutheDisplay（ofutodoandlegendExampleofmiDisplay）"
                             )
 
                             sort_clusters = st.checkbox("Change cluster order?")
@@ -989,7 +989,7 @@ if uploaded_h5ad is not None:
                                 key="pdf_before"
                             )
                         else:
-                            st.caption(f"PDF: {pdf_error or 'エラー'}")
+                            st.caption(f"PDF: {pdf_error or 'Error'}")
 
                     plt.close(fig_before)
 
@@ -1111,7 +1111,7 @@ if uploaded_h5ad is not None:
                                 key="pdf_after"
                             )
                         else:
-                            st.caption(f"PDF: {pdf_error or 'エラー'}")
+                            st.caption(f"PDF: {pdf_error or 'Error'}")
 
                     plt.close(fig_after)
 
@@ -1135,15 +1135,15 @@ if uploaded_h5ad is not None:
                     type="primary"
                 )
             else:
-                st.warning("⚠️ h5adファイルが準備されていません。もう一度摂動解析を実行してください。")
+                st.warning("⚠️ h5adFileislevelprepsareteimasen。mouonedegreeintakemoveAnalysistheRunshitekudasai。")
 
             st.info("""
             ### Next Steps
 
-            ダウンロードしたh5adファイルには摂動後の結果が含まれています：
+            Downloadshitah5adFiletoisintakemoveafterofResultisincludemareteimasu：
             - Perturbation embedding (`X_{basis}_perturbation`)
 
-            #### Pythonでの追加解析:
+            #### PythonwithofaddaddAnalysis:
             ```python
             import dynamo as dyn
             import scanpy as sc
@@ -1155,8 +1155,8 @@ if uploaded_h5ad is not None:
             dyn.pl.streamline_plot(adata, basis='umap_perturbation')
             ```
 
-            詳細は [Dynamo Documentation](https://dynamo-release.readthedocs.io/) を参照してください。
+            detailfineis [Dynamo Documentation](https://dynamo-release.readthedocs.io/) therefrefshitekudasai。
             """)
 
 else:
-    st.info("👆 Dynamo解析済みh5adファイルをアップロードして開始してください。")
+    st.info("👆 DynamoAnalysisdonemih5adFiletheUploadshitestartshitekudasai。")

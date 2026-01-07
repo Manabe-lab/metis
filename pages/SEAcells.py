@@ -21,8 +21,8 @@ import cupyx.scipy.sparse
 
 st.set_page_config(page_title="Metacell aggregation by SEACells", page_icon="💬")
 st.markdown("### Metacell generation by SEACells")
-st.write("各metacellに含まれる細胞のraw countの合計がcountとなる。")
-st.write("metacellのデータを用いた解析ではcountデータとして扱い、normalizationが必要。")
+st.write("eachmetacelltoincludemareruCellofraw countofmatchcalciscountandbecome。")
+st.write("metacellofDatatheuseitaAnalysiswithiscountDataandshitehandlei、normalizationisrequired。")
 
 @st.cache_data
 def read_h5ad(file):
@@ -107,10 +107,10 @@ if uploaded_file is not None:
             sample_id = st.selectbox("Split by:", meta_data)
         cell_type = st.selectbox("Identity of cell types:", meta_data)
 
-        reduction_use = st.selectbox("Reduciton to calculate クラスタリングに用いた次元圧縮 (eg. PCA, mnn)", obsm_keys)
+        reduction_use = st.selectbox("Reduciton to calculate kurasutaringutouseitanextsource圧shrink (eg. PCA, mnn)", obsm_keys)
         reduction_subset = 'X_' + reduction_use + '_sub'
 
-        n_dim = st.number_input('Number of dimension used to identify clusters クラスタリングに用いた次元数', min_value =1, value=30)
+        n_dim = st.number_input('Number of dimension used to identify clusters kurasutaringutouseitanextsourcenum', min_value =1, value=30)
 
         obsm_keys = [x.replace('X_','') for x in list(adata.obsm)]
 
@@ -118,7 +118,7 @@ if uploaded_file is not None:
 
         fracion_n_SEACs = st.number_input('n_SEACells: approximate the number of cells to generate', min_value =0, value=round(len(adata)/75))
         st.write("As a rule of thumb, choosing one metacell for every 75 single-cells.")
-        st.write("サンプル全体での数.")
+        st.write("Sampleallbodywithofnum.")
         n_waypoint_eigs = st.number_input('n_waypoint_eigs:',  value=10)
 
         submitted_basic = st.form_submit_button("Set the parameters and run")
@@ -165,7 +165,7 @@ if uploaded_file is not None:
                 st.markdown("#### No cells. Skipe this sample.")
                 continue
 
-            # total sample数でfracion_n_SEACsは計算しなおす
+            # total samplenumwithfracion_n_SEACsisCalculationshinaosu
 
             ## 75 cell:bin
 #            n_cells = round(len(adata_dict[i].obs) / fracion_n_SEACs)
@@ -195,7 +195,7 @@ if uploaded_file is not None:
                 model.initialize_archetypes()
             except Exception as e:
                 st.write(f"Error: {e}")
-                st.write('多分このサンプルのnSEAcellsが少なすぎます。このサンプルを除いて続行します。')
+                st.write('manydivkoofSampleofnSEAcellsisfewnasugimasu。koofSampletheremoveitecontinuerowshimasu。')
                 del adata_dict[i]
 
                 continue
@@ -281,14 +281,14 @@ if uploaded_file is not None:
             plt.tight_layout()
             st.pyplot(fig)
         if split_sel:
-        # AnnData オブジェクトをマージ
+        # AnnData obujiekutothema-ji
             adata_merged = ad.concat(
                 adata_dict,
                 join='outer',
                 merge='same',
                 label='sample'
             )
-            # SEAcellの名前を変更
+            # SEAcellofnamebeforethechangefurther
             for i in range(len(adata_merged.obs['SEACell'])):
                 if adata_merged.obs[sample_id].iloc[i] not in adata_merged.obs['SEACell'].iloc[i]:
                     adata_merged.obs['SEACell'].iloc[i] = adata_merged.obs[sample_id].iloc[i] + '_' + adata_merged.obs['SEACell'].iloc[i]
@@ -300,48 +300,48 @@ if uploaded_file is not None:
         del adata_merged.obsm[reduction_subset]
 
     #    SEA2Cell_ad = SEACells.core.summarize_by_SEACell(adata_merged, SEACells_label='SEACell', celltype_label=cell_type)
-        # SEA3Cell_ad.Xにsummarizeしたデータが入る sum
-        # create_seurat_adataと結果は同じになる。
+        # SEA3Cell_ad.XtosummarizeshitaDataisinru sum
+        # create_seurat_adataandResultissametobecome。
     #    SEA2Cell_ad.raw = ad.AnnData(
     #        X=SEA2Cell_ad.X.copy(),
     #        var=SEA2Cell_ad.var.copy(),
     #        obs=SEA2Cell_ad.obs.copy()
-    #    ) # adata.Xをadta.raw.Xにコピー
+    #    ) # adata.Xtheadta.raw.Xtokopi-
 
 
 
         def create_seacell_adata(adata_merged, seacell_key='SEACell'):
-            # SEACellごとにグループ化
+            # SEACellgoandtoGroupize
             seacell_groups = adata_merged.obs.groupby(seacell_key)
             
-            # カテゴリカル列と数値列を分離
+            # kategorikarucolandnumvalcolthedivsep
             cat_cols = adata.obs.select_dtypes(include=['category', 'object']).columns
             num_cols = adata.obs.select_dtypes(include=[np.number]).columns
 
-            # カテゴリカル列の処理
+            # kategorikarucolofprocproc
             new_obs = pd.DataFrame()
             if len(cat_cols) > 0:
                 cat_data = adata.obs[cat_cols]
                 new_obs = seacell_groups.apply(lambda x: cat_data.loc[x.index].mode().iloc[0])
 
-            # 細胞数のカウント
+            # Cellnumofkaunto
             new_obs['n_cells'] = seacell_groups.size()
 
-            # 新しいXマトリックスを作成（細胞カウントの合計）
+            # newshiiXmatorikusuthemakebecome（Cellkauntoofmatchcalc）
             new_X = np.zeros((len(new_obs), adata_merged.n_vars))
             for i, (seacell, group) in enumerate(seacell_groups):
                 new_X[i] = adata_merged[group.index, :].X.sum(axis=0)
 
-            # SEACellごとのUMAP座標の平均を計算
+            # SEACellgoandofUMAP座markofflatavgtheCalculation
             umap_coords = pd.DataFrame(adata_merged.obsm['X_' + reduction_vis], index=adata_merged.obs.index)
             umap_coords[seacell_key] = adata_merged.obs[seacell_key]
             new_umap = umap_coords.groupby(seacell_key).mean().values
             new_obsm = {'X_' + reduction_vis: new_umap}
 
-            # 新しいAnnDataオブジェクトを作成
+            # newshiiAnnDataobujiekutothemakebecome
             adata_seacell = sc.AnnData(X=new_X, obs=new_obs, var=adata_merged.var, obsm=new_obsm)
 
-            # raw.Xのデータを処理
+            # raw.XofDatatheprocproc
             if adata_merged.raw is not None:
                 raw_X = np.zeros((len(new_obs), adata_merged.raw.n_vars))
                 for i, (seacell, group) in enumerate(seacell_groups):
@@ -349,7 +349,7 @@ if uploaded_file is not None:
                 adata_seacell.raw = sc.AnnData(X=raw_X, var=adata_merged.raw.var)
             return adata_seacell
 
-        # 関数を使用して新しいAnnDataオブジェクトを作成
+        # relnumtheuseuseshitenewshiiAnnDataobujiekutothemakebecome
         adata_seacell = create_seacell_adata(adata_merged)
 
 
@@ -363,7 +363,7 @@ if uploaded_file is not None:
         st.write("SEACell.summarized")
         st.write(adata_seacell)
 
-        # グループ名の生成
+        # Groupnameofgenbecome
         adata_df = adata_seacell.obs
         group_dict = {}
         group_counter = {}
@@ -380,14 +380,14 @@ if uploaded_file is not None:
         save_dir_name = seacell_temp_dir + "/seacell/"
 
 
-        # 結果を表示
+        # ResulttheDisplay
         for category, df_split in df_dict.items():
             st.write(f"\n{category}:")
             st.write(df_split.head())
             df_split.to_csv(os.path.join(save_dir_name, file_name_head + "_" + f"{category}_{cell_type}.SEAcells.tsv"), sep='\t', index=True)
 
 
-        # 結果の表示
+        # ResultofDisplay
         print(df)
 
         adata_seacell.write_h5ad(save_dir_name +file_name_head + "_SEAcells.summarized.h5ad", compression="gzip")

@@ -12,46 +12,46 @@ import itertools
 
 def process_filename(filenames):
     """
-    ファイル名を2つずつ比較し、共通する部分を除去する
+    Filenamethe2tsuzutsuComparisonshi、copassdopartdivtheremovermdo
     """
-    # 拡張子を除去
+    # expandextendchildtheremoverm
     names = [name.rsplit('.', 1)[0] for name in filenames]
     
     def compare_two_names(name1, name2):
-        """2つの名前を比較し、それぞれの固有の部分を見つける"""
-        # 名前を分割し、空の要素を除去
+        """2tsuofnamebeforetheComparisonshi、sorezoreoffixhaveofpartdivtheviewtsukeru"""
+        # namebeforethedivratioshi、emptyofneedelemtheremoverm
         parts1 = [p for p in name1.replace('-', '_').split('_') if p]
         parts2 = [p for p in name2.replace('-', '_').split('_') if p]
         
-        # 共通部分を見つける
+        # copasspartdivtheviewtsukeru
         common = set(parts1) & set(parts2)
         
-        # 各名前の固有部分を抽出
+        # eachnamebeforeoffixhavepartdivtheextractout
         unique1 = [p for p in parts1 if p not in common]
         unique2 = [p for p in parts2 if p not in common]
         
         return unique1, unique2
 
-    # 各ファイルの固有部分を保持
+    # eachFileoffixhavepartdivthekeephold
     processed = {f: set() for f in filenames}
     
-    # 2つずつ比較
+    # 2tsuzutsuComparison
     for i in range(len(filenames)):
         for j in range(i + 1, len(filenames)):
             unique1, unique2 = compare_two_names(names[i], names[j])
-            # 固有部分を蓄積
+            # fixhavepartdivthe蓄accumulate
             processed[filenames[i]].update(unique1)
             processed[filenames[j]].update(unique2)
     
-    # 結果をクリーンアップ
+    # Resultthekuri-napu
     result = {}
     for f in filenames:
         unique_parts = list(processed[f])
         if unique_parts:
-            # 空の要素を除去して結合
+            # emptyofneedelemtheremovermshiteresultmatch
             result[f] = '_'.join(filter(None, unique_parts)).strip('_')
         else:
-            # 元の名前から空の要素を除去
+            # sourceofnamebeforefromemptyofneedelemtheremoverm
             parts = [p for p in names[filenames.index(f)].replace('-', '_').split('_') if p]
             result[f] = '_'.join(parts)
     
@@ -68,7 +68,7 @@ def read_csv(file, index_col=None, sep=',', header=0):
 
 def get_regulated_genes(df, lfc_col, pval_col, direction='up', 
                        lfc_threshold=1, pval_threshold=0.05):
-    """指定した方向に発現変動する遺伝子を抽出する関数"""
+    """pointsetshitawaydirtoExpressionchangemovedoGenetheextractoutdorelnum"""
     if direction == 'up':
         return set(df.index[
             (df[lfc_col] > lfc_threshold) & 
@@ -81,7 +81,7 @@ def get_regulated_genes(df, lfc_col, pval_col, direction='up',
         ])
 
 def create_venn_diagram(datasets, names, title):
-    """ベン図を作成する関数"""
+    """benfigthemakebecomedorelnum"""
     fig, ax = plt.subplots(figsize=(10, 10))
     
     if len(datasets) == 2:
@@ -102,21 +102,21 @@ def create_venn_diagram(datasets, names, title):
 
 def create_upset_plot(datasets, names, title):
     """
-    UpSetプロット風の可視化を作成する関数
+    UpSetpurotowindofVisualizationthemakebecomedorelnum
     """
-    # 共通部分の組み合わせを見つける
+    # copasspartdivofsetmimatchwasetheviewtsukeru
     def get_combinations():
         n = len(datasets)
         combos = []
         sizes = []
         labels = []
         
-        # 各組み合わせについて
+        # eachsetmimatchwasetotsuite
         for i in range(1, n + 1):
             for combo in itertools.combinations(range(n), i):
-                # その組み合わせに含まれるデータセットの共通部分
+                # soofsetmimatchwasetoincludemareruDatasetoofcopasspartdiv
                 common = set.intersection(*[datasets[j] for j in combo])
-                if len(common) > 0:  # 共通部分が存在する場合のみ追加
+                if len(common) > 0:  # copasspartdivisexistatdoplacematchofmiaddadd
                     combos.append(combo)
                     sizes.append(len(common))
                     labels.append(' & '.join([names[j] for j in combo]))
@@ -125,23 +125,23 @@ def create_upset_plot(datasets, names, title):
 
     combos, sizes, labels = get_combinations()
     
-    # サイズでソート
+    # saizuwithso-to
     sorted_indices = np.argsort(sizes)[::-1]
     sizes = [sizes[i] for i in sorted_indices]
     labels = [labels[i] for i in sorted_indices]
     combos = [combos[i] for i in sorted_indices]
 
-    # プロットの作成
+    # purotoofmakebecome
     fig, (ax_sets, ax_matrix) = plt.subplots(2, 1, 
                                             figsize=(12, 8),
                                             gridspec_kw={'height_ratios': [3, 1]})
     
-    # バーチャートの描画
+    # ba-chiya-toofplotdraw
     bars = ax_sets.bar(range(len(sizes)), sizes)
     ax_sets.set_xticks([])
     ax_sets.set_ylabel('Intersection Size')
     
-    # 行列の描画
+    # rowcolofplotdraw
     matrix = np.zeros((len(names), len(combos)))
     for i, combo in enumerate(combos):
         for j in combo:
@@ -153,7 +153,7 @@ def create_upset_plot(datasets, names, title):
     ax_matrix.set_xticks(range(len(labels)))
     ax_matrix.set_xticklabels(labels, rotation=45, ha='right')
     
-    # レイアウトの調整
+    # reiautoofadjustarrange
     plt.tight_layout()
     ax_sets.set_title(title)
     
@@ -163,45 +163,45 @@ def create_upset_plot(datasets, names, title):
 def create_2d_scatter(df1, df2, x_col, y_col, name1, name2, pval_col1, pval_col2,
                      highlight_significant=True, lfc_threshold=1, pval_threshold=0.05,
                      use_union=False):
-    """2次元散布図を作成"""
-    # インデックスの処理（共通 or 和集合）
+    """2nextsourcescatterdistfigthemakebecome"""
+    # indekusuofprocproc（copass or sumgathermatch）
     if use_union:
-        # 和集合を使用し、欠損値を0で埋める
+        # sumgathermatchtheuseuseshi、misslossvalthe0withfillmeru
         all_index = df1.index.union(df2.index)
         df1 = df1.reindex(all_index).fillna(0)
         df2 = df2.reindex(all_index).fillna(0)
     else:
-        # 共通部分のみ使用
+        # copasspartdivofmiuseuse
         common_index = df1.index.intersection(df2.index)
         df1 = df1.loc[common_index]
         df2 = df2.loc[common_index]
 
     fig = go.Figure()
     
-    # ホバーテキストの作成
+    # hoba-tekisutoofmakebecome
     hovertemplate = (
-        "遺伝子: %{customdata}<br>" +
+        "Gene: %{customdata}<br>" +
         f"{name1} {x_col}: %{{x:.3f}}<br>" +
         f"{name2} {y_col}: %{{y:.3f}}<br>" +
         "<extra></extra>"
     )
 
-    if 'neg_log_padj' not in x_col:  # Log2FC の散布図の場合
+    if 'neg_log_padj' not in x_col:  # Log2FC ofscatterdistfigofplacematch
         if highlight_significant:
-            # データセット1で有意
+            # Dataseto1withSignificant
             sig1 = (abs(df1[x_col]) > lfc_threshold) & (df1[pval_col1] < pval_threshold)
-            # データセット2で有意
+            # Dataseto2withSignificant
             sig2 = (abs(df2[y_col]) > lfc_threshold) & (df2[pval_col2] < pval_threshold)
             
-            # 両方で有意
+            # bothwaywithSignificant
             both_sig = sig1 & sig2
-            # どちらかのみで有意
+            # dochirakaofmiwithSignificant
             only_sig1 = sig1 & ~sig2
             only_sig2 = ~sig1 & sig2
-            # 非有意
+            # nonSignificant
             not_sig = ~sig1 & ~sig2
 
-            # 各カテゴリーのプロット
+            # eachkategori-ofpuroto
             fig.add_trace(go.Scatter(
                 x=df1[x_col][both_sig],
                 y=df2[y_col][both_sig],
@@ -252,20 +252,20 @@ def create_2d_scatter(df1, df2, x_col, y_col, name1, name2, pval_col1, pval_col2
                     opacity=0.6
                 )
             ))
-    else:  # P値の散布図の場合
-        # P値による色分け
+    else:  # Pvalofscatterdistfigofplacematch
+        # Pvaltoyorucolordivke
         low_p1 = df1[pval_col1] < pval_threshold
         low_p2 = df2[pval_col2] < pval_threshold
         
-        # 両方で有意
+        # bothwaywithSignificant
         both_sig = low_p1 & low_p2
-        # どちらかのみで有意
+        # dochirakaofmiwithSignificant
         only_sig1 = low_p1 & ~low_p2
         only_sig2 = ~low_p1 & low_p2
-        # 非有意
+        # nonSignificant
         not_sig = ~low_p1 & ~low_p2
         
-        # 各カテゴリーのプロット
+        # eachkategori-ofpuroto
         fig.add_trace(go.Scatter(
             x=df1[x_col][both_sig],
             y=df2[y_col][both_sig],
@@ -303,7 +303,7 @@ def create_2d_scatter(df1, df2, x_col, y_col, name1, name2, pval_col1, pval_col2
             marker=dict(color='grey', size=2, opacity=0.5)
         ))
 
-    # 補助線の追加
+    # supp助lineofaddadd
     fig.add_hline(y=0, line_dash="dash", line_color="gray")
     fig.add_vline(x=0, line_dash="dash", line_color="gray")
 
@@ -322,16 +322,16 @@ def create_3d_scatter(df1, df2, df3, x_col, y_col, z_col, name1, name2, name3,
                      pval_col1, pval_col2, pval_col3,
                      highlight_significant=True, lfc_threshold=1, pval_threshold=0.05,
                      use_union=False):
-    """3次元散布図を作成"""
-    # インデックスの処理（共通 or 和集合）
+    """3nextsourcescatterdistfigthemakebecome"""
+    # indekusuofprocproc（copass or sumgathermatch）
     if use_union:
-        # 和集合を使用し、欠損値を0で埋める
+        # sumgathermatchtheuseuseshi、misslossvalthe0withfillmeru
         all_index = df1.index.union(df2.index).union(df3.index)
         df1 = df1.reindex(all_index).fillna(0)
         df2 = df2.reindex(all_index).fillna(0)
         df3 = df3.reindex(all_index).fillna(0)
     else:
-        # 共通部分のみ使用
+        # copasspartdivofmiuseuse
         common_index = df1.index.intersection(df2.index).intersection(df3.index)
         df1 = df1.loc[common_index]
         df2 = df2.loc[common_index]
@@ -339,9 +339,9 @@ def create_3d_scatter(df1, df2, df3, x_col, y_col, z_col, name1, name2, name3,
 
     fig = go.Figure()
     
-    # ホバーテキストの作成
+    # hoba-tekisutoofmakebecome
     hovertemplate = (
-        "遺伝子: %{customdata}<br>" +
+        "Gene: %{customdata}<br>" +
         f"{name1} {x_col}: %{{x:.3f}}<br>" +
         f"{name2} {y_col}: %{{y:.3f}}<br>" +
         f"{name3} {z_col}: %{{z:.3f}}<br>" +
@@ -349,17 +349,17 @@ def create_3d_scatter(df1, df2, df3, x_col, y_col, z_col, name1, name2, name3,
     )
 
     if highlight_significant:
-        # 各データセットでの有意性
+        # eachDatasetowithofSignificantnature
         sig1 = (abs(df1[x_col]) > lfc_threshold) & (df1[pval_col1] < pval_threshold)
         sig2 = (abs(df2[y_col]) > lfc_threshold) & (df2[pval_col2] < pval_threshold)
         sig3 = (abs(df3[z_col]) > lfc_threshold) & (df3[pval_col3] < pval_threshold)
 
-        # 全てで有意
+        # alltewithSignificant
         all_sig = sig1 & sig2 & sig3
-        # それ以外
+        # soreorout
         other = ~all_sig
 
-        # プロット
+        # puroto
         fig.add_trace(go.Scatter3d(
             x=df1[x_col][all_sig],
             y=df2[y_col][all_sig],
@@ -408,22 +408,22 @@ def create_3d_scatter(df1, df2, df3, x_col, y_col, z_col, name1, name2, name3,
 def main():
     st.title("DE results comparison")
     
-    # ファイルアップロード
+    # FileUpload
     uploaded_files = st.file_uploader(
-        "DE解析結果ファイルを選択してください（複数可）", 
+        "DEAnalysisResultFiletheSelectshitekudasai（multinumcan）", 
         accept_multiple_files=True,
         type=['csv', 'tsv', 'txt', 'xlsx', 'xls']
     )
-    st.write("P-value, FCを持つファイルを２つ")
+    st.write("P-value, FCtheholdtsuFilethe２tsu")
     
     if not uploaded_files:
-        st.info("解析結果ファイルをアップロードしてください。")
+        st.info("AnalysisResultFiletheUploadshitekudasai。")
         return
     
-    # ファイル名の処理
+    # Filenameofprocproc
     filename_mapping = process_filename([f.name for f in uploaded_files])
     
-    # 閾値の設定
+    # ThresholdofSettings
     col1, col2 = st.columns(2)
     with col1:
         lfc_threshold = st.number_input(
@@ -442,7 +442,7 @@ def main():
             format="%.3f"
         )
     
-    # データセットの読み込みと処理
+    # DatasetoofLoadingandprocproc
     datasets = {}
     for uploaded_file in uploaded_files:
         try:
@@ -456,19 +456,19 @@ def main():
                 'columns': numeric_cols
             }
         except Exception as e:
-            st.error(f"エラー ({uploaded_file.name}): {e}")
+            st.error(f"Error ({uploaded_file.name}): {e}")
     
     if len(datasets) < 2:
-        st.warning("比較には少なくとも2つのデータセットが必要です。")
+        st.warning("Comparisontoisfewnakuandmo2tsuofDatasetoisrequiredwithsu。")
         return
     
-    # データセット設定
-    st.subheader("データセットとカラムの設定")
+    # DatasetoSettings
+    st.subheader("DatasetoandkaramuofSettings")
     
     dataset_settings = []
     for name, dataset in datasets.items():
         st.markdown(f"#### {name}")
-        # カラム名のパターンマッチング
+        # karamunameofpata-nmachingu
         pvalue = [i for i in dataset['columns'] if ('adj' in i.lower()) or  ('fdr' in i.lower()) or
          ('pvalue' in i.lower()) or ('p-val' in i.lower()) or  ('p val' in i.lower()) 
                  ]
@@ -493,12 +493,12 @@ def main():
         )
         use_in_analysis = True
         invert_sign = st.checkbox(
-            "Log2 Fold Changeの符号を反転",
+            "Log2 Fold Changeof符numtheantiturn",
             key=f"invert_{name}",
-            help="コントロールの定義が逆の場合にチェックしてください"
+            help="kontoro-ruofsetdefisinvofplacematchtochiekushitekudasai"
         )
         
-        # データセットの設定を保存
+        # DatasetoofSettingstheSave
         dataset_settings.append({
             'name': name,
             'data': dataset['data'].copy(),  # Create a copy to avoid modifying original
@@ -514,27 +514,27 @@ def main():
 
         st.markdown("---")
     
-    # 解析タイプの選択
+    # AnalysistaipuofSelect
     analysis_type = st.radio(
-        "解析タイプを選択：",
-        ["発現変動遺伝子の比較", "散布図による比較"],
+        "AnalysistaiputheSelect：",
+        ["ExpressionchangemoveGeneofComparison", "scatterdistfigtoyoruComparison"],
         horizontal=True
     )
     
     active_datasets = [ds for ds in dataset_settings if ds['use_in_analysis']]
     
-    if analysis_type == "発現変動遺伝子の比較":
-        # 発現方向性の選択
+    if analysis_type == "ExpressionchangemoveGeneofComparison":
+        # ExpressionwaydirnatureofSelect
         direction = st.radio(
-            "発現変動の方向性を選択：",
+            "ExpressionchangemoveofwaydirnaturetheSelect：",
             ["Up-regulated", "Down-regulated", "Both"],
             horizontal=True
         )
         
-        # プロットタイプの選択
+        # purototaipuofSelect
         plot_type = st.radio(
-            "プロットタイプを選択：",
-            ["ベン図", "UpSetプロット"],
+            "purototaiputheSelect：",
+            ["benfig", "UpSetpuroto"],
             horizontal=True
         )
         
@@ -557,34 +557,34 @@ def main():
             
             title = f"{direction}"
             
-            if plot_type == "ベン図" and len(significant_sets) <= 3:
+            if plot_type == "benfig" and len(significant_sets) <= 3:
                 fig = create_venn_diagram(significant_sets, set_names, title)
                 st.pyplot(fig)
             else:
                 fig = create_upset_plot(significant_sets, set_names, title)
                 st.pyplot(fig)
             
-            # 共通遺伝子の表示
+            # copassGeneofDisplay
             common_genes = set.intersection(*significant_sets)
-            st.write(f"共通して{direction}する遺伝子数: {len(common_genes)}")
+            st.write(f"copassshite{direction}doGenenum: {len(common_genes)}")
             
-            if st.checkbox(f"共通{direction}遺伝子リストを表示"):
+            if st.checkbox(f"copass{direction}GenerisutotheDisplay"):
                 st.write(", ".join(sorted(list(common_genes))))
             
-            # 共通遺伝子のエクスポート
+            # copassGeneofekusupo-to
             if len(common_genes) > 0:
                 csv = pd.DataFrame(sorted(list(common_genes)), columns=['Gene_ID'])
                 csv_data = csv.to_csv(index=False)
                 st.download_button(
-                    label=f"共通{direction}遺伝子リストをダウンロード",
+                    label=f"copass{direction}GenerisutotheDownload",
                     data=csv_data,
                     file_name=f"common_{dir_type}_regulated_genes.csv",
                     mime="text/csv"
                 )
         
-        else:  # 両方別々に表示
+        else:  # bothwaysep々toDisplay
             for dir_type, dir_name in [('up', 'Up-regulated'), ('down', 'Down-regulated')]:
-                st.subheader(f"{dir_name}遺伝子の比較")
+                st.subheader(f"{dir_name}GeneofComparison")
                 significant_sets = []
                 set_names = []
                 
@@ -600,69 +600,69 @@ def main():
                     significant_sets.append(sig_genes)
                     set_names.append(ds['name'])
                 
-                title = f"{dir_name}遺伝子の比較"
+                title = f"{dir_name}GeneofComparison"
                 
-                if plot_type == "ベン図" and len(significant_sets) <= 3:
+                if plot_type == "benfig" and len(significant_sets) <= 3:
                     fig = create_venn_diagram(significant_sets, set_names, title)
                     st.pyplot(fig)
                 else:
                     fig = create_upset_plot(significant_sets, set_names, title)
                     st.pyplot(fig)
                 
-                # 共通遺伝子の表示
+                # copassGeneofDisplay
                 common_genes = set.intersection(*significant_sets)
-                st.write(f"共通して{dir_name}する遺伝子数: {len(common_genes)}")
+                st.write(f"copassshite{dir_name}doGenenum: {len(common_genes)}")
                 
-                if st.checkbox(f"共通{dir_name}遺伝子リストを表示"):
+                if st.checkbox(f"copass{dir_name}GenerisutotheDisplay"):
                     st.write(", ".join(sorted(list(common_genes))))
                 
-                # 共通遺伝子のエクスポート
+                # copassGeneofekusupo-to
                 if len(common_genes) > 0:
                     csv = pd.DataFrame(sorted(list(common_genes)), columns=['Gene_ID'])
                     csv_data = csv.to_csv(index=False)
                     st.download_button(
-                        label=f"共通{dir_name}遺伝子リストをダウンロード",
+                        label=f"copass{dir_name}GenerisutotheDownload",
                         data=csv_data,
                         file_name=f"common_{dir_type}_regulated_genes.csv",
                         mime="text/csv"
                     )
     
-    else:  # 散布図による比較
-        st.subheader("散布図による比較")
+    else:  # scatterdistfigtoyoruComparison
+        st.subheader("scatterdistfigtoyoruComparison")
         
         plot_dimension = st.radio(
-            "散布図の次元を選択：",
-            ["2D散布図", "3D散布図"],
+            "scatterdistfigofnextsourcetheSelect：",
+            ["2Dscatterdistfig", "3Dscatterdistfig"],
             horizontal=True
         )
         
-        highlight = st.checkbox("有意な遺伝子をハイライト表示", value=True)
+        highlight = st.checkbox("SignificantnaGenethehairaitoDisplay", value=True)
         
-        if plot_dimension == "2D散布図" and len(active_datasets) >= 2:
+        if plot_dimension == "2Dscatterdistfig" and len(active_datasets) >= 2:
             col1, col2 = st.columns(2)
             with col1:
-                dataset1 = st.selectbox("1つ目のデータセット", [ds['name'] for ds in active_datasets], key='scatter1', index=0)
+                dataset1 = st.selectbox("1tsuidxofDataseto", [ds['name'] for ds in active_datasets], key='scatter1', index=0)
             with col2:
-                dataset2 = st.selectbox("2つ目のデータセット", [ds['name'] for ds in active_datasets], key='scatter2', index=1)
+                dataset2 = st.selectbox("2tsuidxofDataseto", [ds['name'] for ds in active_datasets], key='scatter2', index=1)
             
             if dataset1 != dataset2:
                 ds1 = next(ds for ds in active_datasets if ds['name'] == dataset1)
                 ds2 = next(ds for ds in active_datasets if ds['name'] == dataset2)
                 
-                # 遺伝子セットの選択
-                use_union = st.checkbox("全ての遺伝子を表示（存在しない遺伝子は0として扱う）", 
+                # GenesetoofSelect
+                use_union = st.checkbox("allteofGenetheDisplay（existatshinotGeneis0andshitehandleu）", 
                                       value=False,
-                                      help="チェックを外すと共通の遺伝子のみを表示します")
+                                      help="chiekutheoutsuandcopassofGeneofmitheDisplayshimasu")
                 
-                # 遺伝子数の表示
+                # GenenumofDisplay
                 common_genes = len(ds1['data'].index.intersection(ds2['data'].index))
                 total_genes = len(ds1['data'].index.union(ds2['data'].index))
-                st.write(f"共通の遺伝子数: {common_genes}")
-                st.write(f"総遺伝子数: {total_genes}")
+                st.write(f"copassofGenenum: {common_genes}")
+                st.write(f"totalGenenum: {total_genes}")
                 
-                # 値の選択
+                # valofSelect
                 value_type = st.radio(
-                    "比較する値を選択：",
+                    "ComparisondovaltheSelect：",
                     ["Log2 Fold Change", "adjusted P-value (-log10)"],
                     horizontal=True
                 )
@@ -679,7 +679,7 @@ def main():
                         use_union
                     )
                 else:
-                    # adjusted P-valueの場合は-log10に変換
+                    # adjusted P-valueofplacematchis-log10tochangechange
                     ds1['data']['neg_log_padj'] = -np.log10(ds1['data'][ds1['pval_col']])
                     ds2['data']['neg_log_padj'] = -np.log10(ds2['data'][ds2['pval_col']])
                     fig = create_2d_scatter(
@@ -695,7 +695,7 @@ def main():
                 
                 st.plotly_chart(fig, use_container_width=True)
 
-                # 相関係数の計算と表示
+                # mutualrelrelatenumofCalculationandDisplay
                 if value_type == "Log2 Fold Change":
                     if use_union:
                         all_index = ds1['data'].index.union(ds2['data'].index)
@@ -706,22 +706,22 @@ def main():
                         df1 = ds1['data'].loc[common_index]
                         df2 = ds2['data'].loc[common_index]
                     
-                    # NaNを除外して相関係数を計算
+                    # NaNtheremoveoutshitemutualrelrelatenumtheCalculation
                     mask = ~np.isnan(df1[ds1['lfc_col']]) & ~np.isnan(df2[ds2['lfc_col']])
                     correlation = np.corrcoef(
                         df1[ds1['lfc_col']][mask].astype(float),
                         df2[ds2['lfc_col']][mask].astype(float)
                     )[0,1]
                     
-                    # 相関係数が計算できた場合のみ表示
+                    # mutualrelrelatenumisCalculationwithkitaplacematchofmiDisplay
                     if not np.isnan(correlation):
-                        st.write(f"Log2 Fold Change の相関係数: {correlation:.3f}")
+                        st.write(f"Log2 Fold Change ofmutualrelrelatenum: {correlation:.3f}")
                     else:
-                        st.warning("Log2 Fold Change の相関係数を計算できませんでした")
+                        st.warning("Log2 Fold Change ofmutualrelrelatenumtheCalculationwithkimasenwithshita")
                 else:
                     if use_union:
                         all_index = ds1['data'].index.union(ds2['data'].index)
-                        df1 = ds1['data'].reindex(all_index).fillna(1)  # P値の欠損は1として扱う
+                        df1 = ds1['data'].reindex(all_index).fillna(1)  # Pvalofmisslossis1andshitehandleu
                         df2 = ds2['data'].reindex(all_index).fillna(1)
                     else:
                         common_index = ds1['data'].index.intersection(ds2['data'].index)
@@ -735,28 +735,28 @@ def main():
                         df1['neg_log_padj'].values,
                         df2['neg_log_padj'].values
                     )[0,1]
-                    st.write(f"-log10(adjusted P-value) の相関係数: {correlation:.3f}")
+                    st.write(f"-log10(adjusted P-value) ofmutualrelrelatenum: {correlation:.3f}")
                 
-        elif plot_dimension == "3D散布図" and len(active_datasets) >= 3:
+        elif plot_dimension == "3Dscatterdistfig" and len(active_datasets) >= 3:
             col1, col2, col3 = st.columns(3)
             with col1:
-                dataset1 = st.selectbox("X軸のデータセット", [ds['name'] for ds in active_datasets], key='scatter3d1')
+                dataset1 = st.selectbox("XaxisofDataseto", [ds['name'] for ds in active_datasets], key='scatter3d1')
             with col2:
-                dataset2 = st.selectbox("Y軸のデータセット", [ds['name'] for ds in active_datasets], key='scatter3d2')
+                dataset2 = st.selectbox("YaxisofDataseto", [ds['name'] for ds in active_datasets], key='scatter3d2')
             with col3:
-                dataset3 = st.selectbox("Z軸のデータセット", [ds['name'] for ds in active_datasets], key='scatter3d3')
+                dataset3 = st.selectbox("ZaxisofDataseto", [ds['name'] for ds in active_datasets], key='scatter3d3')
             
             if len({dataset1, dataset2, dataset3}) == 3:
                 ds1 = next(ds for ds in active_datasets if ds['name'] == dataset1)
                 ds2 = next(ds for ds in active_datasets if ds['name'] == dataset2)
                 ds3 = next(ds for ds in active_datasets if ds['name'] == dataset3)
                 
-                # 遺伝子セットの選択
-                use_union = st.checkbox("全ての遺伝子を表示（存在しない遺伝子は0として扱う）", 
+                # GenesetoofSelect
+                use_union = st.checkbox("allteofGenetheDisplay（existatshinotGeneis0andshitehandleu）", 
                                       value=False,
-                                      help="チェックを外すと共通の遺伝子のみを表示します")
+                                      help="chiekutheoutsuandcopassofGeneofmitheDisplayshimasu")
                 
-                # 遺伝子数の表示
+                # GenenumofDisplay
                 common_genes = len(set.intersection(
                     set(ds1['data'].index),
                     set(ds2['data'].index),
@@ -767,12 +767,12 @@ def main():
                     set(ds2['data'].index),
                     set(ds3['data'].index)
                 ))
-                st.write(f"共通の遺伝子数: {common_genes}")
-                st.write(f"総遺伝子数: {total_genes}")
+                st.write(f"copassofGenenum: {common_genes}")
+                st.write(f"totalGenenum: {total_genes}")
                 
 
                 value_type = st.radio(
-                    "比較する値を選択：",
+                    "ComparisondovaltheSelect：",
                     ["Log2 Fold Change", "adjusted P-value (-log10)"],
                     horizontal=True
                 )
@@ -789,7 +789,7 @@ def main():
                         use_union
                     )
                 else:
-                    # adjusted P-valueの場合は-log10に変換
+                    # adjusted P-valueofplacematchis-log10tochangechange
                     ds1['data']['neg_log_padj'] = -np.log10(ds1['data'][ds1['pval_col']])
                     ds2['data']['neg_log_padj'] = -np.log10(ds2['data'][ds2['pval_col']])
                     ds3['data']['neg_log_padj'] = -np.log10(ds3['data'][ds3['pval_col']])

@@ -96,20 +96,20 @@ if uploaded_file is not None:
     Gene_column = content[0]
 
     if "Annotation/Divergence" in content:
-         # colnamesの変換
+         # colnamesofchangechange
         search_word = '([^\ \(]*)\ \(.*'
 
         for i in range(1, len(content)):
             match = re.search(search_word, content[i])
             if match:
                 content[i] = match.group(1).replace(' ', '_')
-        df.columns = content # 一旦名前を変更
-        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+        df.columns = content # oneoncenamebeforethechangefurther
+        df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
         pattern = "([^|]*)"
         repatter = re.compile(pattern)
         f_annotation = lambda x: repatter.match(x).group(1)
         df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-        # annotation/divergence以前を除く
+        # annotation/divergencebeforetheremoveku
         df = df.loc[:,'Annotation/Divergence':]
         content = df.columns.tolist()
         content[0] = 'Gene'
@@ -244,23 +244,23 @@ if uploaded_file is not None:
   #      st.write(tpm_data.head())
   #      st.write(len(tpm_data))
 
-        # 新しいDataFrameを作成し、オリジナルの順序で埋めていく
+        # newshiiDataFramethemakebecomeshi、orijinaruoforderorderwithfillmeteiku
         reordered_tpm_data = pd.DataFrame(index=original_gene_order, columns=tpm_data.columns)
 
-        # オリジナルの順序でtpm_dataの値を埋める
+        # orijinaruoforderorderwithtpm_dataofvalthefillmeru
         for gene in original_gene_order:
             if gene in tpm_data.index:
                 reordered_tpm_data.loc[gene] = tpm_data.loc[gene]
 
-        # tpm_dataにあってdfにない遺伝子を追加
+        # tpm_datatoatedftonotGenetheaddadd
         for gene in tpm_data.index:
             if gene not in original_gene_order:
                 reordered_tpm_data.loc[gene] = tpm_data.loc[gene]
 
-        # NaNを含む行を削除
+        # NaNtheincludemurowthedeleteremove
         reordered_tpm_data = reordered_tpm_data.dropna()
 
-        # 元のtpm_dataを更新
+        # sourceoftpm_datathefurthernew
         tpm_data = reordered_tpm_data
 
         st.write(tpm_data.head())
@@ -268,7 +268,7 @@ if uploaded_file is not None:
 
         file_name = os.path.splitext(uploaded_file.name)[0] + ".TPM.tsv"
 
-        tpm_data.columns = tpm_data.columns.str.replace('_tpm', '') # tpmを除く
+        tpm_data.columns = tpm_data.columns.str.replace('_tpm', '') # tpmtheremoveku
 
         csv = convert_df(tpm_data)
         st.download_button(

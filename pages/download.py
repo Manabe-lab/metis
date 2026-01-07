@@ -39,10 +39,10 @@ def download_ftp_file(path, save_dir, targz_files, tar_files, gz_files):
     abs_path = save_dir + '/' + down_file
     with open( abs_path, 'wb') as fp:
         ftp.retrbinary('RETR ' + path, fp.write)
-    # gz fileのとき
+    # gz fileofandki
     if down_file.endswith('.tar.gz'):
         targz_files.append(abs_path)
-    elif down_file.endswith('.gz'): # tar.gzではないgz
+    elif down_file.endswith('.gz'): # tar.gzwithisnotgz
         if ("barcodes.tsv.gz" not in down_file) and ("features.tsv.gz" not in down_file) and ("matrix.mtx.gz" not in down_file):
             gz_files.append(abs_path)
     if down_file.endswith('.tar'):
@@ -58,7 +58,7 @@ def expand_rawtar(path, save_dir, targz_files, tar_files, gz_files):
     st.write('expand_rawtar')
     st.write(path)
     for i in path:
-        # まず内容をみる
+        # mazuincontentthemiru
         st.write("expanding " + i)
         with tarfile.open(name=i, mode="r") as mytar:
             members = mytar.getmembers()
@@ -68,7 +68,7 @@ def expand_rawtar(path, save_dir, targz_files, tar_files, gz_files):
             down_file = x.name
             if down_file.endswith('.tar.gz'):
                 targz_files.append(save_dir + "/" + down_file)
-            elif down_file.endswith('.gz'): # tar.gzではないgz
+            elif down_file.endswith('.gz'): # tar.gzwithisnotgz
                 if ("barcodes.tsv.gz" not in down_file) and ("features.tsv.gz" not in down_file) and ("matrix.mtx.gz" not in down_file):
                     gz_files.append(save_dir + "/" + down_file)
             if down_file.endswith('.tar'):
@@ -77,9 +77,9 @@ def expand_rawtar(path, save_dir, targz_files, tar_files, gz_files):
         os.remove(i)
     return targz_files, tar_files, gz_files
 
-def expand_tar(path, save_dir): #gz_filesはglobal
+def expand_tar(path, save_dir): #gz_filesisglobal
     for i in path:
-        # まず内容をみる
+        # mazuincontentthemiru
         with tarfile.open(name=i, mode="r") as mytar:
             members = mytar.getmembers()
             st.write("tar file contents:")
@@ -95,7 +95,7 @@ def expand_tar(path, save_dir): #gz_filesはglobal
 
 def expand_targz(path, save_dir):
     for i in path:
-        with tarfile.open(name=i, mode="r:gz") as mytar: # gzしてあるのも読めるはず
+        with tarfile.open(name=i, mode="r:gz") as mytar: # gzshiteexistofmoreadmeruiszu
             members = mytar.getmembers()
             st.write("tar file contents:")
             st.write([x.name for x in members])
@@ -127,7 +127,7 @@ def get_retry(url, retry_times=3, errs=[500, 502, 503]):
         return r
 
 
-if 'key_count' not in st.session_state: # new directory を入れるst.text_inputのkeyをupdateしないと値がクリアーされず、何度も追加される。
+if 'key_count' not in st.session_state: # new directory theinrerust.text_inputofkeytheupdateshinotandvaliskuria-sarezu、whatdegreemoaddaddsareru。
    st.session_state['key_count'] =  1
 
 if 'SCALAorcellxgene' not in st.session_state:
@@ -173,7 +173,7 @@ elif (choice == '..') and (len(st.session_state['dir_path']) > 62):
     st.session_state['dir_path'] = os.path.dirname(st.session_state['dir_path'])
     st.session_state['key_count'] += 2
 st.markdown("###### To make a new directory in " + st.session_state.dir_path.replace(st.session_state['home_dir'] ,'') + ':')
-new_dir_name = st.text_input('Type a name for the new directory', value= "", key = st.session_state['key_count'] + 1) #keyを指定しないと入力した値がずっと残る。
+new_dir_name = st.text_input('Type a name for the new directory', value= "", key = st.session_state['key_count'] + 1) #keythepointsetshinotandInputshitavaliszuandremainru。
 if st.button("Make a new directory"):
     if new_dir_name:
         st.session_state['key_count'] += 2
@@ -248,8 +248,8 @@ if st.button(f'Select this folder: {target_dir}', type = 'primary') or st.sessio
 
             if ftp_choice != rawtar:
                 try:
-                    ftp_path = ftp_choice.replace("ftp://ftp.ncbi.nlm.nih.gov/","") # ftpのpathを除き
-                    ftp_path = re.sub(r'\/[^\/]+$','',ftp_path)#最後のpathも除く
+                    ftp_path = ftp_choice.replace("ftp://ftp.ncbi.nlm.nih.gov/","") # ftpofpaththeremoveki
+                    ftp_path = re.sub(r'\/[^\/]+$','',ftp_path)#mostafterofpathmoremoveku
                     ftp_file_list = list_ftp_files(ftp_path)
                     st.write("Files to download")
                     s = ''
@@ -290,7 +290,7 @@ if st.button(f'Select this folder: {target_dir}', type = 'primary') or st.sessio
                     st.write(addr)
                     try:
                         urlData = requests.get(addr).content
-                        with open( st.session_state['dir_path'] + rawtar ,mode='wb') as f: # wb でバイト型を書き込める
+                        with open( st.session_state['dir_path'] + rawtar ,mode='wb') as f: # wb withbaitotypethewritekiintomeru
                             f.write(urlData)
                         rawtar_files = [st.session_state['dir_path'] + rawtar]
                         st.write('tar_files')

@@ -76,16 +76,16 @@ st.set_page_config(page_title="CellRank Analysis", page_icon="🎯", layout="wid
 
 st.title("🎯 CellRank Analysis")
 st.markdown("""
-CellRankを用いて細胞運命と系統を解析します。
+CellRanktheuseiteCellruncmdandsysunifytheAnalysisshimasu。
 
-### ワークフロー
-1. **ファイル読み込み**: scVelo解析結果のh5adファイル
-2. **Kernel設定**: Velocity/Connectivityカーネルの選択
-3. **状態推定**: Terminal states / Initial statesの推定
-4. **運命確率**: Fate probabilitiesの計算
-5. **結果保存**: 解析結果をh5adファイルでダウンロード
+### wa-kufuro-
+1. **FileLoading**: scVeloAnalysisResultofh5adFile
+2. **KernelSettings**: Velocity/Connectivityka-neruofSelect
+3. **statestateEstimation**: Terminal states / Initial statesofEstimation
+4. **runcmdcertainrate**: Fate probabilitiesofCalculation
+5. **ResultSave**: AnalysisResulttheh5adFilewithDownload
 
-### 参考
+### refthink
 - [CellRank Documentation](https://cellrank.readthedocs.io/)
 - [CellRank Tutorial](https://cellrank.readthedocs.io/en/stable/notebooks/tutorials/index.html)
 - Lange et al. (2022) "CellRank for directed single-cell fate mapping" Nature Methods
@@ -114,7 +114,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file (scVelo result)",
     type=['h5ad'],
     key="cellrank_h5ad_upload",
-    help="scVelo analysisアプリで生成されたh5adファイル"
+    help="scVelo analysisapuriwithgenbecomesaretah5adFile"
 )
 
 if uploaded_h5ad is not None:
@@ -162,27 +162,27 @@ if uploaded_h5ad is not None:
     with st.expander("📚 Parameter Guide", expanded=False):
         st.markdown("""
         ### Kernel
-        - **VelocityKernel**: RNA velocityベースの遷移確率（推奨）
-        - **ConnectivityKernel**: 近傍グラフベースの遷移確率
-        - **Combined**: 両方の組み合わせ（より堅牢）
+        - **VelocityKernel**: RNA velocitybe-suoftransitmovecertainrate（inferrec）
+        - **ConnectivityKernel**: nearsidegurafube-suoftransitmovecertainrate
+        - **Combined**: bothwayofsetmimatchwase（thanfirmrobust）
 
         ### Terminal States
         - **Number of terminal states**:
-          - **None (デフォルト)**: データから自動推定（推奨）
-          - **数値指定**: 1-20の範囲で手動設定
-          - 終末状態とは、細胞分化の最終的な運命（例：成熟細胞タイプ）
+          - **None (defuoruto)**: DatafromselfmoveEstimation（inferrec）
+          - **numvalpointset**: 1-20ofrangesurrwithhandmoveSettings
+          - endendstatestateandis、Celldivizeoffinalalnaruncmd（Example：become熟Cell type）
 
         - **Cluster key**:
-          - クラスター情報を含むobs列の名前（例: 'leiden', 'louvain', 'clusters'）
-          - 既存のクラスタリング結果を参考にして終末状態を推定
-          - クラスター構造を考慮することで、より生物学的に意味のある状態推定が可能
-          - 存在しない場合は自動的に'leiden'/'louvain'/'seurat_clusters'を探索
+          - Clusterinfoinfotheincludemuobscolofnamebefore（Example: 'leiden', 'louvain', 'clusters'）
+          - alreadyexistofkurasutaringuResulttherefthinktoshiteendendstatestatetheEstimation
+          - Clusterstructmakethethinkconsiderdokoandwith、thangenthinglearnaltomeanmeanofexiststatestateEstimationispossible
+          - existatshinotplacematchisselfmovealto'leiden'/'louvain'/'seurat_clusters'thesearchsearch
 
         ### Fate Probability
-        - 各細胞が各終末状態に到達する確率を計算
-        - 細胞の運命決定過程を定量化
+        - eachCelliseachendendstatestatetoarrivereachdocertainratetheCalculation
+        - Cellofruncmddetsetoverextentthesetamountize
 
-        Lange et al. (2022) Nature Methods を参照
+        Lange et al. (2022) Nature Methods therefref
         """)
 
     with st.form("cellrank_params_form"):
@@ -192,7 +192,7 @@ if uploaded_h5ad is not None:
             "Kernel type",
             ["VelocityKernel", "ConnectivityKernel", "Combined (Velocity + Connectivity)"],
             index=2,
-            help="遷移確率の計算方法。Combinedが推奨"
+            help="transitmovecertainrateofCalculationwaymethod。Combinedisinferrec"
         )
 
         if kernel_type == "Combined (Velocity + Connectivity)":
@@ -204,7 +204,7 @@ if uploaded_h5ad is not None:
                     max_value=1.0,
                     value=0.8,
                     step=0.1,
-                    help="Velocity kernelの重み（残りがConnectivity kernelの重み）"
+                    help="Velocity kernelofweightmi（remainriisConnectivity kernelofweightmi）"
                 )
             with col2:
                 st.metric("Connectivity weight", f"{1.0 - velocity_weight:.1f}")
@@ -217,7 +217,7 @@ if uploaded_h5ad is not None:
                 "Cluster key",
                 options=obs_columns,
                 index=default_index,
-                help="既存のクラスタリング結果を参考にした終末状態の推定に使用。obs列から選択"
+                help="alreadyexistofkurasutaringuResulttherefthinktoshitaendendstatestateofEstimationtouseuse。obscolfromSelect"
             )
 
         with col2:
@@ -226,7 +226,7 @@ if uploaded_h5ad is not None:
                 min_value=1,
                 max_value=20,
                 value=None,
-                help="終末状態の数。空欄（None、デフォルト）で自動推定（推奨）。手動で1-20の範囲で指定も可能。"
+                help="endendstatestateofnum。empty欄（None、defuoruto）withselfmoveEstimation（inferrec）。handmovewith1-20ofrangesurrwithpointsetmopossible。"
             )
 
             if n_states is None or n_states == 0:
@@ -237,7 +237,7 @@ if uploaded_h5ad is not None:
         compute_initial_states = st.checkbox(
             "Compute initial states",
             value=False,
-            help="初期状態も推定する（時間がかかる）"
+            help="initialstatestatemoEstimationdo（timebetweeniskakaru）"
         )
 
         st.markdown("---")
@@ -278,8 +278,8 @@ if uploaded_h5ad is not None:
                     st.error(f"""
                     ❌ **Missing required data: {', '.join(required_data)}**
 
-                    このファイルはscVelo解析結果ではないようです。
-                    scVelo analysisアプリで解析したh5adファイルをアップロードしてください。
+                    koofFileisscVeloAnalysisResultwithisnotlikewithsu。
+                    scVelo analysisapuriwithAnalysisshitah5adFiletheUploadshitekudasai。
                     """)
                     st.stop()
 
@@ -501,39 +501,39 @@ if uploaded_h5ad is not None:
         )
 
         st.info("""
-        ### 次のステップ
+        ### nextofsutepu
 
-        ダウンロードしたh5adファイルには以下が含まれています：
+        Downloadshitah5adFiletoisorbelowisincludemareteimasu：
         - Terminal states (`adata.obs['terminal_states']`)
         - Fate probabilities (`adata.obsm['terminal_states_probs']`)
-        - **Individual fate probability columns** (`adata.obs['fate_prob_{state}']`) - Pseudotime appで使用可能
-        - Initial states (`adata.obs['initial_states']`)（計算した場合）
+        - **Individual fate probability columns** (`adata.obs['fate_prob_{state}']`) - Pseudotime appwithuseusepossible
+        - Initial states (`adata.obs['initial_states']`)（Calculationshitaplacematch）
 
-        #### 推奨: CellRank Visualization appで可視化
+        #### inferrec: CellRank Visualization appwithVisualization
 
-        まずは **CellRank Visualization** appで結果を可視化してください：
-        1. **CellRank visualization** ページに移動
-        2. このh5adファイルをアップロード
-        3. 以下の可視化が可能：
-           - Terminal states（終末状態のUMAP表示）
-           - Fate probabilities（各終末状態への運命確率）
-           - Fate probability heatmap（全細胞×全状態のヒートマップ）
-           - Gene expression trends（系統に沿った遺伝子発現）
-           - Initial states（初期状態、計算した場合）
+        mazuis **CellRank Visualization** appwithResulttheVisualizationshitekudasai：
+        1. **CellRank visualization** pe-jitomovemove
+        2. koofh5adFiletheUpload
+        3. orbelowofVisualizationispossible：
+           - Terminal states（endendstatestateofUMAPDisplay）
+           - Fate probabilities（eachendendstatestateheofruncmdcertainrate）
+           - Fate probability heatmap（allCell×allstatestateofhi-tomapu）
+           - Gene expression trends（sysunifytoalongtaGeneExpression）
+           - Initial states（initialstatestate、Calculationshitaplacematch）
 
-        #### より詳細な解析: Pseudotime Gene Expression app
+        #### thandetailfinenaAnalysis: Pseudotime Gene Expression app
 
-        各終末状態への運命確率を横軸として、遺伝子発現トレンドを詳細に解析できます：
-        1. **Pseudotime gene expression** ページに移動
-        2. このh5adファイルをアップロード
-        3. Pseudotime selectionで `fate_prob_{state}` を選択
-        4. 横軸 = その終末状態への確率（0-1）で以下が可能：
-           - ヒートマップ、ラインプロット、スタックエリア
-           - Z-score正規化
-           - クラスター密度解析
-           - 複数遺伝子のオーバーレイ表示
+        eachendendstatestateheofruncmdcertainratethehorizaxisandshite、GeneExpressiontorendothedetailfinetoAnalysiswithkimasu：
+        1. **Pseudotime gene expression** pe-jitomovemove
+        2. koofh5adFiletheUpload
+        3. Pseudotime selectionwith `fate_prob_{state}` theSelect
+        4. horizaxis = soofendendstatestateheofcertainrate（0-1）withorbelowispossible：
+           - hi-tomapu、rainpuroto、sutakueria
+           - Z-scoreNormalization
+           - ClusterdensedegreeAnalysis
+           - multinumGeneofo-ba-reiDisplay
 
-        #### Pythonでのvisualization例:
+        #### PythonwithofvisualizationExample:
         ```python
         import cellrank as cr
         import scanpy as sc
@@ -561,4 +561,4 @@ if uploaded_h5ad is not None:
         """)
 
 else:
-    st.info("👆 scVelo解析結果のh5adファイルをアップロードして開始してください")
+    st.info("👆 scVeloAnalysisResultofh5adFiletheUploadshitestartshitekudasai")

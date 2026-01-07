@@ -15,7 +15,7 @@ def sort_columns(df):
     sorted_col = sort_items(original_col)
 
     if st.button('Finished'):
-        # 列の順序を変更
+        # coloforderorderthechangefurther
         df_o = df_o.reindex(columns=sorted_col)
         
         csv = convert_df(df_o)
@@ -57,44 +57,44 @@ def optimized_checkbox_container(data, items_per_page=50):
     start_idx = (page - 1) * items_per_page
     end_idx = min(start_idx + items_per_page, len(filtered_data))
     
-    # 現在のページのアイテムを取得
+    # currentofpe-jiofaitemuthegetget
     current_page_items = filtered_data[start_idx:end_idx]
     
-    # カラムを作成
+    # karamuthemakebecome
     cols = st.columns(5)
     
-    # Select Allボタン
+    # Select Allbotan
     if cols[0].button('Select All', key=f"select_all_{page}"):
         for item in current_page_items:
             st.session_state.selected_items.add(item)
-            # チェックボックスの状態も強制的に更新
+            # chiekubokusuofstatestatemoforcecontrolaltofurthernew
             checkbox_key = f"checkbox_{item}"
             if checkbox_key in st.session_state:
                 st.session_state[checkbox_key] = True
         st.rerun()
     
-    # UnSelect Allボタン  
+    # UnSelect Allbotan  
     if cols[1].button('UnSelect All', key=f"unselect_all_{page}"):
         for item in current_page_items:
             st.session_state.selected_items.discard(item)
-            # チェックボックスの状態も強制的に更新
+            # chiekubokusuofstatestatemoforcecontrolaltofurthernew
             checkbox_key = f"checkbox_{item}"
             if checkbox_key in st.session_state:
                 st.session_state[checkbox_key] = False
         st.rerun()
     
-    # 各項目のチェックボックスを表示
+    # eachitemidxofchiekubokusutheDisplay
     for i, item in enumerate(current_page_items):
         key = f"checkbox_{item}"
         
-        # チェックボックスを表示（valueは selected_items から決定）
+        # chiekubokusutheDisplay（valueis selected_items fromdetset）
         is_checked = st.checkbox(
             item, 
             value=item in st.session_state.selected_items,
             key=key
         )
         
-        # チェックボックスの状態変更を反映
+        # chiekubokusuofstatestatechangefurthertheantimap
         if is_checked:
             st.session_state.selected_items.add(item)
         else:
@@ -110,7 +110,7 @@ def turn_off_editing():
 if 'editing' not in st.session_state:
     st.session_state.editing = False
 
-#st.session_state.editingでediting中にはsession_stateのdfは変更しない。
+#st.session_state.editingwitheditingmidtoissession_stateofdfischangefurthershinot。
 
 use_upload = 'Yes'
 if 'df' in st.session_state:
@@ -217,13 +217,13 @@ if df is not None:
             if ',' not in genes:
                 gene_list = genes.split(' ')
             else:
-                genes =  ''.join(genes.split()) #空白を除く
+                genes =  ''.join(genes.split()) #emptywhitetheremoveku
                 gene_list = genes.split(',')
-            genes = list(filter(lambda x: x != "", genes)) #空白を除く
+            genes = list(filter(lambda x: x != "", genes)) #emptywhitetheremoveku
 
-            # intersectを取る
+            # intersectthegetru
             gene_list = set(df.index.tolist()) & set(gene_list)
-            # 順番を修正
+            # ordernumthemodcorrect
             l = df.index.tolist()
             gene_list = sorted(gene_list, key=l.index)
             # st.write(gene_list)
@@ -279,7 +279,7 @@ if df is not None:
             selected = get_selected_items()
 
             st.session_state.editing = True
-            # 順番を修正
+            # ordernumthemodcorrect
             if rowcol == 'Columns':
                 l = df.columns.tolist()
                 selected = sorted(selected, key=l.index)

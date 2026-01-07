@@ -1149,12 +1149,12 @@ elif Analysis_mode == "Prerank":
         if uploaded_file is not None:
             if input_file_type == "csv":
                 df = read_csv(uploaded_file, index_col = 0)
-                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
             elif input_file_type == 'tsv':
                 df = read_csv(uploaded_file, sep = '\t', index_col = 0)
-                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
             elif input_file_type == 'Seurat':
@@ -1198,7 +1198,7 @@ elif Analysis_mode == "Prerank":
                 st.write(f"Number of genes: {len(df)}")
             else:
                 df = read_xl(uploaded_file, index_col = 0)
-                # 1column has nameがnot場合（Unnamed: 0など）、indexにnamesettings
+                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
 
@@ -1293,7 +1293,7 @@ elif Analysis_mode == "Prerank":
                 content = df.columns.tolist()
 
                 st.write("Select PCA loadings column")
-                # loadings列のパターン（PC1, PC2, etc.）
+                # loadingscolofpata-n（PC1, PC2, etc.）
                 loading_patterns = ['pc', 'loadings', 'component']
                 loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
 
@@ -1314,9 +1314,9 @@ elif Analysis_mode == "Prerank":
 
                 inv_switch = st.checkbox('Invert the sign')
 
-                # loadingsvaluerank fileにconvert
+                # loadingsvaluerank filetoconvert
                 rnk = df[[Gene_column, Loading_column]].copy()
-                rnk = rnk.dropna()  # NA除去
+                rnk = rnk.dropna()  # NAremoverm
                 rnk.columns = ['Gene', 'score']
                 rnk = rnk.set_index('Gene')
 
@@ -1398,7 +1398,7 @@ elif Analysis_mode == "Prerank":
                     gmt =[x.split('\t') for x in t]
                     GO_dic = dict()
                     for i in gmt:
-                        if len(i) >= 3 and i[0].strip():  # キーが空でなく、少なくとも3要素あるcheck
+                        if len(i) >= 3 and i[0].strip():  # ki-isemptywithnaku、fewnakuandmo3needelemexistcheck
                             GO_dic[i[0]] = i[2:]
                     GO = GO | GO_dic
 
@@ -1423,7 +1423,7 @@ elif Analysis_mode == "Prerank":
                 min_size = int(st.number_input('Minimum number of genes in a gene set', min_value =1, step =1, value=15))
                 max_size = int(st.number_input('Maximum number of genes in a gene set', min_value =1, step =100, value=500))
 
-                # GSEApyの場合のみpermutation_numdisplay
+                # GSEApyofplacematchofmipermutation_numdisplay
                 if prerank_method == 'GSEApy':
                     permutation_num = int(st.number_input('Number of permutation', min_value =100, step =100, value=1000))
                     seed = int(st.number_input('Seed for permutation (0: time stamp)', min_value =0, step =1, value=6))
@@ -1432,22 +1432,22 @@ elif Analysis_mode == "Prerank":
                         seed = int(time.time())
 
                 rev_rnk = st.checkbox("Reverse rank order?", value = False)
-                # 修正afterのコード:
+                # modcorrectafterofko-do:
                 if rev_rnk:
-                    # DataFrameの構造checkして適切に処理
+                    # DataFrameofstructmakecheckshitefitcuttoprocproc
                     if isinstance(rnk, pd.DataFrame):
-                        # DataFrameの最初の列（スコアvalue）反転
+                        # DataFrameofmostfirstofcol（sukoavalue）antiturn
                         col_name = rnk.columns[0]
                         rnk[col_name] = -rnk[col_name]
                         st.write(f"Reversed values in column: {col_name}")
                     else:
-                        # DataFrameでnot場合（念のため）
+                        # DataFramewithnotplacematch（念offor）
                         st.error("Error: rank data is not in expected format")
 
                     rev_rnk_name = st.text_input("New rank name:", rnk_name + "_rev")
                     rnk_name = rev_rnk_name
 
-                    # 反転afterのdatadisplay
+                    # antiturnafterofdatadisplay
                     st.write("Preview of reversed ranking:")
                     st.write(rnk.head())
 
@@ -1471,7 +1471,7 @@ elif Analysis_mode == "Prerank":
             os.mkdir(gsea_dir + '/downregulated_enrichment')
 
 
-        if st.button('Run prerank GSEA test', type = 'primary') and GO: # 状態にかかわらず、ボタンが押edらcalculate。
+        if st.button('Run prerank GSEA test', type = 'primary') and GO: # statestatetokakawarazu、botanispushedracalculate。
             st.session_state.pre_res = None
 
             if list(rnk.index.duplicated()).count(True) > 0:
@@ -1561,7 +1561,7 @@ elif Analysis_mode == "Prerank":
                     es_x_size = int(st.number_input("Enrichment plot x size:", value = 5, step = 1, min_value = 2))
                     es_y_size = int(st.number_input("Ebrichment plot y size:", value = 5, step = 1, min_value = 2))
 
-                    # fgseaメソッドがselectされている場合のみアスペクト比のスライダーdisplay
+                    # fgseaMethodisselectsareteexistplacematchofmiasupekutoratioofsuraida-display
                     if prerank_method == 'fgsea (R)':
                         aspect_ratio = st.slider(
                             "Plot aspect ratio (height/width):",
@@ -1572,7 +1572,7 @@ elif Analysis_mode == "Prerank":
                             help="Adjust this to make the plot wider (lower values) or taller (higher values)"
                         )
                     else:
-                        aspect_ratio = 1.0  # デフォルトvalue
+                        aspect_ratio = 1.0  # defuorutovalue
 
             if enrichment_term:
                 # Check if we're using fgsea (different plotting approach needed)
@@ -1984,7 +1984,7 @@ elif Analysis_mode == "Prerank":
                 if not os.path.exists(gsea_dir + '/edb'):
                     os.mkdir(gsea_dir + '/edb')
                 rnk.to_csv(gsea_dir +'/edb/' + rnk_name, sep = '\t',header=False)
-                # gmt fileのcreate
+                # gmt fileofcreate
 #                gene_sets_gmt = []
 #                for i in list(GO.keys()):
 #                    new_cont = [i, i]

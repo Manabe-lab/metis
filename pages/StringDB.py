@@ -8,23 +8,23 @@ import io
 from urllib.parse import urlencode
 
 def process_gene_list(gene_input):
-    """遺伝子リストの処理関数"""
-    # まず改行を全てスペースに置換
+    """Generisutoofprocprocrelnum"""
+    # mazureformrowthealltesupe-sutoplacechange
     genes = gene_input.replace('\n', ' ')
     
-    # セミコロンをスペースに置換
+    # semikoronthesupe-sutoplacechange
     genes = genes.replace(';', ' ')
     
-    # 連続する空白を単一のスペースに置換
+    # connectcontinuedoemptywhitethesimpleoneofsupe-sutoplacechange
     genes = ' '.join(genes.split())
     
-    # スペースで分割してリスト化
+    # supe-suwithdivratioshiterisutoize
     gene_list = [g.strip() for g in genes.split()]
     
-    # 空の要素を除去
+    # emptyofneedelemtheremoverm
     gene_list = [g for g in gene_list if g]
     
-    # 重複を除去して順序を維持
+    # weightmultitheremovermshiteorderorderthe維hold
     seen = set()
     unique_genes = []
     for gene in gene_list:
@@ -35,31 +35,31 @@ def process_gene_list(gene_input):
     return unique_genes
 
 def fetch_string_db_interactions(genes, species=10090, score_threshold=0):
-    """StringDBからタンパク質間相互作用データを取得"""
+    """StringDBfromtanpakuqualitybetweenInteractionDatathegetget"""
     base_url = "https://string-db.org/api/json"
     endpoint = "network"
     
-    # パラメータの設定
+    # ParameterofSettings
     params = {
         "identifiers": "\r".join(genes),
         "species": species,
-        "required_score": 0,  # スコア閾値は後で適用
+        "required_score": 0,  # sukoaThresholdisafterwithfituse
         "caller_identity": "your_app_name"
     }
 
     try:
-        # APIリクエストを送信
+        # APIrikuesutothesendtrust
         api_url = f"{base_url}/{endpoint}"
         st.write(f"Requesting URL: {api_url}")
         
         response = requests.post(api_url, data=params)
         response.raise_for_status()
 
-        # デバッグ情報の表示
+        # debaguinfoinfoofDisplay
         st.write("API Response Status:", response.status_code)
         st.write("API Response Content Type:", response.headers.get('content-type'))
         
-        # JSONレスポンスの解析を試みる
+        # JSONresuponsuofAnalysisthetrymiru
         if response.text.strip():
             try:
                 data = response.json()
@@ -88,12 +88,12 @@ def fetch_string_db_interactions(genes, species=10090, score_threshold=0):
         return []
 
 def process_interactions(interactions, G, genes, score_threshold):
-    """インタラクションデータを処理してエッジを追加"""
+    """intarakushiyonDatatheprocprocshiteejitheaddadd"""
     edge_count = 0
     skipped_edges = 0
     all_scores = []
 
-    # スコアの分布を確認
+    # sukoaofdivdisttheConfirm
     scores = [float(interaction.get('score', 0)) for interaction in interactions]
     if scores:
         st.write(f"Score distribution - Min: {min(scores)}, Max: {max(scores)}, Mean: {np.mean(scores):.2f}")
@@ -107,7 +107,7 @@ def process_interactions(interactions, G, genes, score_threshold):
             all_scores.append(score)
             
             if score >= score_threshold:
-                # 必要に応じてノードを追加
+                # requiredtorespondjiteno-dotheaddadd
                 if source not in G:
                     G.add_node(source)
                 if target not in G:
@@ -124,7 +124,7 @@ def process_interactions(interactions, G, genes, score_threshold):
     st.write(f"Added {edge_count} edges to the network")
     st.write(f"Skipped {skipped_edges} edges due to score threshold")
     
-    # スコア分布のヒストグラムを表示
+    # sukoadivdistofhisutoguramutheDisplay
     if all_scores:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.hist(all_scores, bins=20, edgecolor='black')
@@ -139,19 +139,19 @@ def process_interactions(interactions, G, genes, score_threshold):
     return edge_count
 
 def visualize_network(G, minimum_score):
-    """ネットワークを可視化する関数"""
+    """NetworktheVisualizationdorelnum"""
     plt.figure(figsize=(15, 10))
     
-    # スプリングレイアウトでノードの位置を計算
+    # supuringureiautowithno-doofrankplacetheCalculation
     pos = nx.spring_layout(G, k=1.5/np.sqrt(len(G.nodes())), iterations=50)
     
-    # エッジの描画
+    # ejiofplotdraw
     if G.number_of_edges() > 0:
         edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
         max_weight = max(edge_weights)
         min_weight = min(edge_weights)
         
-        # エッジの太さを正規化 (0.5-5の範囲)
+        # ejiofboldsatheNormalization (0.5-5ofrangesurr)
         if max_weight != min_weight:
             normalized_weights = [0.5 + 4.5 * (w - min_weight) / (max_weight - min_weight) 
                                 for w in edge_weights]
@@ -163,11 +163,11 @@ def visualize_network(G, minimum_score):
                              alpha=0.5,
                              edge_color='gray')
     
-    # ノードの描画
+    # no-doofplotdraw
     degrees = dict(G.degree())
     max_degree = max(degrees.values()) if degrees else 1
     
-    # ノードサイズを調整 (最小1000、最大3000)
+    # no-dosaizutheadjustarrange (minimum1000、maximum3000)
     node_sizes = [1000 + 2000 * (degrees[node] / max_degree) for node in G.nodes()]
     
     nx.draw_networkx_nodes(G, pos,
@@ -175,7 +175,7 @@ def visualize_network(G, minimum_score):
                           node_color='lightblue',
                           alpha=0.7)
     
-    # ラベルの描画（ノードの次数に応じてフォントサイズを調整）
+    # raberuofplotdraw（no-doofnextnumtorespondjitefuontosaizutheadjustarrange）
     font_sizes = {node: min(8 + 4 * (degrees[node] / max_degree), 14) 
                  for node in G.nodes()}
     
@@ -189,11 +189,11 @@ def visualize_network(G, minimum_score):
     return plt.gcf()
 
 def find_optimal_threshold(interactions, min_edges=10):
-    """最適なスコア閾値を見つける"""
+    """mostfitnasukoaThresholdtheviewtsukeru"""
     if not interactions:
-        return 400  # デフォルト値
+        return 400  # defuorutoval
     
-    # 利用可能なすべてのスコアを取得
+    # useusepossiblenaallofsukoathegetget
     scores = []
     for interaction in interactions:
         try:
@@ -205,10 +205,10 @@ def find_optimal_threshold(interactions, min_edges=10):
     if not scores:
         return 400
     
-    # スコアを降順にソート
+    # sukoathedescordertoso-to
     scores.sort(reverse=True)
     
-    # 少なくともmin_edges個のエッジを確保できる最大のスコアを見つける
+    # fewnakuandmomin_edgespieceofejithecertainkeepwithkirumaximumofsukoatheviewtsukeru
     for score in scores:
         edge_count = sum(1 for s in scores if s >= score)
         if edge_count >= min_edges:
@@ -217,7 +217,7 @@ def find_optimal_threshold(interactions, min_edges=10):
     return min(scores)
 
 def analyze_network(G):
-    """ネットワークを解析する関数"""
+    """NetworktheAnalysisdorelnum"""
     analysis_results = {
         "basic_stats": {
             "nodes": G.number_of_nodes(),
@@ -227,14 +227,14 @@ def analyze_network(G):
     }
     
     if G.number_of_nodes() > 0:
-        # 中心性の計算
+        # midcenternatureofCalculation
         analysis_results["centrality"] = {
             "degree": nx.degree_centrality(G),
             "betweenness": nx.betweenness_centrality(G) if G.number_of_edges() > 0 else {},
             "closeness": nx.closeness_centrality(G) if G.number_of_edges() > 0 else {}
         }
         
-        # クラスター係数（エッジが存在する場合のみ）
+        # Clusterrelatenum（ejiisexistatdoplacematchofmi）
         if G.number_of_edges() > 0:
             analysis_results["clustering"] = nx.clustering(G)
         else:
@@ -245,17 +245,17 @@ def analyze_network(G):
 def main():
     st.title("Protein-Protein Interaction Network Analysis using STRING-db")
     
-    # 遺伝子リストの入力
+    # GenerisutoofInput
     gene_input = st.text_area(
         "Enter gene symbols (separated by spaces, newlines, or semicolons):", 
         height=200,
         help="You can paste gene symbols separated by spaces, newlines, or semicolons"
     )
     
-    # 遺伝子リストの処理
+    # Generisutoofprocproc
     genes = process_gene_list(gene_input)
     
-    # 処理された遺伝子リストの表示
+    # procprocsaretaGenerisutoofDisplay
     st.write(f"Number of unique genes: {len(genes)}")
     if st.checkbox("Show processed gene list"):
         st.write(", ".join(genes))
@@ -289,7 +289,7 @@ def main():
                 help="Higher values mean more stringent interaction criteria (0-1)"
             )
     
-    # フィルタリングオプションの追加
+    # FilteringOptionofaddadd
     with st.expander("Advanced Filtering Options"):
         max_edges = st.number_input(
             "Maximum number of edges to show",
@@ -307,26 +307,26 @@ def main():
     
     if st.button("Analyze Network"):
         with st.spinner("Fetching protein interaction data..."):
-            # スコア閾値0で全てのインタラクションを取得
+            # sukoaThreshold0withallteofintarakushiyonthegetget
             interactions = fetch_string_db_interactions(genes, species_id, 0)
             
             if not interactions:
                 st.error("No interactions found for the given parameters.")
                 return
             
-            # インタラクションデータのサンプルを表示
+            # intarakushiyonDataofSampletheDisplay
             with st.expander("Show raw interaction data sample"):
                 sample_df = pd.DataFrame(interactions[:5])
                 st.dataframe(sample_df)
             
-            # Networkxを使用したネットワークの作成
+            # NetworkxtheuseuseshitaNetworkofmakebecome
             G = nx.Graph()
             
-            # ノードの追加
+            # no-doofaddadd
             for gene in genes:
                 G.add_node(gene)
             
-            # インタラクションをスコアでソート
+            # intarakushiyonthesukoawithso-to
             if show_strongest:
                 interactions = sorted(
                     interactions,
@@ -334,7 +334,7 @@ def main():
                     reverse=True
                 )[:max_edges]
             
-            # エッジの追加
+            # ejiofaddadd
             edge_count = process_interactions(interactions, G, genes, score_threshold)
             
             if edge_count == 0:
@@ -346,24 +346,24 @@ def main():
     
             if edge_count > 0:
                 try:
-                    # ネットワークの可視化
+                    # NetworkofVisualization
                     fig = visualize_network(G, score_threshold)
                     st.pyplot(fig)
                     
-                    # ネットワーク解析
+                    # NetworkAnalysis
                     analysis_results = analyze_network(G)
                     
-                    # 基本統計量の表示
+                    # basemainStatisticalamountofDisplay
                     st.subheader("Network Statistics")
                     stats = analysis_results["basic_stats"]
                     st.write(f"Number of nodes: {stats['nodes']}")
                     st.write(f"Number of edges: {stats['edges']}")
                     st.write(f"Average degree: {stats['average_degree']:.2f}")
                     
-                    # 中心性の解析と表示
+                    # midcenternatureofAnalysisandDisplay
                     st.subheader("Centrality Analysis")
                     
-                    # 次数中心性のTop 10
+                    # nextnummidcenternatureofTop 10
                     degree_df = pd.DataFrame.from_dict(
                         analysis_results["centrality"]["degree"], 
                         orient='index', 
@@ -371,7 +371,7 @@ def main():
                     )
                     degree_df = degree_df.sort_values('Degree Centrality', ascending=False)
                     
-                    # 媒介中心性のTop 10
+                    # mediumviamidcenternatureofTop 10
                     betweenness_df = pd.DataFrame.from_dict(
                         analysis_results["centrality"]["betweenness"], 
                         orient='index', 
@@ -379,7 +379,7 @@ def main():
                     )
                     betweenness_df = betweenness_df.sort_values('Betweenness Centrality', ascending=False)
                     
-                    # 中心性の結果を結合
+                    # midcenternatureofResulttheresultmatch
                     centrality_df = pd.concat([
                         degree_df['Degree Centrality'],
                         betweenness_df['Betweenness Centrality']
@@ -388,7 +388,7 @@ def main():
                     st.write("Top 10 genes by centrality measures:")
                     st.dataframe(centrality_df.head(10))
                     
-                    # クラスター係数の表示
+                    # ClusterrelatenumofDisplay
                     if "clustering" in analysis_results:
                         st.subheader("Clustering Analysis")
                         clustering_df = pd.DataFrame.from_dict(
@@ -401,10 +401,10 @@ def main():
                         st.write("Top 10 genes by clustering coefficient:")
                         st.dataframe(clustering_df.head(10))
                     
-                    # 結果のエクスポート
+                    # Resultofekusupo-to
                     st.subheader("Export Results")
                     
-                    # エッジデータの準備
+                    # ejiDataoflevelprep
                     edge_df = pd.DataFrame([
                         {
                             'Source': u,
@@ -414,11 +414,11 @@ def main():
                         for u, v, d in G.edges(data=True)
                     ])
                     
-                    # ノードデータの準備
+                    # no-doDataoflevelprep
                     node_df = centrality_df.reset_index()
                     node_df.columns = ['Gene', 'Degree_Centrality', 'Betweenness_Centrality']
                     
-                    # データのダウンロードボタンを提供
+                    # DataofDownloadbotantheprovideprovide
                     col1, col2 = st.columns(2)
                     with col1:
                         csv_edges = edge_df.to_csv(index=False)

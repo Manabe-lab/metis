@@ -63,7 +63,7 @@ def nichenetr_converter(GO, method):
                 converted_genes = convert_human_to_mouse_symbols(Genes, version=2)
 
 
-        converted_list = [x for x in converted_genes if not pd.isna(x)] # NA_character_を除く
+        converted_list = [x for x in converted_genes if not pd.isna(x)] # NA_character_theremoveku
 
         new_row.append(i[0])
         new_row.extend([i[1]])
@@ -166,20 +166,20 @@ if uploaded_file is not None:
     go = []
         # To convert to a string based IO:
     stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-    reader = csv.reader(stringio, delimiter = '\t') #stringioはfileのように使える
+    reader = csv.reader(stringio, delimiter = '\t') #stringioisfileofliketouseeru
     for row in reader:
         if len(row) > 2:
             go.append(row)
 
     st.write('Number of gene sets: ' + str(len(go)))
 
-    # 重複GOの除去
-    GO_names = [ x[0] for x in go ] # GO の名前のリスト
+    # weightmultiGOofremoverm
+    GO_names = [ x[0] for x in go ] # GO ofnamebeforeofrisuto
 
-    # GOのカウント数のdictionaryを作る
+    # GOofkauntonumofdictionarythemakeru
     GO_count_dic = dict.fromkeys(GO_names)
 
-    # 順番を保持して、duplicateを除く
+    # ordernumthekeepholdshite、duplicatetheremoveku
     new_go = []
     for i in range(len(go)):
         if GO_count_dic[go[i][0]] == None:
@@ -188,7 +188,7 @@ if uploaded_file is not None:
 
     if species != 'Check format':
         go = new_go
-        # human2mouse変換dictionaryの読み込み
+        # human2mousechangechangedictionaryofLoading
         if species == "Human":
             with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "human2mouse.dic"), mode='rb') as f:
                 h2m = pickle.load(f)
@@ -211,8 +211,8 @@ if uploaded_file is not None:
         Mouse_list = go
         OutDataName = uploaded_file.name
 
-# スペースを_に変換
-# 重複をもう一度除く
+# supe-suthe_tochangechange
+# weightmultithemouonedegreeremoveku
     for i in range(len(Mouse_list)):
         n=[]
         n.append(Mouse_list[i][0].replace(' ','_'))
@@ -220,7 +220,7 @@ if uploaded_file is not None:
         n.extend(list(set(Mouse_list[i][2:])))
         Mouse_list[i] = n
 
-    # listをstringにしてから保存する
+    # listthestringtoshitefromSavedo
     for i in range(len(Mouse_list)):
         row_str = '\t'.join(Mouse_list[i])
         if i == 0:

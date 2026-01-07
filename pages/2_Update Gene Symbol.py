@@ -53,7 +53,7 @@ if uploaded_file is not None:
 
     colnames = df.columns.tolist()
 
-    # Homerの場合はrefseq idをもとに変換する
+    # Homerofplacematchisrefseq idthemoandtochangechangedo
     st.markdown("### Original")
     st.write(df.head())
 
@@ -61,11 +61,11 @@ if uploaded_file is not None:
         gene_col  = df.columns.tolist().index("Annotation/Divergence")
     else:
 #        gene_column =  st.selectbox('Select gene column',colnames)
-        gene_col = 0 # 1列目をgene_colとする
+        gene_col = 0 # 1colidxthegene_colanddo
 
     convert = []
-    #df["Updated"] = None # Updated columnを追加
-    updated_index = df.index.tolist() #indexを修正するためのリスト
+    #df["Updated"] = None # Updated columntheaddadd
+    updated_index = df.index.tolist() #indexthemodcorrectdoforofrisuto
 
     if data_type == "Homer":
         p = re.compile(r'([^|]*)')
@@ -73,14 +73,14 @@ if uploaded_file is not None:
             new_id = ""
             ref = df.iloc[i,0]
             ann = df.iloc[i, gene_col]
-            gene = p.match(ann).group(1) # annotation divergenceのsymbol
+            gene = p.match(ann).group(1) # annotation divergenceofsymbol
             try:
                 new_id = refseq[ref]
-            except: #結果がないときはgene nameで
+            except: #Resultisnotandkiisgene namewith
                 try:
                      new_id = dic[gene]
                 except:
-                    new_id = gene #updateできないとき
+                    new_id = gene #updatewithkinotandki
             if new_id != gene:
                 convert.append([ref, gene, new_id])
                 df.iloc[i, gene_col] = str(new_id) + '|' + str(ann)
@@ -109,7 +109,7 @@ if uploaded_file is not None:
     st.write(df_convert.head(10))
     csv_convert = convert_df(df_convert)
 
-    st.markdown("### Duplicated symbols") #これはupdateしたものだけなので、実際のduplicatesはもっと多い
+    st.markdown("### Duplicated symbols") #koreisupdateshitamoofdakenaofwith、realoccofduplicatesismoandmanyi
     df_convert_dup = df_convert.loc[df_convert.duplicated(subset = 'New', keep=False),:].sort_values('New')
     st.write(df_convert_dup)
     csv_dup = convert_df(df_convert_dup)
@@ -147,7 +147,7 @@ if uploaded_file is not None:
 
     if st.button('You can aggregate duplicates'):
         dup_gene = set(df.index[df.index.duplicated( keep=False)])
-        df_nodup = df[~df.index.duplicated(keep='first')] # indexの重複をもとに削除
+        df_nodup = df[~df.index.duplicated(keep='first')] # indexofweightmultithemoandtodeleteremove
         if agg_method == "Mean":
             df_mean = grouping.mean(numeric_only = True)
         else:

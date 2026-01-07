@@ -17,19 +17,19 @@ from streamlit_sortables import sort_items
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    細胞名/クラスターと色の一貫したマッピングを作成する関数
+    Cellname/Clusterandcolorofonethroughshitamapinguthemakebecomedorelnum
 
     Parameters
     ----------
     cell_list : list
-        細胞名/クラスター名のリスト
+        Cellname/Clusternameofrisuto
     palette_name : str
-        使用する離散カラーパレット名
+        useusedosepscatterkara-paretoname
 
     Returns
     -------
     dict
-        細胞名/クラスター名をキー、色をバリューとする辞書
+        Cellname/Clusternametheki-、colorthebariyu-anddowordwrite
     """
     n_cells = len(cell_list)
     base_palette = sns.color_palette(palette_name)
@@ -180,23 +180,23 @@ if not DYNAMO_AVAILABLE:
     st.stop()
 
 st.markdown("""
-Dynamo解析結果を様々な方法で可視化します。
+DynamoAnalysisResultthemanner々nawaymethodwithVisualizationshimasu。
 
-### 可視化タイプ
-- **Streamline plot**: ベクトル場の流れを滑らかな曲線で表現
-- **Cell-wise vectors**: 各細胞のベクトルを矢印で表示
-- **Grid vectors**: グリッド上のベクトル場
-- **Phase portraits**: 遺伝子ごとのspliced/unsplicedダイナミクス
-- **Topography**: ポテンシャル地形（エネルギー landscape）⚠️ UMAP必須
-- **Geometric features panel**: Speed, divergence, acceleration, curvatureの可視化
-  - **複数basis対応**: 複数のbasisでGeometry計算されている場合、全てのbasisで自動的にパネルを生成
+### Visualizationtaipu
+- **Streamline plot**: bekutoruplaceofflowrethesmoothrakanacurvelinewithtablepresent
+- **Cell-wise vectors**: eachCellofbekutoruthearrowprintwithDisplay
+- **Grid vectors**: guridoupofbekutoruplace
+- **Phase portraits**: Genegoandofspliced/unspliceddainamikusu
+- **Topography**: potenshiyaruearthshape（enerugi- landscape）⚠️ UMAPmustmust
+- **Geometric features panel**: Speed, divergence, acceleration, curvatureofVisualization
+  - **multinumbasispairrespond**: multinumofbasiswithGeometryCalculationsareteexistplacematch、allteofbasiswithselfmovealtopaneruthegenbecome
 
-### 複数basis解析のサポート
-Dynamo Analysisで複数のbasis（例: `rna.mnn.umap`, `rna.pca.umap`）でVector Field/Geometryを計算した場合：
-- Vector Field可視化: 各basisを選択して個別に可視化
-- Geometric features panel: **全てのbasisで自動的にパネルを生成**して並べて表示（比較用）
+### multinumbasisAnalysisofsapo-to
+Dynamo Analysiswithmultinumofbasis（Example: `rna.mnn.umap`, `rna.pca.umap`）withVector Field/GeometrytheCalculationshitaplacematch：
+- Vector FieldVisualization: eachbasistheSelectshitepieceseptoVisualization
+- Geometric features panel: **allteofbasiswithselfmovealtopaneruthegenbecome**shitealignbeteDisplay（Comparisonuse）
 
-### 参考
+### refthink
 - [Qiu et al. (2022) "Mapping transcriptomic vector fields of single cells" Cell](https://www.cell.com/cell/fulltext/S0092-8674(21)01577-4)
 - [Dynamo Documentation](https://dynamo-release.readthedocs.io/)
 """)
@@ -221,7 +221,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file (Dynamo result)",
     type=['h5ad'],
     key="dynamo_vis_h5ad_upload",
-    help="Dynamo analysisアプリで生成されたh5adファイル"
+    help="Dynamo analysisapuriwithgenbecomesaretah5adFile"
 )
 
 if uploaded_h5ad is not None:
@@ -293,7 +293,7 @@ if uploaded_h5ad is not None:
             "Geometric features panel",
             "Basic UMAP"
         ],
-        help="可視化のタイプを選択"
+        help="VisualizationoftaiputheSelect"
     )
 
     # ========================================
@@ -304,39 +304,39 @@ if uploaded_h5ad is not None:
     with st.expander("📚 Parameter Guide", expanded=False):
         st.markdown("""
         ### Color options
-        - **Categorical**: クラスター、細胞タイプなど
-        - **Continuous**: 遺伝子発現、pseudotimeなど
-        - **Geometric features**: speed, divergence, acceleration, curvatureなど
+        - **Categorical**: Cluster、Cell typeetc
+        - **Continuous**: GeneExpression、pseudotimeetc
+        - **Geometric features**: speed, divergence, acceleration, curvatureetc
 
-        ### Coloring（色付け）
-        - **Discrete colormap**: カテゴリカル変数用（クラスター、細胞タイプ等）
-        - **Continuous colormap**: 連続変数用（遺伝子発現、pseudotime等）
+        ### Coloring（colorattachke）
+        - **Discrete colormap**: kategorikaruchangenumuse（Cluster、Cell typeeq）
+        - **Continuous colormap**: connectcontinuechangenumuse（GeneExpression、pseudotimeeq）
 
-        ### Cluster Settings（サイドバー）
-        - **Change cluster order**: クラスターの表示順序をドラッグ&ドロップで変更
-        - 順序変更は色の割り当てにも反映されます
+        ### Cluster Settings（saidoba-）
+        - **Change cluster order**: ClusterofDisplayorderorderthedoragu&doropuwithchangefurther
+        - orderorderchangefurtheriscolorofratioricurrenttetomoantimapsaremasu
 
         ### Basis
-        - 可視化に使用するembedding
-        - **Vector Field必須の可視化** (Streamline, Cell-wise vectors, Grid vectors, Topography):
-          - Vector Fieldが計算されているbasisのみ選択可能
-          - Dynamo Analysisで複数のbasisでVector Fieldを計算している場合、全て選択肢に表示されます
+        - Visualizationtouseusedoembedding
+        - **Vector FieldmustmustofVisualization** (Streamline, Cell-wise vectors, Grid vectors, Topography):
+          - Vector FieldisCalculationsareteexistbasisofmiSelectpossible
+          - Dynamo AnalysiswithmultinumofbasiswithVector FieldtheCalculationshiteexistplacematch、allteSelect肢toDisplaysaremasu
         - **Geometric features panel**:
-          - 複数のbasisでGeometryが計算されている場合、**全てのbasisで自動的にパネルを生成**
-          - 各basisごとに独立したパネルが表示されます（比較用）
-        - **その他の可視化** (Basic UMAP):
-          - データに存在する全てのembeddingから選択可能
-        - 一般的なembeddings: umap, mnn_umap, harmony_umap, pca, tsne, draw_graph_fa等
-        - UMAPが推奨（存在する場合）
-        - ⚠️ **Topography解析にはUMAPが必須**: Topographyは高次元空間での解析が困難なため、
-          UMAPベースのベクトル場でのみ正確に動作します
+          - multinumofbasiswithGeometryisCalculationsareteexistplacematch、**allteofbasiswithselfmovealtopaneruthegenbecome**
+          - eachbasisgoandtosoloestabshitapaneruisDisplaysaremasu（Comparisonuse）
+        - **soofotherofVisualization** (Basic UMAP):
+          - DatatoexistatdoallteofembeddingfromSelectpossible
+        - onegenalnaembeddings: umap, mnn_umap, harmony_umap, pca, tsne, draw_graph_faeq
+        - UMAPisinferrec（existatdoplacematch）
+        - ⚠️ **TopographyAnalysistoisUMAPismustmust**: TopographyishighnextsourceemptybetweenwithofAnalysisis困難nafor、
+          UMAPbe-suofbekutoruplacewithofmicorrectcertaintomovemakeshimasu
 
         ### Plot parameters
-        - **figsize**: 図のサイズ (width, height in inches)
-        - **pointsize**: データポイントのサイズ
-        - **alpha**: 透明度 (0-1)
-        - **quiver_length**: ベクトルの長さ（cell-wise/grid vectors）
-        - **quiver_size**: ベクトルの太さ（cell-wise/grid vectors）
+        - **figsize**: figofsaizu (width, height in inches)
+        - **pointsize**: Datapointoofsaizu
+        - **alpha**: transcleardegree (0-1)
+        - **quiver_length**: bekutoruoflongsa（cell-wise/grid vectors）
+        - **quiver_size**: bekutoruofboldsa（cell-wise/grid vectors）
         """)
 
     # Sidebar for colormap selection
@@ -344,19 +344,19 @@ if uploaded_h5ad is not None:
         st.markdown("### Visualization Options")
 
         colormap_discrete = st.selectbox(
-            "Colormap (離散カラーマップ):",
+            "Colormap (sepscatterkara-mapu):",
             ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
              "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
             index=0,
-            help="カテゴリカル変数用のカラーパレット"
+            help="kategorikaruchangenumuseofkara-pareto"
         )
 
         colormap_continuous = st.selectbox(
-            "Colormap (連続カラーマップ):",
+            "Colormap (connectcontinuekara-mapu):",
             ["viridis", "plasma", "inferno", "magma", "cividis",
              "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
             index=0,
-            help="連続変数用のカラーパレット"
+            help="connectcontinuechangenumuseofkara-pareto"
         )
 
     col1, col2, col3 = st.columns(3)
@@ -430,7 +430,7 @@ if uploaded_h5ad is not None:
                         show_cluster_labels = st.checkbox(
                             "Show cluster labels on plot",
                             value=True,
-                            help="各クラスターにラベルを表示（オフにすると凡例のみ表示）"
+                            help="eachClustertoraberutheDisplay（ofutodoandlegendExampleofmiDisplay）"
                         )
 
                         sort_clusters = st.checkbox("Change cluster order?")
@@ -469,7 +469,7 @@ if uploaded_h5ad is not None:
                     "Select feature:",
                     ["potential_fp", "pseudotime_fp"],
                     index=0,
-                    help="Fokker-Planck法でpotentialとpseudotimeを計算して可視化"
+                    help="Fokker-PlanckmethodwithpotentialandpseudotimetheCalculationshiteVisualization"
                 )
 
                 # Store the selected feature for later computation
@@ -479,9 +479,9 @@ if uploaded_h5ad is not None:
                 show_cluster_labels = False
 
                 if not has_potential_fp or not has_pseudotime_fp:
-                    st.info(f"✓ 「Generate Visualization」クリック時に{topo_feature}を計算します")
+                    st.info(f"✓ 「Generate Visualization」kurikutimeto{topo_feature}theCalculationshimasu")
                 else:
-                    st.success(f"✓ {topo_feature}は既に計算済みです")
+                    st.success(f"✓ {topo_feature}isalreadytoCalculationdonemiwithsu")
 
             else:
                 color_col = None
@@ -511,21 +511,21 @@ if uploaded_h5ad is not None:
                                     available_bases_for_viz.append(emb)
 
                     if not available_bases_for_viz:
-                        st.error("❌ Vector Fieldが計算済みの**2D embedding**が見つかりません。")
+                        st.error("❌ Vector FieldisCalculationdonemiof**2D embedding**isviewtsukarimasen。")
                         st.warning(f"""
-                        **Topography解析の要件:**
-                        - ✅ 2D embedding（UMAP, tSNE等）
-                        - ✅ その2D空間でVector Fieldが計算されていること
+                        **TopographyAnalysisofneeditem:**
+                        - ✅ 2D embedding（UMAP, tSNEeq）
+                        - ✅ soof2DemptybetweenwithVector FieldisCalculationsareteexistkoand
 
-                        **現在の状態:**
-                        - 利用可能なVector Field: {', '.join(vecfld_bases) if vecfld_bases else 'なし'}
+                        **currentofstatestate:**
+                        - useusepossiblenaVector Field: {', '.join(vecfld_bases) if vecfld_bases else 'nashi'}
 
-                        **解決策:**
-                        1. Dynamo Analysisで**UMAP等の2D embedding**を使用してVector Fieldを計算
-                        2. または、他の可視化タイプ（Streamline plot等）を使用
+                        **solvedetplan:**
+                        1. Dynamo Analysiswith**UMAPeqof2D embedding**theuseuseshiteVector FieldtheCalculation
+                        2. alsois、otherofVisualizationtaipu（Streamline ploteq）theuseuse
 
-                        **注意:** 高次元embedding（PCA等）ではTopographyは動作しません。
-                        Vector Fieldも高次元空間で計算されているため、2Dに削減できません。
+                        **Note:** highnextsourceembedding（PCAeq）withisTopographyismovemakeshimasen。
+                        Vector FieldmohighnextsourceemptybetweenwithCalculationsareteexistfor、2Dtodeletereducewithkimasen。
                         """)
                         basis = None
                     else:
@@ -539,7 +539,7 @@ if uploaded_h5ad is not None:
                             "Basis (2D embedding with Vector Field)",
                             available_bases_for_viz,
                             index=default_basis_idx,
-                            help="Topography解析用：2D embedding + Vector Field が必要です"
+                            help="TopographyAnalysisuse：2D embedding + Vector Field isrequiredwithsu"
                         )
 
                         st.caption(f"✓ 2D embedding with Vector Field: {basis}")
@@ -554,25 +554,25 @@ if uploaded_h5ad is not None:
                         default_basis_idx = available_bases_for_viz.index(umap_like[0])
 
                     basis = st.selectbox(
-                        "Basis (可視化用embedding)",
+                        "Basis (Visualizationuseembedding)",
                         available_bases_for_viz,
                         index=default_basis_idx,
-                        help="可視化に使用するembedding。Vector Fieldが存在すれば、任意のembeddingで可視化できます。\n\n"
-                             f"Vector Field計算済み: {', '.join(vecfld_bases)}"
+                        help="Visualizationtouseusedoembedding。Vector Fieldisexistatsureba、任meanofembeddingwithVisualizationwithkimasu。\n\n"
+                             f"Vector FieldCalculationdonemi: {', '.join(vecfld_bases)}"
                     )
 
                     st.caption(f"ℹ️ Vector Field: {', '.join(vecfld_bases)}")
             else:
-                st.error("❌ Vector Fieldが見つかりません。Dynamo Analysisで計算してください。")
+                st.error("❌ Vector Fieldisviewtsukarimasen。Dynamo AnalysiswithCalculationshitekudasai。")
                 basis = None
         elif viz_type == "Geometric features panel":
             # Geometric features panel automatically generates panels for ALL computed bases
             # No basis selection needed
             basis = None  # Not used for this visualization type
             if geometry_by_basis:
-                st.info(f"📊 **自動パネル生成モード**\n\n計算済みの全てのbasis ({len(geometry_by_basis)}個) に対してパネルを自動生成します：\n- {', '.join(geometry_by_basis.keys())}")
+                st.info(f"📊 **selfmovepanerugenbecomemo-do**\n\nCalculationdonemiofallteofbasis ({len(geometry_by_basis)}piece) topairshitepanerutheselfmovegenbecomeshimasu：\n- {', '.join(geometry_by_basis.keys())}")
             else:
-                st.warning("⚠️ Geometry計算済みのbasisが見つかりません")
+                st.warning("⚠️ GeometryCalculationdonemiofbasisisviewtsukarimasen")
         else:
             # For other visualizations (Basic UMAP), show all embeddings
             default_basis_idx = 0
@@ -585,7 +585,7 @@ if uploaded_h5ad is not None:
                 "Basis",
                 available_embeddings,
                 index=default_basis_idx,
-                help="可視化に使用するembedding（データに存在するもののみ表示）"
+                help="Visualizationtouseusedoembedding（DatatoexistatdomoofofmiDisplay）"
             )
 
         fig_width = st.slider("Figure width", 2, 20, 6)
@@ -712,9 +712,9 @@ if uploaded_h5ad is not None:
                                     mime="application/pdf"
                                 )
                         except ValueError as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                         except Exception as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
             elif viz_type == "Cell-wise vectors":
                 st.subheader("Cell-wise Vectors")
@@ -793,9 +793,9 @@ if uploaded_h5ad is not None:
                                     mime="application/pdf"
                                 )
                         except ValueError as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                         except Exception as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
             elif viz_type == "Grid vectors":
                 st.subheader("Grid Vectors")
@@ -869,9 +869,9 @@ if uploaded_h5ad is not None:
                                     mime="application/pdf"
                                 )
                         except ValueError as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                         except Exception as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
             elif viz_type == "Phase portraits":
                 st.subheader("Phase Portraits")
@@ -932,16 +932,16 @@ if uploaded_h5ad is not None:
                                     mime="application/pdf"
                                 )
                         except ValueError as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                         except Exception as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
             elif viz_type == "Topography (potential landscape)":
                 st.subheader("Topography / Potential Landscape")
 
                 # basis is guaranteed to have Vector Field (filtered in selection)
                 if basis is None:
-                    st.warning("⚠️ Vector Fieldが計算済みの2D embeddingが見つかりません。Dynamo Analysisで計算してください。")
+                    st.warning("⚠️ Vector FieldisCalculationdonemiof2D embeddingisviewtsukarimasen。Dynamo AnalysiswithCalculationshitekudasai。")
                 else:
                     st.info(f"✓ Using: **{basis}** (Vector Field: VecFld_{basis})")
 
@@ -963,7 +963,7 @@ if uploaded_h5ad is not None:
 
                         # Check if both are already computed
                         if has_potential_fp and has_pseudotime_fp:
-                            st.success(f"✅ {selected_topo_feature}は既に計算済みです。既存の値を使用します。")
+                            st.success(f"✅ {selected_topo_feature}isalreadytoCalculationdonemiwithsu。alreadyexistofvaltheuseuseshimasu。")
                             color_col = selected_topo_feature
                         # Compute if not already computed
                         elif not has_potential_fp or not has_pseudotime_fp:
@@ -1106,29 +1106,29 @@ if uploaded_h5ad is not None:
                                     )
                                 topography_success = True
                                 if not try_frontier:
-                                    st.info("ℹ️ Fixed points解析をスキップしました")
+                                    st.info("ℹ️ Fixed pointsAnalysisthesukipushimashita")
                             except (TypeError, AttributeError) as e:
                                 retry_count += 1
                                 if try_frontier and "NoneType" in str(e) and retry_count < max_retries:
                                     # Retry without frontier (fixed points)
-                                    st.warning("⚠️ Fixed points解析でエラーが発生しました。frontier=Falseで再試行します...")
+                                    st.warning("⚠️ Fixed pointsAnalysiswithErrorisoccurgenshimashita。frontier=Falsewithretryrowshimasu...")
                                     try_frontier = False
                                     plt.close('all')
                                     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
                                 else:
-                                    # frontier=False でも失敗した場合
+                                    # frontier=False withmofailfailshitaplacematch
                                     st.error(f"""
-                                    ❌ Topography解析が失敗しました（basis: {basis}）
+                                    ❌ TopographyAnalysisisfailfailshimashita（basis: {basis}）
 
-                                    **エラー:** {str(e)}
+                                    **Error:** {str(e)}
 
-                                    **考えられる原因:**
-                                    - Vector Fieldの計算に問題がある可能性があります
-                                    - データの次元が不適切な可能性があります
+                                    **thinkerareruplaincause:**
+                                    - Vector FieldofCalculationtoquesttopicisexistpossiblenatureisarimasu
+                                    - Dataofnextsourceisnotfitcutnapossiblenatureisarimasu
 
-                                    **解決策:**
-                                    1. 他の可視化タイプ（Streamline plot等）をお試しください
-                                    2. Dynamo AnalysisでVector Fieldを再計算してください
+                                    **solvedetplan:**
+                                    1. otherofVisualizationtaipu（Streamline ploteq）theotryshikudasai
+                                    2. Dynamo AnalysiswithVector FieldthereCalculationshitekudasai
                                     """)
                                     topography_success = False  # Skip topography generation
                                     break
@@ -1181,8 +1181,8 @@ if uploaded_h5ad is not None:
                                         mime="image/png"
                                     )
                                 else:
-                                    st.error("❌ PNG保存に失敗しました")
-                                    st.info("💡 図はブラウザに表示されています。スクリーンショットをご利用ください。")
+                                    st.error("❌ PNGSavetofailfailshimashita")
+                                    st.info("💡 figisburauzatoDisplaysareteimasu。sukuri-nshiyotothegouseusekudasai。")
 
                             with col_dl2:
                                 if st.session_state.get('topography_pdf') is not None:
@@ -1193,9 +1193,9 @@ if uploaded_h5ad is not None:
                                         mime="application/pdf"
                                     )
                                 elif st.session_state.get('topography_pdf_error') is not None:
-                                    st.warning(f"⚠️ PDF保存に失敗しました: {st.session_state['topography_pdf_error']}\n\nPNG版をご利用ください。")
+                                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {st.session_state['topography_pdf_error']}\n\nPNGverthegouseusekudasai。")
                                 else:
-                                    st.warning("⚠️ PDF保存に失敗しました\n\nPNG版をご利用ください。")
+                                    st.warning("⚠️ PDFSavetofailfailshimashita\n\nPNGverthegouseusekudasai。")
 
             elif viz_type == "Geometric features panel":
                 st.subheader("Geometric Features Panel")
@@ -1307,9 +1307,9 @@ if uploaded_h5ad is not None:
                                             key=f"pdf_geom_{basis_idx}"
                                         )
                                 except ValueError as e:
-                                    st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                                    st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                                 except Exception as e:
-                                    st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
                             # Add separator between bases
                             if basis_idx < len(geometry_by_basis) - 1:
@@ -1378,9 +1378,9 @@ if uploaded_h5ad is not None:
                                     mime="application/pdf"
                                 )
                         except ValueError as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました (非有限数が含まれています): {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita (nonhavelimitnumisincludemareteimasu): {str(e)}\n\nPNGverthegouseusekudasai。")
                         except Exception as e:
-                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}\n\nPNG版をご利用ください。")
+                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}\n\nPNGverthegouseusekudasai。")
 
             st.success("✅ Visualization generated successfully!")
 
@@ -1389,4 +1389,4 @@ if uploaded_h5ad is not None:
             st.exception(e)
 
 else:
-    st.info("👆 Dynamo analysisアプリで生成されたh5adファイルをアップロードして開始してください")
+    st.info("👆 Dynamo analysisapuriwithgenbecomesaretah5adFiletheUploadshitestartshitekudasai")

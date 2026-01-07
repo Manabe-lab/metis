@@ -25,22 +25,22 @@ except ImportError as e:
     print(f"fa2 import failed: {e}")
     FA2_AVAILABLE = False
 
-# Matplotlib用のエッジカラー（タプル形式）
+# Matplotlibuseofejikara-（tapurushapeformat）
 EDGE_COLORS = {
-    'regular': (0.4, 0.4, 0.4, 0.3),      # 濃いグレー
-    'hub': (1.0, 0.08, 0.58, 0.4),        # 濃いdeeppink
-    'highlight': (1.0, 0.55, 0.0, 0.4)     # 濃いorange
+    'regular': (0.4, 0.4, 0.4, 0.3),      # darkigure-
+    'hub': (1.0, 0.08, 0.58, 0.4),        # darkideeppink
+    'highlight': (1.0, 0.55, 0.0, 0.4)     # darkiorange
 }
 
-# SVG用のエッジカラー（文字列形式）
+# SVGuseofejikara-（textcharcolshapeformat）
 SVG_EDGE_COLORS = {
-    'regular': "rgba(100,100,100,0.3)",    # 濃いグレー
-    'hub': "rgba(255,20,147,0.4)",         # 濃いdeeppink
-    'highlight': "rgba(255,140,0,0.4)"     # 濃いorange
+    'regular': "rgba(100,100,100,0.3)",    # darkigure-
+    'hub': "rgba(255,20,147,0.4)",         # darkideeppink
+    'highlight': "rgba(255,140,0,0.4)"     # darkiorange
 }
 
-# WGCNAで使用される可能性のある全ての色のマッピング
-# R WGCNAのlabels2colors関数から抽出
+# WGCNAwithuseusesarerupossiblenatureofexistallteofcolorofmapingu
+# R WGCNAoflabels2colorsrelnumfromextractout
 WGCNA_COLORS = {
     # Standard colors
     'white': '#FFFFFF',
@@ -177,24 +177,24 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
                          minimum_component_size, plot_type):
     """Generate and cache plots based on plot type"""
     if plot_type == "Interactive":
-        # インタラクティブプロット生成
+        # intarakuteibupurotogenbecome
         html_content = plot_network_svg(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
         )
-        # 静的プロット生成（PDFとPNG用）
+        # staticalpurotogenbecome（PDFandPNGuse）
         fig_static = plot_network(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
         )
         return html_content, fig_static
     elif plot_type == "Interactive ForceAtlas2":
-        # インタラクティブForceAtlas2プロット生成
+        # intarakuteibuForceAtlas2purotogenbecome
         html_content = plot_network_svg_forceatlas2(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
         )
-        # 静的プロット生成（PDFとPNG用）
+        # staticalpurotogenbecome（PDFandPNGuse）
         fig_static = plot_network_forceatlas2(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
@@ -202,7 +202,7 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
         return html_content, fig_static
     
     elif plot_type == "Force-Directed":
-        # Force-directedプロット生成
+        # Force-directedpurotogenbecome
         fig = plot_network(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
@@ -210,7 +210,7 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
         return fig
     
     elif plot_type == "ForceAtlas2":
-        # ForceAtlas2プロット生成
+        # ForceAtlas2purotogenbecome
         fig = plot_network_forceatlas2(
             tom_array, gene_names, module_colors, threshold,
             selected_modules, n_hubs, highlight_indices, minimum_component_size
@@ -218,7 +218,7 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
         return fig
     
     elif plot_type == "Circular Layout":
-        # Circular Layoutプロット生成
+        # Circular Layoutpurotogenbecome
         fig = plot_circular_layout(
             tom_array, gene_names, module_colors, 
             selected_modules, threshold
@@ -226,7 +226,7 @@ def generate_network_plots(tom_array, gene_names, module_colors, threshold,
         return fig
     
     elif plot_type == "Hive Plot":
-        # Hive Plotプロット生成
+        # Hive Plotpurotogenbecome
         fig = plot_hive_layout(
             tom_array, gene_names, module_colors, 
             selected_modules, threshold,
@@ -487,9 +487,9 @@ def plot_network_svg_forceatlas2(tom_array, gene_names, module_colors=None, thre
     important_edges = []
 
     # Size settings (match force-directed)
-    REGULAR_SIZE = 7     # 通常のノード
-    HIGHLIGHT_SIZE = 12   # ハイライトされたノード
-    HUB_SIZE = 16        # ハブノード
+    REGULAR_SIZE = 7     # passnormalofno-do
+    HIGHLIGHT_SIZE = 12   # hairaitosaretano-do
+    HUB_SIZE = 16        # habuno-do
 
     # Categorize nodes
     for node in nodes:
@@ -654,9 +654,9 @@ def plot_network_svg(tom_array, gene_names, module_colors=None, threshold=0.1,
     important_edges = []
 
     # Size settings (match force-directed)
-    REGULAR_SIZE = 7     # 通常のノード
-    HIGHLIGHT_SIZE = 12   # ハイライトされたノード
-    HUB_SIZE = 16        # ハブノード
+    REGULAR_SIZE = 7     # passnormalofno-do
+    HIGHLIGHT_SIZE = 12   # hairaitosaretano-do
+    HUB_SIZE = 16        # habuno-do
 
     # Categorize nodes
     for node in nodes:
@@ -680,14 +680,14 @@ def plot_network_svg(tom_array, gene_names, module_colors=None, threshold=0.1,
         start = scale_pos(pos[u])
         end = scale_pos(pos[v])
         tom_value = data['tom_value']
-        edge_width = tom_value * 5  # TOM値に基づいてエッジの太さを設定
+        edge_width = tom_value * 5  # TOMvaltobaseduiteejiofboldsatheSettings
 
         if u in hub_indices or v in hub_indices:
-            edge_color = SVG_EDGE_COLORS['hub']  # ここを修正
+            edge_color = SVG_EDGE_COLORS['hub']  # kokothemodcorrect
         elif highlight_nodes and (u in highlight_nodes or v in highlight_nodes):
-            edge_color = SVG_EDGE_COLORS['highlight']  # ここを修正
+            edge_color = SVG_EDGE_COLORS['highlight']  # kokothemodcorrect
         else:
-            edge_color = SVG_EDGE_COLORS['regular']  # ここを修正
+            edge_color = SVG_EDGE_COLORS['regular']  # kokothemodcorrect
         
         html_content += f'<line class="edge" x1="{start[0]}" y1="{start[1]}" x2="{end[0]}" y2="{end[1]}" ' \
                        f'stroke="{edge_color}" stroke-width="{edge_width}"/>'
@@ -715,10 +715,10 @@ def plot_network_svg(tom_array, gene_names, module_colors=None, threshold=0.1,
     # Add labels for important nodes with white background
     for node in important_nodes:
         x, y = scale_pos(pos[node])
-        # テキストの長さに基づいて背景の幅を調整
+        # tekisutooflongsatobaseduitebacksceneofwidththeadjustarrange
         text_length = len(gene_names[node])
-        rect_width = text_length * 6  # 文字数に基づいて幅を調整
-        rect_height = 14  # 高さを小さく
+        rect_width = text_length * 6  # textcharnumtobaseduitewidththeadjustarrange
+        rect_height = 14  # highsathesmallsaku
         html_content += f'''
             <g class="label-group">
                 <rect x="{x-rect_width/2}" y="{y-rect_height/2}" 
@@ -868,8 +868,8 @@ def plot_circular_layout(tom_array, gene_names, module_colors=None, selected_mod
 
 
 def get_color(module_color):
-    """モジュール色名をmatplotlibの色に変換"""
-    return WGCNA_COLORS.get(module_color, '#808080')  # 未知の色の場合はグレーを返す
+    """mojiyu-rucolornamethematplotlibofcolortochangechange"""
+    return WGCNA_COLORS.get(module_color, '#808080')  # not yetknowofcolorofplacematchisgure-thereturnsu
 
 @st.cache_data()
 def calculate_tom_distribution(tom_array, module_colors=None, selected_modules=None):
@@ -963,7 +963,7 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
     for i in nodes_to_keep:
         for j in nodes_to_keep:
             if i < j and tom_array[i,j] > threshold:
-                # TOM値の逆数を重みとして使用（高いTOM = 短い距離）
+                # TOMvalofinvnumtheweightmiandshiteuseuse（highiTOM = shortidistsep）
                 G.add_edge(i, j, weight=1/tom_array[i,j], tom_value=tom_array[i,j])
     
     # Process components
@@ -1009,13 +1009,13 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
     important_edges = []
 
     # Size settings
-    REGULAR_SIZE = 30     # 通常のノード
-    HIGHLIGHT_SIZE = 45  # ハイライトされたノード
-    HUB_SIZE = 60       # ハブノード
+    REGULAR_SIZE = 30     # passnormalofno-do
+    HIGHLIGHT_SIZE = 45  # hairaitosaretano-do
+    HUB_SIZE = 60       # habuno-do
 
 
 
-    # ノードの分類
+    # no-doofdivtype
     for node in nodes:
         if node in hub_indices:
             important_nodes.append(node)
@@ -1032,19 +1032,19 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
             regular_colors.append(colors[nodes.index(node)])
             regular_sizes.append(REGULAR_SIZE)
 
-    # エッジを分類して描画
+    # ejithedivtypeshiteplotdraw
     regular_edge_list = []
     hub_edge_list = []
     highlight_edge_list = []
     
-    # エッジ幅も保存
+    # ejiwidthmoSave
     regular_widths = []
     hub_widths = []
     highlight_widths = []
     
     for (u, v, data) in G.edges(data=True):
         tom_value = data['tom_value']
-        edge_width = tom_value * 5  # TOM値に基づいてエッジの太さを設定
+        edge_width = tom_value * 5  # TOMvaltobaseduiteejiofboldsatheSettings
         
         if u in hub_indices or v in hub_indices:
             hub_edge_list.append((u, v))
@@ -1062,8 +1062,8 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
         nx.draw_networkx_edges(G, pos,
                             edgelist=regular_edge_list,
                             width=regular_widths,
-                            edge_color=[EDGE_COLORS['regular'][:3]] * len(regular_edge_list),  # RGBのみ
-                            alpha=EDGE_COLORS['regular'][3])  # alphaを別途設定
+                            edge_color=[EDGE_COLORS['regular'][:3]] * len(regular_edge_list),  # RGBofmi
+                            alpha=EDGE_COLORS['regular'][3])  # alphathesep途Settings
 
     if hub_edge_list:
         nx.draw_networkx_edges(G, pos,
@@ -1086,12 +1086,12 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
                         nodelist=regular_nodes,
                         node_color=regular_colors,
                         node_size=regular_sizes,
-                        edgecolors='none',  # これは'none'のままで良い
+                        edgecolors='none',  # koreis'none'ofmamawithgoodi
                         linewidths=0)
 
     # Draw important nodes (hubs and highlighted) with border
     if important_nodes:
-        # ノードごとにedgecolorsを設定
+        # no-dogoandtoedgecolorstheSettings
         edge_colors = []
         for node in important_nodes:
             if node in hub_indices:
@@ -1103,7 +1103,7 @@ def plot_network(tom_array, gene_names, module_colors=None, threshold=0.1,
                            nodelist=important_nodes,
                            node_color=important_colors,
                            node_size=important_sizes,
-                           edgecolors=edge_colors,  # リストで色を指定
+                           edgecolors=edge_colors,  # risutowithcolorthepointset
                            linewidths=2)
     # Add labels for important nodes
     texts = []
@@ -1164,7 +1164,7 @@ def plot_network_forceatlas2(tom_array, gene_names, module_colors=None, threshol
     for i in nodes_to_keep:
         for j in nodes_to_keep:
             if i < j and tom_array[i,j] > threshold:
-                # ForceAtlas2では重みが大きいほど強い引力を表すため、TOM値をそのまま使用
+                # ForceAtlas2withisweightmiisbigkiihodoforceipullpowerthetablesufor、TOMvalthesoofmamauseuse
                 G.add_edge(i, j, weight=tom_array[i,j], tom_value=tom_array[i,j])
     
     # Process components
@@ -1405,7 +1405,7 @@ def main():
                     gene_names = pywgcna_obj.TOM.index.tolist()
                 else:
                     tom_array = pywgcna_obj.TOM
-                    # 遺伝子名はdatExpr.var.indexから取得
+                    # GenenameisdatExpr.var.indexfromgetget
                     gene_names = pywgcna_obj.datExpr.var.index.tolist()
                 
                 # Get module colors
@@ -1434,8 +1434,8 @@ def main():
                         selected_modules = unique_modules
 
 
-                # TOM Distribution と Statistics を選択されたモジュールに基づいて計算
-                # 計算部分（キャッシュされる）
+                # TOM Distribution and Statistics theSelectsaretamojiyu-rutobaseduiteCalculation
+                # Calculationpartdiv（kiyashiyusareru）
                 tom_stats = calculate_tom_distribution(tom_array, module_colors, 
                                                     selected_modules if not show_all else None)
                 
@@ -1459,15 +1459,15 @@ def main():
 
                                   # Hub genes and node selection
                 
-                # 選択されたモジュールの遺伝子のみを表示
+                # Selectsaretamojiyu-ruofGeneofmitheDisplay
                 if selected_modules and not show_all:
-                    # 選択されたモジュールの遺伝子インデックスを取得
+                    # Selectsaretamojiyu-ruofGeneindekusuthegetget
                     selected_indices = [i for i, color in enumerate(module_colors) 
                                       if color in selected_modules]
-                    # 選択可能な遺伝子名リストを作成
+                    # SelectpossiblenaGenenamerisutothemakebecome
                     available_genes = [gene_names[i] for i in selected_indices]
                 else:
-                    # すべてのモジュールが選択されている場合は全遺伝子を表示
+                    # allofmojiyu-ruisSelectsareteexistplacematchisallGenetheDisplay
                     available_genes = gene_names
 
 
@@ -1475,22 +1475,22 @@ def main():
                 with st.form("network_settings"):
                     
                     if selected_modules and not show_all:
-                        # 選択されたモジュールのTOMサブマトリックスを取得
+                        # Selectsaretamojiyu-ruofTOMsabumatorikusuthegetget
                         selected_indices = [i for i, color in enumerate(module_colors) 
                                           if color in selected_modules]
                         sub_tom = tom_array[np.ix_(selected_indices, selected_indices)]
                         
-                        # 選択されたモジュールのデータに基づいてthresholdを設定
+                        # Selectsaretamojiyu-ruofDatatobaseduitethresholdtheSettings
                         threshold = st.number_input(
                             "TOM similarity threshold",
                             min_value=0.0000,
                             max_value=1.0000,
-                            value=float(tom_stats['percentiles']['90th']),  # 選択モジュールの90パーセンタイル
+                            value=float(tom_stats['percentiles']['90th']),  # Selectmojiyu-ruof90pa-sentairu
                             format="%.4f",
                             step=0.0100
                         )
                     else:
-                        # 全体のデータに基づいてthresholdを設定
+                        # allbodyofDatatobaseduitethresholdtheSettings
                         threshold = st.number_input(
                             "TOM similarity threshold",
                             min_value=0.0000,
@@ -1509,7 +1509,7 @@ def main():
 
                     # Gene selection for highlighting
                     if module_colors is not None:
-                        # 選択されたモジュールの遺伝子のみを表示
+                        # Selectsaretamojiyu-ruofGeneofmitheDisplay
                         if selected_modules and not show_all:
                             selected_indices = [i for i, color in enumerate(module_colors) 
                                               if color in selected_modules]
@@ -1550,7 +1550,7 @@ def main():
                 if submitted:
                     st.header("Network Visualization")
                     
-                    # プロット生成（キャッシュされる）
+                    # purotogenbecome（kiyashiyusareru）
                     if vis_type == "Interactive" or vis_type == "Interactive ForceAtlas2":
                         html_content, fig_static = generate_network_plots(
                             tom_array, gene_names, module_colors, threshold,
@@ -1591,7 +1591,7 @@ def main():
                                     "image/png"
                                 )
                     
-                    else:  # その他のプロットタイプ
+                    else:  # soofotherofpurototaipu
                         fig = generate_network_plots(
                             tom_array, gene_names, module_colors, threshold,
                             selected_modules, n_hubs, highlight_indices,

@@ -62,7 +62,7 @@ def rename_duplicates(df):
     df.index = new_indices
     return df
 
-#March-1 Sept-1対応
+#March-1 Sept-1pairrespond
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -152,7 +152,7 @@ class DE_rpy2:
     def run_deseq2(self):
         ro.r(f'''
         count_data <- as.matrix(read.csv("{self.count_matrix_path}", sep="\t", row.names=1, check.names=FALSE))
-        count_data <- round(count_data) #四捨五入する
+        count_data <- round(count_data) #4捨5indo
         coldata <- read.csv("{self.design_matrix_path}", sep="\t", row.names=1, check.names=FALSE)
         stopifnot(all(colnames(count_data) == rownames(coldata)))
         
@@ -233,10 +233,10 @@ class DE_rpy2:
         l_design <- model.matrix(~0 + condition, data=y$samples)
         ''')
 
-        # 選択された方法に基づいて異なるRコードを実行
+        # SelectsaretawaymethodtobaseduitediffbecomeRko-dotheRun
         if which_voom != 'voomLmFit':
             ro.r(f'''
-            # voom変換と品質重みの適用
+            # voomchangechangeand品qualityweightmioffituse
             l_v <- {which_voom}(y, l_design)
             l_fit <- lmFit(l_v, l_design)
             l_fit <- eBayes(l_fit)
@@ -317,21 +317,21 @@ if uploaded_file is not None:
 #                Gene_column = content[0]
 
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # oneoncenamebeforethechangefurther
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
               #  st.write(df.head())
-                # annotation/divergence以前を除く
+                # annotation/divergencebeforetheremoveku
                 df = df.loc[:,'Annotation/Divergence':]
               #  st.write(df.head())
                 st.write("Converted Annotation/Divergence to gene symbols.")
@@ -346,20 +346,20 @@ if uploaded_file is not None:
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # colnamesofchangechange
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # oneoncenamebeforethechangefurther
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # annotation/divergencebeforetheremoveku
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -381,7 +381,7 @@ if uploaded_file is not None:
             df = df.iloc[:,7:]
             colnames = df.columns.tolist()
             colnames[0] = 'Gene'
-            # colnamesの変換
+            # colnamesofchangechange
             search_word = '([^\ \(]*)\ \(.*'
             for i in range(1, len(colnames)):
                 match = re.search(search_word, colnames[i])
@@ -404,20 +404,20 @@ if uploaded_file is not None:
         df = read_excel(uploaded_file)
         content = df.columns.tolist()
         if "Annotation/Divergence" in content:
-             # colnamesの変換
+             # colnamesofchangechange
             search_word = '([^\ \(]*)\ \(.*'
 
             for i in range(1, len(content)):
                 match = re.search(search_word, content[i])
                 if match:
                     content[i] = match.group(1).replace(' ', '_')
-            df.columns = content # 一旦名前を変更
-            df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+            df.columns = content # oneoncenamebeforethechangefurther
+            df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
             pattern = "([^|]*)"
             repatter = re.compile(pattern)
             f_annotation = lambda x: repatter.match(x).group(1)
             df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-            # annotation/divergence以前を除く
+            # annotation/divergencebeforetheremoveku
             df = df.loc[:,'Annotation/Divergence':]
             content = df.columns.tolist()
             content[0] = 'Gene'
@@ -431,7 +431,7 @@ if uploaded_file is not None:
     df = df.set_index('Gene')
     file_name_head = os.path.splitext(uploaded_file.name)[0]
 
-    #特殊文字を除く
+    #specspecialtextchartheremoveku
     df.columns = df.columns.str.replace('[^A-Za-z0-9]+', '_')
     df.columns = df.columns.str.replace('-', '_')
 
@@ -441,15 +441,15 @@ else:
 if uploaded_file is not None:
     if len(df.index.values) != len(set(df.index.values)):
         df = rename_duplicates(df)
-    #特殊文字を除く
+    #specspecialtextchartheremoveku
     df.columns = df.columns.str.replace('[^A-Za-z0-9]+', '_')
     df.columns = df.columns.str.replace('-', '_')
 
     with st.sidebar:
         st.markdown("##### Filter out weakly-expressed genes:")
         independentFiltering = st.checkbox('Yes', value= True)
-        st.markdown("""低発現遺伝子の除外はFDRの計算を改善する。
-        filtered outされた遺伝子が多い場合、GSEA用に全遺伝子をランキングするためにはチェックを外す。""")
+        st.markdown("""lowExpressionGeneofremoveoutisFDRofCalculationthereform善do。
+        filtered outsaretaGeneismanyiplacematch、GSEAusetoallGenetherankingudofortoischiekutheoutsu。""")
         min_threshold = 0
         max_threshold = 0
         if independentFiltering:
@@ -475,16 +475,16 @@ if uploaded_file is not None:
 
     st.write('Filtered gene number:  ' + str(len(df)))
 
-    if any(df.sum() <= sample_threshold): # count 0の列を除く
+    if any(df.sum() <= sample_threshold): # count 0ofcoltheremoveku
         st.markdown('#### There are the samples that have counts <= ' + str(sample_threshold))
         st.write(", ".join(df.columns[df.sum() <= sample_threshold].to_list()))
         st.write('They are removed. Now data are:')
         df = df.drop(df.columns[df.sum() <= sample_threshold].to_list(), axis = 1)
         st.write(df.head())
 
-    condition = [str(i) for i in df.columns.tolist()] #error防止
-    group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
-    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+    condition = [str(i) for i in df.columns.tolist()] #errorpreventstop
+    group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
+    group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
 
 
     st.write(df.head())
@@ -519,7 +519,7 @@ if uploaded_file is not None:
         return isinstance(x, (int, float)) and not pd.isna(x)
     numeric_row = df.applymap(lambda x: is_numeric(x))
     non_numeric_rows = df.apply(lambda row: row.apply(lambda x: not is_numeric(x)).any(), axis=1)
-    # 少なくとも1つの非数値要素を含む行を選択
+    # fewnakuandmo1tsuofnonnumvalneedelemtheincludemurowtheSelect
     if len(numeric_row) < len(df):
         st.write("There are nonumberic rows.")
         st.write(df_with_non_numeric)

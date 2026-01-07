@@ -117,7 +117,7 @@ blacklist_file = st.radio('Select blacklist', ['ENCODEv1', 'ENCODEv2','CUT&RUN',
 
 uploaded_files = st.file_uploader("Choose peak/bed files", accept_multiple_files=True, type=['txt','bed'])
 
-# リストをグローバルスコープで定義
+# risutotheguro-barusuko-puwithsetdef
 processed_files = []
 
 if uploaded_files and st.button('Process Files'):

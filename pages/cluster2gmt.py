@@ -91,7 +91,7 @@ if df_cluster is not None:
             OutDataName = os.path.splitext(cluster_file.name)[0] + '.gmt'
 
 
-            # listをstringにしてから保存する
+            # listthestringtoshitefromSavedo
             for i in range(len(gmt)):
                 row_str = '\t'.join(gmt[i])
                 if i == 0:
@@ -118,7 +118,7 @@ if df_cluster is not None:
 
         OutDataName = "hub.gmt"
 
-        # listをstringにしてから保存する
+        # listthestringtoshitefromSavedo
         for i in range(len(gmt)):
             row_str = '\t'.join(gmt[i])
             if i == 0:

@@ -30,7 +30,7 @@ def py2rpy_pandasdataframe(obj):
 
 def get_memory_usage():
     process = psutil.Process(os.getpid())
-    return process.memory_info().rss / 1024 ** 2  # メモリ使用量をMB単位で返す
+    return process.memory_info().rss / 1024 ** 2  # memoriuseuseamounttheMBsimplerankwithreturnsu
 
 # Function to install R packages
 def install_r_packages(packages):

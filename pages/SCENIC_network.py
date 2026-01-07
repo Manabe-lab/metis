@@ -1,23 +1,3 @@
-#!/usr/bin/env python3
-"""
-SCENIC Network Analysis - Part of METIS
-
-Copyright (C) 2024 METIS Development Team
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-
 import streamlit as st
 import pandas as pd
 import networkx as nx
@@ -100,61 +80,61 @@ def visualize_single_distribution(data: Dict[str, Dict[str, float]],
         st.pyplot(fig)
         plt.close(fig)
 
-# 1. ランクベース変換関数（どのデータソースにも適用可能）
+# 1. Rank-based conversion function (applicable to any data source)
 @st.cache_data
 def convert_to_rank_based(edge_weights: Dict[str, Dict[str, float]], 
                          use_ties: bool = True) -> Dict[str, Dict[str, float]]:
     """
-    エッジウェイトデータをランクベースに変換する
+    Convert edge weight data to rank-based
     
     Args:
-        edge_weights: 元のエッジウェイトデータ（CSIまたはAdjacencies）
-        use_ties: 同じスコアに同じランクを割り当てる場合はTrue、連続ランクの場合はFalse
+        edge_weights: Original edge weight data (CSI or Adjacencies)
+        use_ties: True to assign same rank to same scores, False for continuous ranks
     
     Returns:
-        Dict[str, Dict[str, float]]: ランクベースに変換されたエッジウェイト
+        Dict[str, Dict[str, float]]: Rank-based converted edge weights
     """
-    # すべてのエッジとスコアを収集
+    # Collect all edges and scores
     all_edges = []
     for source, targets in edge_weights.items():
         for target, score in targets.items():
-            if score > 0:  # 正のスコアのみ考慮
+            if score > 0:  # Consider only positive scores
                 all_edges.append((source, target, score))
     
     if not all_edges:
         return edge_weights
     
-    # スコアでソート（降順）
+    # Sort by score (descending)
     all_edges.sort(key=lambda x: x[2], reverse=True)
     
-    # 結果格納用の辞書
+    # Dictionary for storing results
     ranked_weights = defaultdict(dict)
     
     if use_ties:
-        # 同じスコアには同じランクを割り当て
+        # Assign same rank to same scores
         unique_scores = sorted(set(edge[2] for edge in all_edges), reverse=True)
         max_rank = len(unique_scores) - 1
         
-        # スコアごとのランクを計算
+        # Calculate rank for each score
         score_to_rank = {score: i/max_rank if max_rank > 0 else 0.5 
                        for i, score in enumerate(unique_scores)}
         
-        # 各エッジにランクを割り当て
+        # Assign rank to each edge
         for source, target, score in all_edges:
             normalized_score = score_to_rank[score]
             ranked_weights[source][target] = normalized_score
     else:
-        # 連続ランク
+        # Continuous rank
         total_edges = len(all_edges)
         
         for i, (source, target, _) in enumerate(all_edges):
-            # ランクを0-1範囲に正規化（最高ランク=1、最低ランク=0）
+            # Normalize rank to 0-1 range (highest rank=1, lowest rank=0)
             normalized_score = 1.0 - (i / (total_edges - 1) if total_edges > 1 else 0)
             ranked_weights[source][target] = normalized_score
     
     return ranked_weights
 
-# 1. adjacenciesデータロード関数
+# 1. Adjacencies data loading function
 @st.cache_data
 def load_adjacencies_data(file) -> Dict[str, Dict[str, float]]:
     """
@@ -166,10 +146,10 @@ def load_adjacencies_data(file) -> Dict[str, Dict[str, float]]:
     """
 
 
-    # ファイルの内容を一度だけ読み込み
+    # Read file content only once
     file_content = file.getvalue()
     
-    # 安定したハッシュを計算（デバッグ用にログ出力）
+    # Calculate stable hash (log output for debugging)
     content_hash = hashlib.md5(file_content).hexdigest()
 
     adjacencies_data = defaultdict(dict)
@@ -199,7 +179,7 @@ def load_adjacencies_data(file) -> Dict[str, Dict[str, float]]:
     
     return adjacencies_data
 
-# 2. importanceスコア正規化関数
+# 2. Importance score normalization function
 @st.cache_data
 def normalize_adjacency_importance(adjacencies_data: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
     """
@@ -253,7 +233,7 @@ def normalize_adjacency_importance(adjacencies_data: Dict[str, Dict[str, float]]
     return normalized_data
 
 
-# 両方向のフィルタリングをサポートする関数
+# Function supporting bidirectional filtering
 def filter_sequentially(
     csi_data: Dict[str, Dict[str, float]],
     importance_data: Dict[str, Dict[str, float]],
@@ -304,22 +284,22 @@ def filter_sequentially(
     
     return filtered_data
 
-# 4. ネットワークフィルタリング関数
+# 4. Network filtering function
 def filter_network_by_weights(tf_network: nx.DiGraph, weight_threshold: float = 0.0) -> nx.DiGraph:
-    """Edge weightsの閾値に基づいてネットワークをフィルタリング"""
+    """Filter network based on edge weight threshold"""
     filtered_network = nx.DiGraph()
     
     for u, v, data in tf_network.edges(data=True):
         if data['weight'] >= weight_threshold:
             filtered_network.add_edge(u, v, **data)
     
-    # 孤立したノードを削除
+    # Remove isolated nodes
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
     return filtered_network
 
-# 5. スコア分布可視化関数
+# 5. Score distribution visualization function
 def visualize_score_distributions(csi_data: Dict[str, Dict[str, float]], 
                                 importance_data: Dict[str, Dict[str, float]],
                                 csi_threshold: float = 0.3,
@@ -505,12 +485,12 @@ def extend_network_with_ppi(
     added_edges = []
     ppi_tfs = []
 
-    # Step 1: ネットワークの既存ノードを取得
+    # Step 1: Get existing nodes in network
     existing_nodes = set(extended_network.nodes())
   #  st.write(f"\n### Step 1: Current network nodes")
   #  st.write(f"Number of nodes in network: {len(existing_nodes)}")
     
-    # Step 2: target geneのdirect targetのうち、転写因子のみを特定
+    # Step 2: Identify only transcription factors among direct targets of target gene
     target_direct_tfs = set()
     if target_gene in regulon_data:
         target_regulon = regulon_data[target_gene]
@@ -521,20 +501,20 @@ def extend_network_with_ppi(
   #  st.write(f"Number of direct target TFs: {len(target_direct_tfs)}")
   #  st.write("Direct target TFs:", sorted(list(target_direct_tfs)))
     
-    # Step 3: 選択基準に基づいてPPIパートナーを選択
+    # Step 3: Select PPI partners based on selection criteria
     ppi_candidates = []
-    for tf in regulon_data.keys():  # 全転写因子をチェック
-        # 基準1: 既存ネットワークに含まれていない
+    for tf in regulon_data.keys():  # Check all transcription factors
+        # Criterion 1: Not included in existing network
         if tf in existing_nodes:
             continue
         
-        # 基準2: target geneとPPI相互作用がある
+        # Criterion 2: Has PPI interaction with target gene
         if (tf not in string_data or 
             target_gene not in string_data[tf] or 
             string_data[tf][target_gene] < ppi_score_threshold):
             continue
         
-        # 基準3: target geneのdirect target TFを制御している
+        # Criterion 3: Regulates direct target TF of target gene
         tf_targets = regulon_data[tf]
         shared_tf_targets = target_direct_tfs & tf_targets
         
@@ -546,17 +526,17 @@ def extend_network_with_ppi(
             })
 
     
-    # Step 4: ネットワークの拡張
+    # Step 4: Network extension
     for candidate in ppi_candidates:
         ppi_tf = candidate['tf']
         ppi_score = candidate['ppi_score']
         controlled_tfs = candidate['controlled_tfs']
         
-        # PPIノードを追加
+        # Add PPI node
         extended_network.add_node(ppi_tf)
         ppi_tfs.append(ppi_tf)
         
-        # 1. target_geneとのPPI相互作用（無向エッジ）
+        # 1. PPI interaction with target_gene (undirected edge)
         extended_network.add_edge(target_gene, ppi_tf, weight=ppi_score, type='ppi')
         added_edges.append((target_gene, ppi_tf))
 
@@ -566,7 +546,7 @@ def extend_network_with_ppi(
                 added_edges.append((ppi_tf, target_tf))
     st.markdown("---")
     st.write("### Network Extension Summary")
-    # 結果の表示
+    # Display results
     if ppi_tfs:
         st.write(f"Added {len(ppi_tfs)} PPI transcription factors")
         st.write(f"Added {len(added_edges)} new edges")
@@ -586,22 +566,22 @@ def extend_network_with_ppi(
 
 def cleanup_network(network: nx.DiGraph, target_gene: str) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
     """
-    target geneとの関連性を考慮してネットワークをクリーニング
+    Clean network considering association with target gene
     
-    パスの条件:
-    1. target geneへ到達するパス上のノード（上流）
-    2. target geneから到達可能なパス上のノード（下流）
-        - 直接的な下流
-        - 上流制御因子の下流も含む
+    Path conditions:
+    1. Nodes on path to target gene (upstream)
+    2. Nodes on path from target gene (downstream)
+        - Direct downstream
+        - Also includes downstream of upstream regulators
     
-    例：target gene -> A -> B -> C
-                          B -> D
-    A,B,C,Dは全て保持（DはBを介してtarget geneの制御下にある）
+    Example: target gene -> A -> B -> C
+                              B -> D
+    All A,B,C,D are retained (D is under regulation of target gene via B)
     """
     cleaned_network = network.copy()
     nodes_to_keep = {target_gene}
     
-    # 1. target geneへのパス上のノード（上流）を追加
+    # 1. Add nodes on path to target gene (upstream)
     for node in network.nodes():
         if node != target_gene:
             try:
@@ -610,10 +590,10 @@ def cleanup_network(network: nx.DiGraph, target_gene: str) -> Tuple[nx.DiGraph, 
             except nx.NetworkXNoPath:
                 continue
     
-    # 2. target geneからの制御下にあるノードを追加
-    upstream_nodes = nodes_to_keep.copy()  # target geneへのパスを持つノード
+    # 2. Add nodes under regulation from target gene
+    upstream_nodes = nodes_to_keep.copy()  # Nodes with path to target gene
     
-    # 各上流ノードの下流をすべて追加
+    # Add all downstream of each upstream node
     for node in upstream_nodes:
         try:
             descendants = nx.descendants(network, node)
@@ -621,16 +601,16 @@ def cleanup_network(network: nx.DiGraph, target_gene: str) -> Tuple[nx.DiGraph, 
         except nx.NetworkXError:
             continue
     
-    # 削除するノードを特定
+    # Identify nodes to remove
     nodes_to_remove = set(network.nodes()) - nodes_to_keep
     
-    # 除外されるエッジを記録
+    # Record edges to be excluded
     removed_edges = []
     for u, v in network.edges():
         if u in nodes_to_remove or v in nodes_to_remove:
             removed_edges.append((u, v))
     
-    # ノードを削除
+    # Remove nodes
     cleaned_network.remove_nodes_from(nodes_to_remove)
     
     if removed_edges:
@@ -659,27 +639,27 @@ def get_string_interactions(
     species: Optional[str] = None,
     score_threshold: float = 0.4
 ) -> Dict[str, Dict[str, float]]:
-    """STRING-dbからPPIデータを取得する（大文字小文字を無視した完全一致）"""
-    # 種の判定（渡されていない場合は大文字/小文字パターンから判定）
+    """Get PPI data from STRING-db (case-insensitive exact match)"""
+    # Determine species (if not provided, determine from uppercase/lowercase pattern)
     if not species:
         is_mostly_uppercase = all(p.isupper() for p in proteins)
-        species = "9606" if is_mostly_uppercase else "10090"  # ヒト/マウス
+        species = "9606" if is_mostly_uppercase else "10090"  # Human/Mouse
     
-    # 種名の変換
+    # Species name conversion
     species_map = {
         "human": "9606", 
         "mouse": "10090",
         "9606": "9606", 
         "10090": "10090"
     }
-    species_id = species_map.get(species, "9606")  # デフォルトはヒト
+    species_id = species_map.get(species, "9606")  # Default is human
     
-    # 種の情報を表示
+    # Display species information
     st.markdown("#### Searching TFs that interacts with the target gene and controls the targets of the target gene.")
     species_name = "Human" if species_id == "9606" else "Mouse"
     st.write(f"Fetching {species_name} protein interaction data from STRING-db")
     
-    # シンボルを大文字小文字を無視してノーマライズ
+    # Normalize symbols ignoring case
     normalized_proteins = [p.strip().upper() for p in proteins]
  #   st.write(f"Protein names: {normalized_proteins}")
     
@@ -701,12 +681,12 @@ def get_string_interactions(
         response = requests.post(api_url, data=params)
         response.raise_for_status()
         
-        # レスポンスの解析
+        # Parse response
         interactions = defaultdict(dict)
         processed_lines = 0
         found_interactions = 0
         
-        # 全ての相互作用を記録
+        # Record all interactions
         all_interactions = []
         
         for line in response.text.strip().split("\n"):
@@ -721,24 +701,24 @@ def get_string_interactions(
                     except (ValueError, IndexError):
                         continue
         
-        # デバッグ情報
+        # Debug information
     #    st.write(f"Processed {processed_lines} interactions from STRING-db")
     #    st.write("Raw interactions:")
-    #    for interaction in all_interactions[:10]:  # 最初の10個を表示
+    #    for interaction in all_interactions[:10]:  # Display first 10
     #        st.write(f"{interaction[0]} - {interaction[1]}: {interaction[2]}")
         
-        # 相互作用の追加
+        # Add interactions
         for protein1, protein2, score in all_interactions:
-            # 入力タンパク質リストとの大文字小文字を無視した完全一致チェック
+            # Case-insensitive exact match check with input protein list
             if (protein1.upper() in normalized_proteins and 
                 protein2.upper() in normalized_proteins):
                 
-                # オリジナルの大文字小文字を保持
+                # Preserve original case
                 orig_p1 = next(p for p in proteins if p.upper() == protein1.upper())
                 orig_p2 = next(p for p in proteins if p.upper() == protein2.upper())
                 
                 interactions[orig_p1][orig_p2] = score
-                interactions[orig_p2][orig_p1] = score  # 双方向の相互作用を追加
+                interactions[orig_p2][orig_p1] = score  # Add bidirectional interaction
                 found_interactions += 1
         
         st.write(f"Found {found_interactions} relevant interactions between input proteins")
@@ -746,7 +726,7 @@ def get_string_interactions(
         if not interactions:
             st.warning(f"No {species_name} protein interactions found in STRING-db for the input proteins.")
         else:
-            # 見つかった相互作用の例を表示
+            # Display examples of found interactions
             st.write("Example interactions:")
             example_interactions = list(interactions.items())[:3]
             for protein1, partners in example_interactions:
@@ -764,30 +744,30 @@ def get_string_interactions(
 
 def convert_to_string_symbols(proteins: List[str], species: str = "9606") -> Dict[str, str]:
     """
-    遺伝子シンボルをSTRING-db形式に変換
+    Convert gene symbols to STRING-db format
     """
-    # シンボルの正規化
+    # Symbol normalization
     symbol_map = {}
     for protein in proteins:
-        # 基本的なクリーニング（大文字変換は必要に応じて）
+        # Basic cleaning (uppercase conversion as needed)
         cleaned = protein.strip()
         symbol_map[protein] = cleaned
     
     return symbol_map
 
 def add_string_db_options(st, species: str) -> Dict:
-    """STRING-db関連のオプションをUIに追加"""
+    """Add STRING-db related options to UI"""
     st.subheader("STRING-db Integration")
     
     with st.expander("STRING-db Settings", expanded=False):
-        # STRING-dbフィルタリングの有効化
+        # Enable STRING-db filtering
         enable_string = st.checkbox(
             "Enable STRING-db Filtering",
             help="Filter network edges based on STRING protein-protein interactions"
         )
         
         if enable_string:
-            # スコア閾値の設定
+            # Set score threshold
             score_threshold = st.slider(
                 "Minimum STRING interaction score",
                 min_value=0.0,
@@ -797,7 +777,7 @@ def add_string_db_options(st, species: str) -> Dict:
                 help="Filter interactions based on STRING combined score"
             )
             
-            # 生物種の表示
+            # Display species
             species_id = "9606" if species == "human" else "10090"
             st.info(f"Using STRING-db data for {species.capitalize()} (Taxonomy ID: {species_id})")
             
@@ -819,28 +799,28 @@ def filter_network_by_string(
     string_data: Dict[str, Dict[str, float]],
     score_threshold: float = 0.0
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
-    """STRING-dbデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
+    """Filter network based on STRING-db data (excluding PPI edges)"""
     filtered_network = nx.DiGraph()
     filtered_network.add_nodes_from(tf_network.nodes())
     
-    # ネットワーク情報
+    # Network information
     st.write(f"Original network:")
     st.write(f"Nodes: {tf_network.number_of_nodes()}")
     st.write(f"Edges: {tf_network.number_of_edges()}")
     
-    # 元のエッジと相互作用情報を表示
+    # Display original edges and interaction information
     original_edges = list(tf_network.edges(data=True))
     kept_edges = []
     removed_edges = []
     
     for source, target, data in original_edges:
-        # PPIエッジはスキップしてそのまま保持
+        # Skip PPI edges and keep them as is
         if data.get('type') == 'ppi':
             filtered_network.add_edge(source, target, **data)
             kept_edges.append((source, target))
             continue
             
-        # STRING-dbでの相互作用を確認
+        # Check interaction in STRING-db
         score = None
         if source in string_data and target in string_data[source]:
             score = string_data[source][target]
@@ -853,11 +833,11 @@ def filter_network_by_string(
         else:
             removed_edges.append((source, target))
     
-    # 孤立したノードを削除
+    # Remove isolated nodes
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
-    # 結果の要約
+    # Result summary
     st.write("\nFiltering Results:")
     st.write(f"Edges in filtered network: {filtered_network.number_of_edges()}")
     st.write(f"Edges removed: {len(removed_edges)}")
@@ -868,14 +848,14 @@ def filter_network_by_string(
 
 def show_string_db_stats(st, original_network, filtered_network, removed_edges, string_data):
     """
-    STRING-dbフィルタリングの統計情報を表示
+    Display STRING-db filtering statistics
     
     Args:
-        st: Streamlitインスタンス
-        original_network: 元のネットワーク
-        filtered_network: フィルタリング後のネットワーク
-        removed_edges: 除去されたエッジのリスト
-        string_data: STRING-dbの相互作用データ
+        st: Streamlit instance
+        original_network: Original network
+        filtered_network: Filtered network
+        removed_edges: List of removed edges
+        string_data: STRING-db interaction data
     """
     st.subheader("STRING-db Filtering Results")
     
@@ -895,7 +875,7 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVダウンロードボタンの追加
+            # Add CSV download button
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -905,11 +885,11 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
                 key='download-string-removed-edges'
             )
 
-    # STRING-db相互作用の統計
+    # STRING-db interaction statistics
     if string_data:
         st.subheader("STRING-db Interaction Statistics")
         
-        # 相互作用スコアの収集
+        # Collect interaction scores
         scores = []
         for protein1, interactions in string_data.items():
             scores.extend(interactions.values())
@@ -925,12 +905,12 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
             
             col1, col2 = st.columns(2)
             
-            # 統計情報の表示
+            # Display statistics
             with col1:
                 for key, value in stats_dict.items():
                     st.metric(key, f"{value:.3f}")
             
-            # スコア分布のヒストグラム
+            # Histogram of score distribution
             with col2:
                 fig, ax = plt.subplots()
                 ax.hist(scores, bins=20, edgecolor='black')
@@ -944,18 +924,18 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
 
 @st.cache_data
 def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
-    """TRRUSTデータの読み込み
+    """Load TRRUST data
     
     Args:
-        species: 'mouse' または 'human'
+        species: 'mouse' or 'human'
     
     Returns:
-        Dict[str, List[Tuple[str, str, str]]]: 転写因子をキーとし、
-        (ターゲット遺伝子, 相互作用タイプ, PMID)のリストを値とする辞書
+        Dict[str, List[Tuple[str, str, str]]]: Dictionary with TF as key,
+        (Target gene, interaction type, PMID)list as values
     """
     trrust_data = defaultdict(list)
     
-    # ファイルパスの決定
+    # Determine file path
     if species == 'mouse':
         filepath = 'db/TRRUST/trrust_rawdata.mouse.tsv'
     elif species == 'human':
@@ -967,19 +947,19 @@ def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
     try:
         with open(filepath, 'r') as f:
             for line in f:
-                # 改行文字や余分な空白を除去
+                # Remove newline characters and extra spaces
                 line = line.strip()
-                if not line:  # 空行をスキップ
+                if not line:  # Skip empty lines
                     continue
                 
                 parts = line.split('\t')
-                if len(parts) < 4:  # 不完全な行をスキップ
+                if len(parts) < 4:  # Skip incomplete lines
                     continue
                 
                 tf, target, interaction_type, pmid = parts
                 trrust_data[tf].append((target, interaction_type, pmid))
         
-        # デバッグ出力
+        # Debug output
         st.write(f"TRRUST data loaded. Total TFs: {len(trrust_data)}")
     except FileNotFoundError:
         st.error(f"TRRUST data file not found: {filepath}")
@@ -989,11 +969,11 @@ def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
     return trrust_data
 
 def add_trrust_options(st, species="human"):
-    """TRRUST関連のオプションをUIに追加"""
+    """Add TRRUST related options to UI"""
     st.subheader("TRRUST Database Integration")
     
     with st.expander("TRRUST Settings", expanded=False):
-        # TRRUSTフィルタリングの有効化
+        # Enable TRRUST filtering
         enable_trrust = st.checkbox(
             "Enable TRRUST Filtering", 
             help="Filter network edges based on TRRUST interaction data"
@@ -1002,7 +982,7 @@ def add_trrust_options(st, species="human"):
         col1, col2 = st.columns(2)
         
         with col1:
-            # 相互作用タイプの選択
+            # Select interaction types
             interaction_types = st.multiselect(
                 "Select Interaction Types",
                 options=["Activation", "Repression", "Unknown"],
@@ -1011,7 +991,7 @@ def add_trrust_options(st, species="human"):
             )
         
         with col2:
-            # 最小PMID数の設定
+            # Set minimum PMID count
             min_pmid_count = st.slider(
                 "Minimum PMID Count",
                 min_value=1,
@@ -1020,7 +1000,7 @@ def add_trrust_options(st, species="human"):
                 help="Minimum number of unique publications supporting the interaction"
             )
         
-            # 生物種の表示
+            # Display species
             st.info(f"Using {species.capitalize()} TRRUST data")
             
             return {
@@ -1043,23 +1023,23 @@ def filter_network_by_trrust(
     interaction_types: List[str],
     min_pmid_count: int
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]], List[Dict]]:
-    """TRRUSTデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
+    """Filter network based on TRRUST data (excluding PPI edges)"""
     filtered_network = tf_network.copy()
     removed_edges = []
-    trrust_edge_details = []  # TRRUSTデータのエッジ詳細を保存するリスト
+    trrust_edge_details = []  # List to save TRRUST edge details
     
     for source, target in list(tf_network.edges()):
-        # PPIエッジはスキップ
+        # Skip PPI edges
         if tf_network[source][target].get('type') == 'ppi':
             continue
             
-        # 大文字小文字の違いを考慮するため、大文字・小文字両方でチェック
+        # Check both uppercase and lowercase to account for case differences
         source_variations = [source, source.lower(), source.upper(), 
                              source.capitalize(), source.title()]
         target_variations = [target, target.lower(), target.upper(), 
                              target.capitalize(), target.title()]
         
-        # いずれかの大文字小文字のバリエーションで相互作用を探索
+        # Search for interactions with any case variation
         trrust_interactions = []
         for src_var in source_variations:
             if src_var in trrust_data:
@@ -1069,22 +1049,22 @@ def filter_network_by_trrust(
                 ])
         
         if trrust_interactions:
-            # 選択された相互作用タイプと最小PMID数を満たすか確認
+            # Check if meets selected interaction type and minimum PMID count
             valid_interactions = [
                 (t, it, pmid) for (t, it, pmid) in trrust_interactions
                 if it in interaction_types
             ]
             
             if valid_interactions:
-                # 重複を除いたPMIDの数を計算
+                # Calculate number of unique PMIDs
                 unique_pmids = set()
                 for _, _, pmid_str in valid_interactions:
                     pmids = pmid_str.split(';')
                     unique_pmids.update(pmids)
                 
-                # PMIDの数が最小要件を満たす場合
+                # If PMID count meets minimum requirement
                 if len(unique_pmids) >= min_pmid_count:
-                    # エッジの詳細情報を保存
+                    # Save edge details
                     edge_detail = {
                         'source': source,
                         'target': target,
@@ -1103,14 +1083,14 @@ def filter_network_by_trrust(
             filtered_network.remove_edge(source, target)
             removed_edges.append((source, target))
     
-    # 孤立したノードを削除
+    # Remove isolated nodes
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
     return filtered_network, removed_edges
 
 def show_trrust_stats(st, original_network, filtered_network, removed_edges, trrust_data):
-    """TRRUSTフィルタリングの統計情報を表示"""
+    """Display TRRUST filtering statistics"""
     st.subheader("TRRUST Filtering Results")
     
     col1, col2, col3 = st.columns(3)
@@ -1129,7 +1109,7 @@ def show_trrust_stats(st, original_network, filtered_network, removed_edges, trr
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVダウンロードボタンの追加
+            # Add CSV download button
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -1139,43 +1119,43 @@ def show_trrust_stats(st, original_network, filtered_network, removed_edges, trr
                 key='download-trrust-removed-edges'
             )
 def format_tf_name_for_chip_atlas(tf_name: str, species: str) -> str:
-    """ChIP-Atlas用にTF名をフォーマット
+    """Format TF name for ChIP-Atlas
     
     Args:
-        tf_name: オリジナルのTF名
-        species: 生物種 ("human" or "mouse")
+        tf_name: Original TF name
+        species: species ("human" or "mouse")
         
     Returns:
-        str: フォーマットされたTF名
+        str: formatted TF name
     """
-    # マウスの場合、最初の文字を大文字に、残りを小文字に
+    # For mouse, capitalize first letter, lowercase rest
     if species == "mouse":
         if tf_name.startswith("Zfp") or tf_name.startswith("ZFP"):
-            # Zfpの場合は特別処理
+            # Special processing for Zfp
             return f"{tf_name[0].upper()}{tf_name[1:].lower()}"
         return f"{tf_name[0].upper()}{tf_name[1:].lower()}"
     
-    # ヒトの場合、すべて大文字に
+    # For human, all uppercase
     return tf_name.upper()
 
 def get_chip_atlas_data(tf: str, species: str = "mouse", distance: int = 1000) -> pd.DataFrame:
-    """ChIP-Atlas データを取得。ローカルファイルを優先し、なければAPIからダウンロード"""
+    """Get ChIP-Atlas data. Prioritize local files, download from API if not available"""
     
     genome = "hg38" if species == "human" else "mm10"
     distance_kb = distance // 1000
     
-    # ローカルファイルのパスを構築
+    # Build local file path
     local_dir = f"db/ChIP-Atlas/{genome}/{distance_kb}kb"
     local_file = f"{local_dir}/{tf}.{distance_kb}.tsv"
     
     try:
-        # まずローカルファイルを確認
+        # First check local file
         if os.path.exists(local_file):
             try:
                 df = pd.read_csv(local_file, sep='\t')
                # st.write(f"Using local ChIP-Atlas data for {tf}")
                 
-                # カラム名を標準化
+                # Standardize column names
                 column_mapping = {
                     'Gene ID': 'gene_id',
                     'Gene Symbol': 'target_gene',
@@ -1191,23 +1171,23 @@ def get_chip_atlas_data(tf: str, species: str = "mouse", distance: int = 1000) -
             except Exception as e:
                 st.warning(f"Error reading local file for {tf}: {str(e)}, trying ChIP-Atlas API")
         
-        # ローカルファイルがない場合はAPIから取得
+        # Get from API if no local file
         url = f"https://chip-atlas.dbcls.jp/data/{genome}/target/{tf}.{distance_kb}.tsv"
         response = requests.get(url)
         response.raise_for_status()
         
         if response.text:
-            # ディレクトリが存在しない場合は作成
+            # Create directory if not exists
             os.makedirs(local_dir, exist_ok=True)
             
-            # データを保存
+            # Save data
             with open(local_file, 'w', encoding='utf-8') as f:
                 f.write(response.text)
                 
-            # データをDataFrameに変換
+            # Convert data to DataFrame
             df = pd.read_csv(StringIO(response.text), sep='\t')
             
-            # カラム名を標準化
+            # Standardize column names
             column_mapping = {
                 'Gene ID': 'gene_id',
                 'Gene Symbol': 'target_gene',
@@ -1238,19 +1218,19 @@ def filter_network_by_chip_atlas(
     chip_data: Dict[str, pd.DataFrame], 
     min_score: float = 0
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
-    """ChIP-Atlasデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
+    """Filter network based on ChIP-Atlas data (excluding PPI edges)"""
     filtered_network = tf_network.copy()
     removed_edges = []
     
     for source, target in list(tf_network.edges()):
-        # PPIエッジはスキップ
+        # Skip PPI edges
         if tf_network[source][target].get('type') == 'ppi':
             continue
             
         if source in chip_data:
             df = chip_data[source]
             if not df.empty:
-                # カラム名の存在確認
+                # Check column name existence
                 if 'Target_genes' not in df.columns:
                     st.warning(f"Missing 'Target_genes' column in data for {source}")
                     st.write("Available columns:", df.columns.tolist())
@@ -1265,7 +1245,7 @@ def filter_network_by_chip_atlas(
                     filtered_network.remove_edge(source, target)
                     removed_edges.append((source, target))
     
-    # 孤立したノードを削除
+    # Remove isolated nodes
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
@@ -1273,7 +1253,7 @@ def filter_network_by_chip_atlas(
 
 def get_network_chip_data(network_tfs: List[str], species: str = "mouse", 
                          distance: int = 1000) -> Dict[str, pd.DataFrame]:
-    """ネットワーク内の全TFのChIP-Atlasデータを取得"""
+    """Get ChIP-Atlas data for all TFs in network"""
     chip_data = {}
     
     progress_text = st.empty()
@@ -1292,7 +1272,7 @@ def get_network_chip_data(network_tfs: List[str], species: str = "mouse",
                 chip_data[tf] = df
             
         progress_bar.progress((i + 1) / len(network_tfs))
-        time.sleep(1)  # APIの負荷を考慮
+        time.sleep(1)  # Consider API load
     
     progress_text.empty()
     progress_bar.empty()
@@ -1304,7 +1284,7 @@ def get_network_chip_data(network_tfs: List[str], species: str = "mouse",
 
 def get_edge_chip_scores(tf_network: nx.DiGraph, 
                         chip_data: Dict[str, pd.DataFrame]) -> Dict[Tuple[str, str], float]:
-    """ネットワークの各エッジのChIP-Atlasスコアを取得"""
+    """Get ChIP-Atlas score for each edge in network"""
     edge_scores = {}
     
     for source, target in tf_network.edges():
@@ -1319,7 +1299,7 @@ def get_edge_chip_scores(tf_network: nx.DiGraph,
     return edge_scores
 
 def determine_species(regulon_file) -> str:
-    """regulonファイルの内容から生物種を判定"""
+    """Determine species from regulon file content"""
     content = regulon_file.getvalue().decode('utf-8').splitlines()
     
     is_mostly_uppercase = all(
@@ -1332,11 +1312,11 @@ def determine_species(regulon_file) -> str:
 
 
 def add_chip_atlas_options(st, species="human"):
-    """ChIP-Atlas関連のオプションをUIに追加"""
+    """Add ChIP-Atlas related options to UI"""
     st.subheader("ChIP-Atlas Integration")
     
     with st.expander("ChIP-Atlas Settings", expanded=False):
-        # ChIP-Atlasフィルタリングの有効化
+        # Enable ChIP-Atlas filtering
         enable_chip_atlas = st.checkbox(
             "Enable ChIP-Atlas Filtering", 
             help="Filter network edges based on ChIP-Atlas binding data"
@@ -1346,7 +1326,7 @@ def add_chip_atlas_options(st, species="human"):
         col1, col2 = st.columns(2)
         
         with col1:
-            # TSSからの距離の選択
+            # Select distance from TSS
             tss_distance = st.selectbox(
                 "Distance from TSS",
                 options=[1000, 5000, 10000],
@@ -1356,7 +1336,7 @@ def add_chip_atlas_options(st, species="human"):
             )
             
         with col2:
-            # 最小バインディングスコアの設定
+            # Set minimum binding score
             min_binding_score = st.slider(
                 "Minimum Average Binding Score",
                 min_value=0,
@@ -1366,7 +1346,7 @@ def add_chip_atlas_options(st, species="human"):
                 help="Filter edges based on ChIP-Atlas binding score. -10*Log10[MACS2 Q-value]. -10*log10(0.05) ≈ 13, q=0.01 -> 20)."
             )
             
-            # 生物種の表示
+            # Display species
             st.info(f"Using {species.capitalize()} genome ({('hg38' if species == 'human' else 'mm10')})")
             
             return {
@@ -1382,7 +1362,7 @@ def add_chip_atlas_options(st, species="human"):
     }
 
 def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges, chip_data):
-    """ChIP-Atlasフィルタリングの統計情報を表示"""
+    """Display ChIP-Atlas filtering statistics"""
     st.subheader("ChIP-Atlas Filtering Results")
     
     col1, col2, col3 = st.columns(3)
@@ -1401,7 +1381,7 @@ def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges,
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVダウンロードボタンの追加
+            # Add CSV download button
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -1415,83 +1395,83 @@ def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges,
 @st.cache_data
 def load_tfs_list(file) -> Set[str]:
     """
-    Regulonデータの大文字/小文字の状況に基づいて適切なTFリストを読み込む
+    Load appropriate TF list based on uppercase/lowercase status of Regulon data
     
     Args:
-        file: アップロードされたregulonファイル
+        file: Uploaded regulon file
     
     Returns:
-        Set[str]: TFのリスト
+        Set[str]: List of TFs
     """
-    # ファイルの内容を読み込み
+    # Read file content
     content = file.getvalue().decode('utf-8').splitlines()
     
-    # 最初の行をスキップしてデータを処理
-    # 遺伝子名の大文字/小文字パターンを確認
+    # Skip first line and process data
+    # Check uppercase/lowercase pattern of gene names
     is_mostly_uppercase = all(
         len(line.split('\t')[0].split('(')[0].strip()) > 0 and 
         line.split('\t')[0].split('(')[0].strip().isupper() 
         for line in content[1:] if len(line.split('\t')) >= 2
     )
     
-    # TFリストを読み込む
+    # Load TF list
     try:
         if is_mostly_uppercase:
-            # ヒト(hg38)のTFリストを読み込む
+            # Human (hg38) Load TF list
             filepath = 'db/SCENIC/allTFs_hg38.txt'
         else:
-            # マウス(mm)のTFリストを読み込む
+            # Mouse (mm) Load TF list
             filepath = 'db/SCENIC/allTFs_mm.txt'
         
         with open(filepath, 'r') as f:
             return {line.strip() for line in f if line.strip()}
     
     except FileNotFoundError:
-        st.warning(f"TFリストファイル {filepath} が見つかりませんでした。")
+        st.warning(f"TF list file {filepath} not found.")
         return set()
 
 @st.cache_data
 def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
     """
-    regulonデータの読み込み（TSVまたはJSON形式に対応）
+    Load regulon data (supports TSV or JSON format)
     Returns:
         Tuple[Dict[str, Set[str]], Set[str]]: (regulon_data, all_genes)
-        - regulon_data: TFとその制御遺伝子の辞書
-        - all_genes: 全ての遺伝子（TFと標的遺伝子）のセット
+        - regulon_data: Dictionary of TF and its regulatory genes
+        - all_genes: Set of all genes (TFs and target genes)
     """
     regulon_data = defaultdict(set)
     all_genes = set()
     
     content = file.getvalue().decode('utf-8')
     
-    # JSON形式かどうかをチェック
+    # Check if JSON format
     if content.strip().startswith('[') or content.strip().startswith('{'):
         try:
             import json
             data = json.loads(content)
             
-            # pySCENIC JSON形式の処理
+            # Process pySCENIC JSON format
             if isinstance(data, list):
-                # リスト形式: [{"TF": "TF1", "TargetGenes": [...]}, ...]
+                # List format: [{"TF": "TF1", "TargetGenes": [...]}, ...]
                 for regulon in data:
                     if isinstance(regulon, dict):
-                        # 様々なキー名に対応
+                        # Support various key names
                         tf = regulon.get('TF') or regulon.get('tf') or regulon.get('transcription_factor') or ''
                         if 'Regulon' in regulon:
                             tf = regulon['Regulon'].split('(')[0].strip()
                         
-                        # ターゲット遺伝子の取得（様々なキー名に対応）
+                        # Get target genes (Support various key names）
                         targets = regulon.get('TargetGenes') or regulon.get('targetGenes') or \
                                  regulon.get('targets') or regulon.get('genes') or []
                         
                         if tf:
-                            tf = tf.split('(')[0].strip()  # (+)などを除去
+                            tf = tf.split('(')[0].strip()  # Remove (+) etc
                             regulon_data[tf] = set(targets)
                             all_genes.add(tf)
                             all_genes.update(targets)
             
             elif isinstance(data, dict):
-                # 辞書形式: {"TF1": ["gene1", "gene2"], ...}
+                # Dictionary format: {"TF1": ["gene1", "gene2"], ...}
                 for tf, targets in data.items():
                     tf = tf.split('(')[0].strip()
                     if isinstance(targets, list):
@@ -1499,15 +1479,15 @@ def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
                         all_genes.add(tf)
                         all_genes.update(targets)
             
-            # JSON処理が成功した場合はここで返す
+            # Return here if JSON processing succeeds
             if regulon_data:
                 return regulon_data, all_genes
                 
         except (json.JSONDecodeError, Exception) as e:
-            # JSON解析に失敗した場合は、TSV形式として処理を続行
+            # If JSON parsing fails, continue processing as TSV format
             pass
     
-    # TSV形式の処理（既存のコード）
+    # TSV format processing (existing code)
     lines = content.splitlines()
     for line in lines[1:]:  # Skip header
         row = line.split('\t')
@@ -1522,13 +1502,13 @@ def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
 
 @st.cache_data
 def load_csi_data(file) -> Dict[str, Dict[str, float]]:
-    """CSIデータの読み込み"""
+    """Load CSI data"""
     csi_data = defaultdict(dict)
     content = file.getvalue().decode('utf-8').splitlines()
     for line in content[1:]:  # Skip header
         row = line.split(',')
         if len(row) >= 3:
-            # 1列目と2列目から転写因子名を抽出 (数字以降を除去)
+            # Extract TF name from 1st and 2nd columns (remove numbers onwards)
             tf1 = row[0].split('(')[0].split()[0].strip()
             tf2 = row[1].split('(')[0].split()[0].strip()
             try:
@@ -1545,33 +1525,33 @@ def get_connected_tfs(regulon_data: Dict[str, Set[str]],
                      network_mode: bool,
                      csi_threshold: float = None,
                      max_tfs: int = None) -> List[Tuple[str, float, str]]:
-    """TFに接続する全てのTFとそのCSI値を取得"""
+    """Get all TFs connected to TF and their CSI values"""
     connected_tfs = []
     
-    # 追加のデバッグ出力
+    # Additional debug output
     print(f"\nget_connected_tfs for {source_tf}")
     print(f"network_mode: {network_mode}")
     print(f"csi_threshold: {csi_threshold}")
     print(f"source_tf in regulon_data: {source_tf in regulon_data}")
     print(f"Source TF downstream genes: {regulon_data.get(source_tf, 'No data')}")
     
-    # 上流TFの取得
+    # Get upstream TFs
     for tf, genes in regulon_data.items():
         if source_tf in genes:
             weight = csi_data[tf].get(source_tf, 0.0)
             if csi_threshold is None or weight >= csi_threshold:
                 connected_tfs.append((tf, weight, 'upstream'))
     
-    # network_modeの場合は下流も取得
+    # Also get downstream if network_mode
     if network_mode and source_tf in regulon_data:
         for target in regulon_data[source_tf]:
-            if target in regulon_data:  # TFの場合のみ
+            if target in regulon_data:  # Only if TF
                 weight = csi_data[source_tf].get(target, 0.0)
                 print(f"Potential downstream TF: {target}, CSI: {weight}")
                 if csi_threshold is None or weight >= csi_threshold:
                     connected_tfs.append((target, weight, 'downstream'))
     
-    # CSIの値でソートして上位を選択
+    # Sort by CSI value and select top
     connected_tfs.sort(key=lambda x: x[1], reverse=True)
     if max_tfs is not None:
         connected_tfs = connected_tfs[:max_tfs]
@@ -1581,55 +1561,57 @@ def get_connected_tfs(regulon_data: Dict[str, Set[str]],
 
     
 def build_expanded_tf_network(
-    regulon_data: Dict[str, Set[str]], 
-    csi_data: Dict[str, Dict[str, float]], 
-    all_tfs: Set[str],  # 全TFのリスト
+    regulon_data: Dict[str, Set[str]],
+    csi_data: Dict[str, Dict[str, float]],
+    all_tfs: Set[str],  # List of all TFs
     target_gene: str,
     max_upstream: int,
     max_downstream: int,
     network_mode: bool,
-    use_equal_weights: bool = False,  # 新しいパラメータ
+    use_equal_weights: bool = False,  # New parameter
     csi_threshold: float = None,
-    max_tfs_per_level: int = None
+    max_tfs_per_level: int = None,
+    show_direct_targets: bool = False  # Display non-TF targets
 ) -> Tuple[nx.DiGraph, Dict[str, Set[str]]]:
-    """拡張された双方向のTFネットワークを構築"""
+    """Build extended bidirectional TF network"""
     tf_network = nx.DiGraph()
 
     regulators_by_level = {
         **{f'upstream_{i}': set() for i in range(1, 4)},
         **{f'downstream_{i}': set() for i in range(1, 4)},
-        'additional_tfs': set()
+        'additional_tfs': set(),
+        'direct_targets': set()  # For direct non-TF targets
     }
     
     def get_connected_tfs_for_level(current_tf: str, direction: str) -> List[Tuple[str, float, str]]:
-        """特定の方向の接続TFを取得"""
+        """Get connected TFs in specific direction"""
         connected_tfs = []
         
         for tf, genes in regulon_data.items():
-            # 上流と下流を探索
+            # Search upstream and downstream
             if direction in ['upstream', 'both']:
                 if current_tf in genes and tf in all_tfs:
-                    # CSIデータがない、または等しい重みを使用する場合は1.0を使用
+                    # Use 1.0 if no CSI data or using equal weights
                     weight = 1.0 if use_equal_weights else csi_data[tf].get(current_tf, 0.0)
                     if csi_threshold is None or weight >= csi_threshold:
                         connected_tfs.append((tf, weight, 'upstream'))
             
-            # 下流の探索
+            # Search downstream
             if direction in ['downstream', 'both']:
                 if current_tf in regulon_data and tf in regulon_data[current_tf] and tf in all_tfs:
-                    # CSIデータがない、または等しい重みを使用する場合は1.0を使用
+                    # Use 1.0 if no CSI data or using equal weights
                     weight = 1.0 if use_equal_weights else csi_data[current_tf].get(tf, 0.0)
                     if csi_threshold is None or weight >= csi_threshold:
                         connected_tfs.append((tf, weight, 'downstream'))
         
-        # CSIの値でソート（等しい重みの場合はランダムな順序になる）
+        # Sort by CSI value (random order if equal weights)
         connected_tfs.sort(key=lambda x: x[1], reverse=True)
         if max_tfs_per_level is not None:
             connected_tfs = connected_tfs[:max_tfs_per_level]
         
         return connected_tfs
 
-    # 上流の探索
+    # Search upstream
     current_level_tfs = {target_gene}
     for level in range(1, max_upstream + 1):
         next_level_tfs = set()
@@ -1640,13 +1622,13 @@ def build_expanded_tf_network(
             connected_tfs = get_connected_tfs_for_level(current_tf, direction)
             
             for tf, weight, conn_direction in connected_tfs:
-                # TFの分類と接続の追加
+                # Classify TF and add connection
                 if tf not in all_tfs:
                     regulators_by_level['additional_tfs'].add(tf)
                 else:
                     regulators_by_level[level_key].add(tf)
                 
-                # エッジの方向を接続の方向に基づいて追加
+                # Add edge direction based on connection direction
                 if conn_direction == 'upstream':
                     tf_network.add_edge(tf, current_tf, weight=weight)
                 else:
@@ -1656,32 +1638,58 @@ def build_expanded_tf_network(
         
         current_level_tfs = next_level_tfs
 
-    # 下流の探索
+    # Search downstream
     if target_gene in regulon_data and max_downstream > 0:
         current_level_tfs = {target_gene}
         for level in range(1, max_downstream + 1):
             next_level_tfs = set()
             level_key = f'downstream_{level}'
-            
+
             for current_tf in current_level_tfs:
                 direction = 'downstream' if not network_mode else 'both'
                 connected_tfs = get_connected_tfs_for_level(current_tf, direction)
-                
+
                 for tf, weight, conn_direction in connected_tfs:
-                    # TFの分類と接続の追加
+                    # Classify TF and add connection
                     if tf not in all_tfs:
                         regulators_by_level['additional_tfs'].add(tf)
                     else:
                         regulators_by_level[level_key].add(tf)
-                    
-                    # エッジの方向を接続の方向に基づいて追加
+
+                    # Add edge direction based on connection direction
                     if conn_direction == 'downstream':
                         tf_network.add_edge(current_tf, tf, weight=weight)
                     else:
                         tf_network.add_edge(tf, current_tf, weight=weight)
-                    
+
                     next_level_tfs.add(tf)
-            
+
+                # If level 1 and show_direct_targets enabled, also add non-TF targets
+                if level == 1 and show_direct_targets and current_tf in regulon_data:
+                    # Get all target genes
+                    all_targets = regulon_data[current_tf]
+
+                    # Extract non-TF targets (exclude already added TFs)
+                    non_tf_targets = [target for target in all_targets if target not in all_tfs]
+
+                    # Filtering (based on weight_threshold or max_tfs)
+                    target_weights = []
+                    for target in non_tf_targets:
+                        # Calculate weight (use CSI data if available, otherwise 1.0)
+                        weight = 1.0 if use_equal_weights else csi_data.get(current_tf, {}).get(target, 1.0)
+                        if csi_threshold is None or weight >= csi_threshold:
+                            target_weights.append((target, weight))
+
+                    # Sort and filter
+                    target_weights.sort(key=lambda x: x[1], reverse=True)
+                    if max_tfs_per_level is not None:
+                        target_weights = target_weights[:max_tfs_per_level]
+
+                    # Add to network
+                    for target, weight in target_weights:
+                        regulators_by_level['direct_targets'].add(target)
+                        tf_network.add_edge(current_tf, target, weight=weight)
+
             current_level_tfs = next_level_tfs
     
     return tf_network, regulators_by_level
@@ -1689,28 +1697,28 @@ def build_expanded_tf_network(
 
 def calculate_weighted_centrality(tf_network: nx.DiGraph, 
                                   use_equal_weights: bool = False) -> Tuple[Dict, Dict, Dict, Dict]:
-    """重み付きネットワークの各種中心性指標を計算"""
+    """Calculate various centrality measures for weighted network"""
     try:
-        # ネットワーク内にエッジの重みがない場合は1.0に設定
+        # Set to 1.0 if no edge weights in network
         if use_equal_weights:
             for u, v, data in tf_network.edges(data=True):
                 if 'weight' not in data:
                     data['weight'] = 1.0
         
-        # これ以降は既存のコードと同じ
+        # Same as existing code from here on
         weighted_degree = {}
         for node in tf_network.nodes():
             in_weight = sum(d['weight'] for u, v, d in tf_network.in_edges(node, data=True))
             out_weight = sum(d['weight'] for u, v, d in tf_network.out_edges(node, data=True))
             weighted_degree[node] = (in_weight + out_weight) / (2 * tf_network.number_of_nodes() - 2)
         
-        # 他の中心性計算も同様に修正可能
+        # Other centrality calculations can be modified similarly
         betweenness_centrality = nx.betweenness_centrality(tf_network, weight='weight')
         pagerank = nx.pagerank(tf_network, weight='weight')
         eigenvector_centrality = nx.eigenvector_centrality(tf_network, weight='weight')
         
     except Exception as e:
-        # フォールバック
+        # Fallback
         weighted_degree = nx.degree_centrality(tf_network)
         betweenness_centrality = nx.betweenness_centrality(tf_network)
         pagerank = nx.pagerank(tf_network)
@@ -1719,8 +1727,8 @@ def calculate_weighted_centrality(tf_network: nx.DiGraph,
     return weighted_degree, betweenness_centrality, pagerank, eigenvector_centrality
 
 def identify_hubs_weighted(tf_network: nx.DiGraph, weight_threshold: float = 0.9) -> Set[str]:
-    """重み付きネットワークでのハブの同定"""
-    # 重み付き次数の計算
+    """Identify hubs in weighted network"""
+    # Calculate weighted degree
     weighted_degrees = {}
     for node in tf_network.nodes():
         in_weight = sum(d['weight'] for u, v, d in tf_network.in_edges(node, data=True))
@@ -1733,7 +1741,7 @@ def identify_hubs_weighted(tf_network: nx.DiGraph, weight_threshold: float = 0.9
 
 
 def identify_bottlenecks_weighted(tf_network: nx.DiGraph, betweenness_threshold: float = 0.9) -> Set[str]:
-    """重み付きネットワークでのボトルネックの同定"""
+    """Identify bottlenecks in weighted network"""
     betweenness = nx.betweenness_centrality(tf_network, weight='weight')
     threshold = np.percentile(list(betweenness.values()), betweenness_threshold*100)
     bottlenecks = {node for node, bc in betweenness.items() if bc >= threshold}
@@ -1741,14 +1749,14 @@ def identify_bottlenecks_weighted(tf_network: nx.DiGraph, betweenness_threshold:
 
 
 def filter_network_by_csi(tf_network: nx.DiGraph, csi_threshold: float = 0.0) -> nx.DiGraph:
-    """CSIの閾値に基づいてネットワークをフィルタリング"""
+    """Filter network based on CSI threshold"""
     filtered_network = nx.DiGraph()
     
     for u, v, data in tf_network.edges(data=True):
         if data['weight'] >= csi_threshold:
             filtered_network.add_edge(u, v, **data)
     
-    # 孤立したノードを削除
+    # Remove isolated nodes
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
@@ -1756,12 +1764,12 @@ def filter_network_by_csi(tf_network: nx.DiGraph, csi_threshold: float = 0.0) ->
 
 
 def analyze_csi_distribution(tf_network: nx.DiGraph):
-    """CSIの分布を分析"""
+    """Analyze CSI distribution"""
     edge_weights = [d['weight'] for (u, v, d) in tf_network.edges(data=True)]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
     
-    # CSIの分布
+    # CSI distribution
     ax1.hist(edge_weights, bins=30, alpha=0.7)
     ax1.set_title('CSI Distribution')
     ax1.set_xlabel('CSI')
@@ -1775,7 +1783,7 @@ def analyze_csi_distribution(tf_network: nx.DiGraph):
     plt.tight_layout()
     st.pyplot(fig)
     
-    # 基本統計量を返す
+    # Return basic statistics
     stats_dict = {
         "Mean": np.mean(edge_weights),
         "Median": np.median(edge_weights),
@@ -1789,31 +1797,31 @@ def analyze_csi_distribution(tf_network: nx.DiGraph):
     return stats_dict
 
 def get_edge_color(source_node, node_categories, color_scheme, target, ppi_tfs=None, hubs=None):
-   """エッジの色を取得する関数
+   """Function to get edge color
    
    Args:
-       source_node (str): エッジの起点となるノード
-       node_categories (dict): カテゴリーごとのノードのセット
-       color_scheme (dict): カテゴリーごとの色の辞書
-       target (str): ターゲット遺伝子の名前
-       ppi_tfs (list, optional): PPIトランスクリプション因子のリスト. Defaults to None.
-       hubs (set, optional): hubノードのセット. Defaults to None.
+       source_node (str): Edge source node
+       node_categories (dict): Set of nodes by category
+       color_scheme (dict): Dictionary of colors by category
+       target (str): Name of target gene
+       ppi_tfs (list, optional): List of PPI transcription factors. Defaults to None.
+       hubs (set, optional): Set of hub nodes. Defaults to None.
    
    Returns:
-       str: 16進数のカラーコード
+       str: Hexadecimal color code
    """    
-   # ppi_tfsがNoneの場合は空のリストに
+   # Empty list if ppi_tfs is None
    ppi_tfs = ppi_tfs or []
 
-   # PPIトランスクリプション因子の特別な処理
+   # Special processing for PPI transcription factors
    if source_node in ppi_tfs:
        return color_scheme['target']
    
-   # ターゲット遺伝子からのエッジは常にターゲット色を優先
+   # Always prioritize target color for edges from target gene
    if source_node == target:
        return color_scheme['target']
    
-   # hub nodeのチェック（ターゲット遺伝子以外）
+   # Check hub nodes (except target gene)
    if hubs and source_node in hubs and source_node != target:
        return color_scheme['hub_node']
        
@@ -1826,43 +1834,43 @@ def get_edge_color(source_node, node_categories, color_scheme, target, ppi_tfs=N
    elif source_node in node_categories['downstream_2']:
        return color_scheme['downstream_2']
    
-   return color_scheme['target_genes']  # デフォルト色
+   return color_scheme['target_genes']  # Default color
 
 
 def create_hierarchical_layout(tf_network: nx.DiGraph, target_gene: str, scale: float = 3.0) -> Dict[str, np.ndarray]:
     """
-    転写因子ネットワーク用のカスタム階層レイアウト
-    トポロジカルソートを使用して階層構造を作成
+    Custom hierarchical layout for TF network
+    Create hierarchical structure using topological sort
     """
     pos = {}
     
     try:
-        # 循環検出とトポロジカル層の生成
+        # Cycle detection and topological layer generation
         if nx.is_directed_acyclic_graph(tf_network):
-            # DAGの場合：トポロジカル層を使用
+            # If DAG: use topological layers
             layers = list(nx.topological_generations(tf_network))
         else:
-            # 循環がある場合：強連結成分を使用
+            # If cycles: use strongly connected components
             scc = nx.strongly_connected_components(tf_network)
             condensed = nx.condensation(tf_network, scc)
             layers = list(nx.topological_generations(condensed))
             
-            # 元のノードに戻す
+            # Return to original nodes
             node_layers = []
             for layer in layers:
                 current_layer = []
                 for comp_id in layer:
-                    # condensedグラフの各ノードは強連結成分ID
+                    # Each node in condensed graph is strongly connected component ID
                     for orig_node in tf_network.nodes():
                         if orig_node in condensed.nodes[comp_id]['members']:
                             current_layer.append(orig_node)
                 node_layers.append(current_layer)
             layers = node_layers
     except:
-        # フォールバック：ターゲット遺伝子からの距離ベース
+        # Fallback：Distance-based from target gene
         layers = []
         if target_gene in tf_network:
-            # BFSでレベル分け
+            # Level division by BFS
             distances = nx.single_source_shortest_path_length(tf_network.reverse(), target_gene)
             max_dist = max(distances.values()) if distances else 0
             
@@ -1871,20 +1879,20 @@ def create_hierarchical_layout(tf_network: nx.DiGraph, target_gene: str, scale: 
                 if layer:
                     layers.append(layer)
         else:
-            # 全ノードを1層に
+            # All nodes in one layer
             layers = [list(tf_network.nodes())]
     
-    # 階層座標の計算
+    # Calculate hierarchical coordinates
     layer_height = scale * 2.0 / max(len(layers) - 1, 1)
     
     for i, layer in enumerate(layers):
-        y_pos = scale - (i * layer_height)  # 上から下へ
+        y_pos = scale - (i * layer_height)  # Top to bottom
         
         if len(layer) == 1:
-            # 単一ノードは中央に
+            # Single node at center
             pos[layer[0]] = np.array([0.0, y_pos])
         else:
-            # 複数ノードは水平に配置
+            # Multiple nodes arranged horizontally
             layer_width = scale * 1.8
             x_spacing = layer_width / (len(layer) - 1) if len(layer) > 1 else 0
             
@@ -1892,9 +1900,9 @@ def create_hierarchical_layout(tf_network: nx.DiGraph, target_gene: str, scale: 
                 x_pos = -layer_width/2 + (j * x_spacing)
                 pos[node] = np.array([x_pos, y_pos])
     
-    # ターゲット遺伝子を強調位置に
+    # Emphasize target gene position
     if target_gene in pos:
-        # ターゲット遺伝子の層でのx座標を中央寄りに調整
+        # Adjust x-coordinate to center for target gene layer
         target_y = pos[target_gene][1]
         pos[target_gene] = np.array([0.0, target_y])
     
@@ -1902,29 +1910,29 @@ def create_hierarchical_layout(tf_network: nx.DiGraph, target_gene: str, scale: 
 
 def adjust_node_positions(pos: Dict[str, np.ndarray], min_dist: float = 0.2) -> Dict[str, np.ndarray]:
     """
-    ノードの位置を調整して重なりを防ぐ
+    Adjust node positions to prevent overlap
     
     Args:
-        pos: 元のノード位置の辞書
-        min_dist: ノード間の最小距離
+        pos: Dictionary of original node positions
+        min_dist: Minimum distance between nodes
     
     Returns:
-        Dict[str, np.ndarray]: 調整後のノード位置
+        Dict[str, np.ndarray]: Adjusted node positions
     """
     adjusted_pos = pos.copy()
     nodes = list(pos.keys())
     
-    # 全てのノードペアについて
+    # For all node pairs
     for i, node1 in enumerate(nodes):
         for node2 in nodes[i+1:]:
             pos1 = adjusted_pos[node1]
             pos2 = adjusted_pos[node2]
             
-            # ノード間の距離を計算
+            # Calculate distance between nodes
             dist = np.linalg.norm(pos1 - pos2)
             
             if dist < min_dist:
-                # 距離が最小距離未満の場合、ノードを反発させる
+                # If distance is less than minimum, repel nodes
                 direction = (pos1 - pos2) / dist
                 adjustment = direction * (min_dist - dist) / 2
                 
@@ -1938,34 +1946,34 @@ def get_network_layout(tf_network: nx.DiGraph,
                       hub_centric: bool = False,
                       hubs: Optional[Set[str]] = None,
                       target_gene: str = None,
-                      scale: float = 3.0,      # スケール係数
-                      k: float = 2.0,          # ノード間の距離係数
-                      min_dist: float = 0.2,    # 最小ノード間距離
-                      iterations: int = 100     # 反復回数
+                      scale: float = 3.0,      # Scale factor
+                      k: float = 2.0,          # Distance coefficient between nodes
+                      min_dist: float = 0.2,    # Minimum distance between nodes
+                      iterations: int = 100     # Number of iterations
                       ) -> Dict[str, np.ndarray]:
     """
-    改良されたネットワークレイアウトを生成する関数
+    Function to generate improved network layout
     
     Args:
-        tf_network: ネットワークグラフ
-        layout_type: レイアウトタイプ
-        hub_centric: ハブ中心のレイアウトにするかどうか
-        hubs: ハブノードのセット
-        target_gene: ターゲット遺伝子
-        scale: レイアウトのスケール係数
-        k: ノード間の距離係数
-        min_dist: 最小ノード間距離
-        iterations: レイアウトアルゴリズムの反復回数
+        tf_network: Network graph
+        layout_type: Layout type
+        hub_centric: Whether to use hub-centric layout
+        hubs: Set of hub nodes
+        target_gene: Target gene
+        scale: Layout scale factor
+        k: Distance coefficient between nodes
+        min_dist: Minimum distance between nodes
+        iterations: Number of iterations for layout algorithm
     """
     
-    # 基本レイアウトの生成
+    # Generate basic layout
     if layout_type == "spring":
         pos = nx.spring_layout(tf_network, k=k, scale=scale, iterations=iterations)
     elif layout_type == "kamada_kawai":
         try:
-            # スケールとweightパラメータを追加
+            # Add scale and weight parameters
             pos = nx.kamada_kawai_layout(tf_network, scale=scale, weight='weight')
-            # 位置を更に調整してノードの重なりを防ぐ
+            # Further adjust positions to prevent node overlap
             pos = adjust_node_positions(pos, min_dist=min_dist)
         except:
             pos = nx.spring_layout(tf_network, k=k, scale=scale)
@@ -1974,7 +1982,7 @@ def get_network_layout(tf_network: nx.DiGraph,
     elif layout_type == "spectral":
         try:
             pos = nx.spectral_layout(tf_network, scale=scale)
-            # スペクトラルレイアウトの後にFruchterman-Reingoldで微調整
+            # Fine-tune with Fruchterman-Reingold after spectral layout
             pos = nx.fruchterman_reingold_layout(tf_network, pos=pos, k=k/2, iterations=50)
             pos = adjust_node_positions(pos, min_dist=min_dist)
         except:
@@ -1982,31 +1990,31 @@ def get_network_layout(tf_network: nx.DiGraph,
     elif layout_type == "shell":
         pos = nx.shell_layout(tf_network, scale=scale)
     elif layout_type == "hierarchical_topological":
-        # カスタム階層レイアウト（トポロジカル階層）
+        # Custom hierarchical layout (topological hierarchy)
         pos = create_hierarchical_layout(tf_network, target_gene, scale=scale)
     else:
         pos = nx.spring_layout(tf_network, k=k, scale=scale)
 
-    # Hub-centricレイアウトの適用
+    # Apply hub-centric layout
     if hub_centric and hubs:
-        # 中心点の計算
+        # Calculate center point
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # ハブノードとターゲット遺伝子を中心に配置
+        # Place hub nodes and target gene at center
         hub_nodes = set(hubs) | {target_gene}
         n_hubs = len(hub_nodes)
         
-        # 中央付近に円形に配置
+        # Arrange in circle near center
         for i, hub in enumerate(hub_nodes):
             angle = 2 * np.pi * i / n_hubs
-            r = 0.3 * scale  # スケールに応じた半径
+            r = 0.3 * scale  # Radius according to scale
             pos[hub] = np.array([
                 center_x + r * np.cos(angle),
                 center_y + r * np.sin(angle)
             ])
         
-        # 他のノードを外側に配置
+        # Place other nodes outside
         for node in tf_network.nodes():
             if node not in hub_nodes:
                 current_pos = pos[node]
@@ -2015,7 +2023,7 @@ def get_network_layout(tf_network: nx.DiGraph,
                     direction = direction / np.linalg.norm(direction)
                     pos[node] = np.array([center_x, center_y]) + direction * scale
         
-        # 最終的な位置調整
+        # Final position adjustment
         pos = adjust_node_positions(pos, min_dist=min_dist)
     
     return pos
@@ -2079,7 +2087,7 @@ def add_visualization_settings(st):
             help="If enabled, hub nodes will be colored differently regardless of layout"
         )
 
-    # Cleanup network オプションを追加
+    # Add cleanup network option
     with st.expander("Network Cleanup Options", expanded=False):
         enable_cleanup = st.checkbox(
             "Enable network cleanup",
@@ -2105,7 +2113,7 @@ def visualize_static_network(tf_network: nx.DiGraph,
                            layout_type: str = "spring",
                            layout_scale: float = 3.0,
                            min_node_dist: float = 0.2) -> None:
-    plt.clf()  # ここでのみクリア
+    plt.clf()  # Clear only here
     # Add this before both visualization functions
     color_map = {
         'target': '#ff0000',      # Red
@@ -2114,6 +2122,7 @@ def visualize_static_network(tf_network: nx.DiGraph,
         'downstream_1': '#ffff00', # Yellow
         'downstream_2': '#ffc0cb', # Pink
         'target_genes': '#d3d3d3', # Light gray
+        'direct_targets': '#c0c0c0', # Silver (For direct non-TF targets)
         'hub_node': '#FFA500',    # Orange
         'ppi_node': '#800080',    # Purple
         'ppi_edge': '#8B4513',    # Saddle Brown
@@ -2133,17 +2142,17 @@ def visualize_static_network(tf_network: nx.DiGraph,
         min_dist=min_node_dist
     )
     
-    # ppi_tfsがNoneの場合の処理
+    # Processing when ppi_tfs is None
     ppi_tfs = ppi_tfs or []
     
-    # ノードの色とサイズの設定
+    # Set node colors and sizes
     node_colors = []
     node_sizes = []
     
     for node in tf_network.nodes():
         size = 1000 * node_size_factor
         color = color_map['target_genes']
-        
+
         if node == target_gene:
             color = color_map['target']
             size *= 2
@@ -2163,17 +2172,20 @@ def visualize_static_network(tf_network: nx.DiGraph,
             size *= 1.5
         elif node in regulators_by_level['downstream_2']:
             color = color_map['downstream_2']
-            
+        elif node in regulators_by_level.get('direct_targets', set()):
+            color = color_map['direct_targets']
+            size *= 1.0  # Normal size
+
         node_colors.append(color)
         node_sizes.append(size)
      
-    # ノードの描画
+    # Draw nodes
     nx.draw_networkx_nodes(tf_network, pos, 
                           node_color=node_colors,
                           node_size=node_sizes,
                           alpha=node_alpha)
     
-    # エッジの分類
+    # Classify edges
     regular_edges = []
     ppi_edges = []
     regulation_edges = []
@@ -2187,13 +2199,13 @@ def visualize_static_network(tf_network: nx.DiGraph,
         else:
             regular_edges.append((u, v))
 
-    # エッジの色の設定
+    # Set edge colors
     edge_colors = [
         get_edge_color(source, regulators_by_level, color_map, target_gene, ppi_tfs, hubs) 
         for source, _ in tf_network.edges()
     ]
     
-    # 通常のエッジを描画
+    # Draw regular edges
     if regular_edges:
         nx.draw_networkx_edges(tf_network, pos,
                              edgelist=regular_edges,
@@ -2205,7 +2217,7 @@ def visualize_static_network(tf_network: nx.DiGraph,
                              min_source_margin=15,
                              min_target_margin=20)
     
-    # PPIエッジを描画（無向）
+    # Draw PPI edges (undirected)
     if ppi_edges:
         nx.draw_networkx_edges(tf_network, pos,
                              edgelist=ppi_edges,
@@ -2217,7 +2229,7 @@ def visualize_static_network(tf_network: nx.DiGraph,
                              min_source_margin=15,
                              min_target_margin=15)
     
-    # 制御エッジを描画（有向）
+    # Draw regulation edges (directed)
     if regulation_edges:
         nx.draw_networkx_edges(tf_network, pos,
                              edgelist=regulation_edges,
@@ -2230,11 +2242,11 @@ def visualize_static_network(tf_network: nx.DiGraph,
                              min_source_margin=15,
                              min_target_margin=20)
     
-    # ラベルの描画
+    # Draw labels
     nx.draw_networkx_labels(tf_network, pos, font_size=font_size, 
                           font_weight='bold')
     
-    # 凡例の作成
+    # Create legend
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', 
                   label=f'Target ({target_gene})', 
@@ -2262,20 +2274,23 @@ def visualize_static_network(tf_network: nx.DiGraph,
         ])
     
     legend_elements.extend([
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  label='Upstream (1st)', 
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Upstream (1st)',
                   markerfacecolor=color_map['upstream_1'], markersize=15),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  label='Upstream (2nd)', 
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Upstream (2nd)',
                   markerfacecolor=color_map['upstream_2'], markersize=15),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  label='Downstream (1st)', 
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Downstream (1st)',
                   markerfacecolor=color_map['downstream_1'], markersize=15),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  label='Downstream (2nd)', 
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Downstream (2nd)',
                   markerfacecolor=color_map['downstream_2'], markersize=15),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  label='Target Genes', 
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Direct Targets (non-TF)',
+                  markerfacecolor=color_map['direct_targets'], markersize=15),
+        plt.Line2D([0], [0], marker='o', color='w',
+                  label='Target Genes',
                   markerfacecolor=color_map['target_genes'], markersize=15)
     ])
 
@@ -2303,10 +2318,10 @@ def create_interactive_network(tf_network: nx.DiGraph,
     net = Network(height=height_px, width="100%", bgcolor="#ffffff", 
                  font_color="black", directed=True)
                  
-    # ppi_tfsがNoneの場合の処理
+    # Processing when ppi_tfs is None
     ppi_tfs = ppi_tfs or []
 
-    # カラーマップの定義
+    # Define color map
     color_map = {
         'target': '#ff0000',      # Red
         'upstream_1': '#add8e6',  # Light blue
@@ -2314,13 +2329,14 @@ def create_interactive_network(tf_network: nx.DiGraph,
         'downstream_1': '#ffff00', # Yellow
         'downstream_2': '#ffc0cb', # Pink
         'target_genes': '#d3d3d3', # Light gray
+        'direct_targets': '#c0c0c0', # Silver (For direct non-TF targets)
         'hub_node': '#FFA500',    # Orange
         'ppi_node': '#800080',    # Purple
         'ppi_edge': '#8B4513',    # Saddle Brown
         'regular_edge': '#add8e6'  # Light blue
     }
     
-    # レイアウトオプションの定義
+    # Define layout options
     layout_options = {
     "static_spring": {"physics": {"enabled": False}},
     "barnes_hut": {
@@ -2351,28 +2367,28 @@ def create_interactive_network(tf_network: nx.DiGraph,
         "hierarchical": {
             "enabled": True,
             "direction": "UD",
-            "sortMethod": "directed",   # 有方向グラフ最適化
-            "levelSeparation": 120,     # 階層間隔拡大
-            "nodeSpacing": 150,         # 水平間隔拡大
-            "treeSpacing": 200,         # ツリー間隔拡大
+            "sortMethod": "directed",   # Directed graph optimization
+            "levelSeparation": 120,     # Increase hierarchy spacing
+            "nodeSpacing": 150,         # Increase horizontal spacing
+            "treeSpacing": 200,         # Increase tree spacing
             "blockShifting": True,
             "edgeMinimization": True,
             "parentCentralization": True,
             "improvedLayout": True,
-            "levelBias": 0.0,           # バイアスを解除
+            "levelBias": 0.0,           # Remove bias
         }
     },
     "edges": {
         "smooth": {
             "enabled": True,
-            "type": "cubicBezier",      # エッジの描画方法を変更
+            "type": "cubicBezier",      # Change edge drawing method
             "roundness": 0.5
         }
     },
     "physics": {
         "enabled": True,
         "hierarchicalRepulsion": {
-            "centralGravity": 0.0,      # 中心への引力を無効化
+            "centralGravity": 0.0,      # Disable gravitational pull to center
             "springLength": 100,
             "springConstant": 0.01,
             "nodeDistance": 80,
@@ -2381,7 +2397,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
         "solver": "hierarchicalRepulsion",
         "stabilization": {
             "enabled": True,
-            "iterations": 1000,         # 反復回数を増やす
+            "iterations": 1000,         # Increase number of iterations
             "updateInterval": 10,
             "fit": True
         }
@@ -2413,74 +2429,74 @@ def create_interactive_network(tf_network: nx.DiGraph,
                 "enabled": True,
                 "direction": "UD",
                 "sortMethod": "directed",
-                "levelSeparation": 150,     # より大きな階層間隔
-                "nodeSpacing": 200,         # ノード間隔拡大  
-                "treeSpacing": 300,         # ツリー間隔拡大
+                "levelSeparation": 150,     # Larger hierarchy spacing
+                "nodeSpacing": 200,         # Increase node spacing  
+                "treeSpacing": 300,         # Increase tree spacing
                 "blockShifting": True,
                 "edgeMinimization": True,
-                "parentCentralization": False,  # 中央化無効
+                "parentCentralization": False,  # Disable centralization
                 "improvedLayout": True,
-                "shakeTowards": "roots"     # ルートノード寄り
+                "shakeTowards": "roots"     # Closer to root nodes
             }
         },
         "edges": {
             "smooth": {
                 "enabled": True,
-                "type": "straightCross",    # 直線エッジで方向明確化
+                "type": "straightCross",    # Clarify direction with straight edges
                 "forceDirection": "horizontal"
             },
             "arrows": {
-                "to": {"enabled": True, "scaleFactor": 1.2}  # 矢印強調
+                "to": {"enabled": True, "scaleFactor": 1.2}  # Emphasize arrows
             }
         },
         "physics": {
-            "enabled": False  # 物理シミュレーション無効で階層固定
+            "enabled": False  # Fix hierarchy with physics simulation disabled
         }
     }
     }
 
-    # Hub-centricレイアウトの計算
+    # Calculate hub-centric layout
     if hub_centric and hubs:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # ハブ遺伝子とターゲット遺伝子を中央に配置
+        # Place hub gene and target gene at center
         hub_nodes = set(hubs) | {target_gene}
         n_hubs = len(hub_nodes)
         
-        # 中央付近に円形に配置
+        # Arrange in circle near center
         for i, hub in enumerate(hub_nodes):
             angle = 2 * np.pi * i / n_hubs
-            r = 0.3  # 中心からの距離
+            r = 0.3  # Distance from center
             pos[hub] = np.array([
                 center_x + r * np.cos(angle),
                 center_y + r * np.sin(angle)
             ])
         
-        # 他のノードは外側に配置
+        # Place other nodes outside
         for node in tf_network.nodes():
             if node not in hub_nodes:
                 current_pos = pos[node]
-                # 中心からの方向ベクトルを計算
+                # Calculate direction vector from center
                 direction = current_pos - np.array([center_x, center_y])
-                # 正規化して一定距離に配置
+                # Normalize and place at constant distance
                 if np.linalg.norm(direction) > 0:
                     direction = direction / np.linalg.norm(direction)
                     pos[node] = np.array([center_x, center_y]) + direction * 1.0
     else:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
 
-    # レイアウトの選択と適用
+    # Select and apply layout
     if layout_type in layout_options:
         net.options = layout_options[layout_type]
 
 
-    # ノードの追加
+    # Add nodes
     for node in tf_network.nodes():
         size = 20 * node_size_factor
         color = color_map['target_genes']
-        
+
         if node == target_gene:
             color = color_map['target']
             size *= 2
@@ -2500,7 +2516,10 @@ def create_interactive_network(tf_network: nx.DiGraph,
             size *= 1.5
         elif node in regulators_by_level['downstream_2']:
             color = color_map['downstream_2']
-                    
+        elif node in regulators_by_level.get('direct_targets', set()):
+            color = color_map['direct_targets']
+            size *= 1.0  # Normal size
+
         if layout_type == "static_spring":
             x, y = pos[node]
             x = x * 500
@@ -2511,7 +2530,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
             net.add_node(node, label=node, color=color, size=size,
                         font={'size': font_size})
 
-    # エッジの分類
+    # Classify edges
     regular_edges = []
     ppi_edges = []
     regulation_edges = []
@@ -2525,7 +2544,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
         else:
             regular_edges.append((u, v))
 
-    # 1. 通常のエッジ
+    # 1. Regular edges
     for u, v in regular_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.0 * weight * edge_width_factor)
@@ -2534,7 +2553,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
                     arrows={'to': {'enabled': True, 'scaleFactor': 1}},
                     physics=True)
 
-    # 2. PPIエッジ（無向）
+    # 2. PPI edges (undirected)
     for u, v in ppi_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.5 * weight * edge_width_factor)
@@ -2542,7 +2561,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
                     arrows={'to': {'enabled': False}},
                     physics=True)
 
-    # 3. 制御エッジ（有向）
+    # 3. Regulation edges (directed)
     for u, v in regulation_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.5 * weight * edge_width_factor)
@@ -2551,7 +2570,7 @@ def create_interactive_network(tf_network: nx.DiGraph,
                     arrows={'to': {'enabled': True, 'scaleFactor': 1}},
                     physics=True)
 
-    # JavaScriptによる制御を修正
+    # Modify JavaScript control
     javascript_code = '''
 <script>
 window.addEventListener('load', function() {
@@ -2562,15 +2581,15 @@ window.addEventListener('load', function() {
     function disablePhysics() {
         if (!isStabilized && typeof network !== 'undefined') {
             network.setOptions({physics: {enabled: false}});
-            network.stabilize(0);  // 強制的に安定化
+            network.stabilize(0);  // Force stabilization
             isStabilized = true;
         }
     }
 
-    // 短いタイムアウト (5秒)
+    // Short timeout (5 seconds)
     stabilizationTimeout = setTimeout(disablePhysics, 5000);
 
-    // 絶対的なタイムアウト (8秒)
+    // Absolute timeout (8 seconds)
     forceStopTimeout = setTimeout(function() {
         if (!isStabilized) {
             console.log("Force stopping physics after absolute timeout");
@@ -2587,14 +2606,14 @@ window.addEventListener('load', function() {
 
         network.on("stabilizationProgress", function(params) {
             let progress = Math.round((params.iterations / params.total) * 100);
-            if (progress >= 80) {  // 80%で停止
+            if (progress >= 80) {  // Stop at 80%
                 clearTimeout(stabilizationTimeout);
                 clearTimeout(forceStopTimeout);
                 disablePhysics();
             }
         });
 
-        // 任意のユーザーインタラクションで停止
+        // Stop on any user interaction
         ['click', 'dragStart', 'zoom'].forEach(function(event) {
             network.on(event, function() {
                 if (!isStabilized) {
@@ -2609,13 +2628,13 @@ window.addEventListener('load', function() {
 </script>
     '''
 
-    # 物理演算の制御（barnes_hutの場合）
+    # Physics simulation control (for barnes_hut)
     if layout_type == "barnes_hut":
         net.html = net.html.replace('</head>',
             '''
             <script>
             window.addEventListener('load', function() {
-                // 30秒後に強制的に物理シミュレーションを停止
+                // Force stop physics simulation after 30 seconds
                 setTimeout(function() {
                     if (network) {
                         network.setOptions({physics: {enabled: false}});
@@ -2623,13 +2642,13 @@ window.addEventListener('load', function() {
                     }
                 }, 30000);
 
-                // 安定化後の処理
+                // Processing after stabilization
                 network.on("stabilizationIterationsDone", function() {
                     console.log("Stabilization finished");
                     network.setOptions({physics: {enabled: false}});
                 });
 
-                // プログレスバーの処理
+                // Progress bar processing
                 network.on("stabilizationProgress", function(params) {
                     console.log(params.iterations + " / " + params.total);
                 });
@@ -2638,7 +2657,7 @@ window.addEventListener('load', function() {
             </head>
             ''')
 
-    # ネットワークの保存と表示
+    # Save and display network
     # generate the full HTML and write it directly
     html_content = net.generate_html()
 
@@ -2673,7 +2692,7 @@ def save_static_network(tf_network: nx.DiGraph,
     plt.clf()
     fig = plt.figure(figsize=(15, 12))
     
-    # format パラメータを除外して他のパラメータを渡す
+    # Pass other parameters excluding format parameter
     visualize_static_network(
         tf_network=tf_network,
         regulators_by_level=regulators_by_level,
@@ -2719,7 +2738,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
     net = Network(height=height_px, width="100%", bgcolor="#ffffff", 
                  font_color="black", directed=True)
 
-    # ppi_tfsがNoneの場合の処理
+    # Processing when ppi_tfs is None
     ppi_tfs = ppi_tfs or []
     
     # Add this before both visualization functions
@@ -2730,13 +2749,14 @@ def save_interactive_network(tf_network: nx.DiGraph,
         'downstream_1': '#ffff00', # Yellow
         'downstream_2': '#ffc0cb', # Pink
         'target_genes': '#d3d3d3', # Light gray
+        'direct_targets': '#c0c0c0', # Silver (For direct non-TF targets)
         'hub_node': '#FFA500',    # Orange
         'ppi_node': '#800080',    # Purple
         'ppi_edge': '#8B4513',    # Saddle Brown
         'regular_edge': '#add8e6'  # Light blue
     }
             
-    # レイアウトオプションの定義
+    # Define layout options
     layout_options = {
     "static_spring": {"physics": {"enabled": False}},
     "barnes_hut": {
@@ -2767,28 +2787,28 @@ def save_interactive_network(tf_network: nx.DiGraph,
         "hierarchical": {
             "enabled": True,
             "direction": "UD",
-            "sortMethod": "directed",   # 有方向グラフ最適化
-            "levelSeparation": 120,     # 階層間隔拡大
-            "nodeSpacing": 150,         # 水平間隔拡大
-            "treeSpacing": 200,         # ツリー間隔拡大
+            "sortMethod": "directed",   # Directed graph optimization
+            "levelSeparation": 120,     # Increase hierarchy spacing
+            "nodeSpacing": 150,         # Increase horizontal spacing
+            "treeSpacing": 200,         # Increase tree spacing
             "blockShifting": True,
             "edgeMinimization": True,
             "parentCentralization": True,
             "improvedLayout": True,
-            "levelBias": 0.0,           # バイアスを解除
+            "levelBias": 0.0,           # Remove bias
         }
     },
     "edges": {
         "smooth": {
             "enabled": True,
-            "type": "cubicBezier",      # エッジの描画方法を変更
+            "type": "cubicBezier",      # Change edge drawing method
             "roundness": 0.5
         }
     },
     "physics": {
         "enabled": True,
         "hierarchicalRepulsion": {
-            "centralGravity": 0.0,      # 中心への引力を無効化
+            "centralGravity": 0.0,      # Disable gravitational pull to center
             "springLength": 100,
             "springConstant": 0.01,
             "nodeDistance": 80,
@@ -2797,7 +2817,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
         "solver": "hierarchicalRepulsion",
         "stabilization": {
             "enabled": True,
-            "iterations": 1000,         # 反復回数を増やす
+            "iterations": 1000,         # Increase number of iterations
             "updateInterval": 10,
             "fit": True
         }
@@ -2824,43 +2844,43 @@ def save_interactive_network(tf_network: nx.DiGraph,
         }
     }
     }
-    # Hub-centricレイアウトの計算
+    # Calculate hub-centric layout
     if hub_centric and hubs:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # ハブ遺伝子とターゲット遺伝子を中央に配置
+        # Place hub gene and target gene at center
         hub_nodes = set(hubs) | {target_gene}
         n_hubs = len(hub_nodes)
         
-        # 中央付近に円形に配置
+        # Arrange in circle near center
         for i, hub in enumerate(hub_nodes):
             angle = 2 * np.pi * i / n_hubs
-            r = 0.3  # 中心からの距離
+            r = 0.3  # Distance from center
             pos[hub] = np.array([
                 center_x + r * np.cos(angle),
                 center_y + r * np.sin(angle)
             ])
         
-        # 他のノードは外側に配置
+        # Place other nodes outside
         for node in tf_network.nodes():
             if node not in hub_nodes:
                 current_pos = pos[node]
-                # 中心からの方向ベクトルを計算
+                # Calculate direction vector from center
                 direction = current_pos - np.array([center_x, center_y])
-                # 正規化して一定距離に配置
+                # Normalize and place at constant distance
                 if np.linalg.norm(direction) > 0:
                     direction = direction / np.linalg.norm(direction)
                     pos[node] = np.array([center_x, center_y]) + direction * 1.0
     else:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
 
-    # レイアウトの選択と適用
+    # Select and apply layout
     if layout_type in layout_options:
         net.options = layout_options[layout_type]
     
-    # ノードの追加
+    # Add nodes
     for node in tf_network.nodes():
         size = 20 * node_size_factor
         color = color_map['target_genes']
@@ -2895,7 +2915,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
             net.add_node(node, label=node, color=color, size=size,
                         font={'size': font_size})
 
-    # エッジの分類
+    # Classify edges
     regular_edges = []
     ppi_edges = []
     regulation_edges = []
@@ -2909,7 +2929,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
         else:
             regular_edges.append((u, v))
 
-    # 1. 通常のエッジ
+    # 1. Regular edges
     for u, v in regular_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.0 * weight * edge_width_factor)
@@ -2918,7 +2938,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
             arrows={'to': {'enabled': True, 'scaleFactor': 1}},
             physics=True)
 
-    # 2. PPIエッジ（無向）
+    # 2. PPI edges (undirected)
     for u, v in ppi_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.5 * weight * edge_width_factor)
@@ -2926,7 +2946,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
                     arrows={'to': {'enabled': False}},
                     physics=True)
 
-    # 3. 制御エッジ（有向）
+    # 3. Regulation edges (directed)
     for u, v in regulation_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.5 * weight * edge_width_factor)
@@ -2935,7 +2955,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
                     arrows={'to': {'enabled': True, 'scaleFactor': 1}},
                     physics=True)
 
-    # JavaScriptによる制御を修正
+    # Modify JavaScript control
     javascript_code = '''
 <script>
 window.addEventListener('load', function() {
@@ -2946,15 +2966,15 @@ window.addEventListener('load', function() {
     function disablePhysics() {
         if (!isStabilized && typeof network !== 'undefined') {
             network.setOptions({physics: {enabled: false}});
-            network.stabilize(0);  // 強制的に安定化
+            network.stabilize(0);  // Force stabilization
             isStabilized = true;
         }
     }
 
-    // 短いタイムアウト (5秒)
+    // Short timeout (5 seconds)
     stabilizationTimeout = setTimeout(disablePhysics, 5000);
 
-    // 絶対的なタイムアウト (8秒)
+    // Absolute timeout (8 seconds)
     forceStopTimeout = setTimeout(function() {
         if (!isStabilized) {
             console.log("Force stopping physics after absolute timeout");
@@ -2971,14 +2991,14 @@ window.addEventListener('load', function() {
 
         network.on("stabilizationProgress", function(params) {
             let progress = Math.round((params.iterations / params.total) * 100);
-            if (progress >= 80) {  // 80%で停止
+            if (progress >= 80) {  // Stop at 80%
                 clearTimeout(stabilizationTimeout);
                 clearTimeout(forceStopTimeout);
                 disablePhysics();
             }
         });
 
-        // 任意のユーザーインタラクションで停止
+        // Stop on any user interaction
         ['click', 'dragStart', 'zoom'].forEach(function(event) {
             network.on(event, function() {
                 if (!isStabilized) {
@@ -2993,13 +3013,13 @@ window.addEventListener('load', function() {
 </script>
     '''
 
-    # 物理演算の制御（barnes_hutの場合）
+    # Physics simulation control (for barnes_hut)
     if layout_type == "barnes_hut":
         net.html = net.html.replace('</head>',
             '''
             <script>
             window.addEventListener('load', function() {
-                // 30秒後に強制的に物理シミュレーションを停止
+                // Force stop physics simulation after 30 seconds
                 setTimeout(function() {
                     if (network) {
                         network.setOptions({physics: {enabled: false}});
@@ -3007,13 +3027,13 @@ window.addEventListener('load', function() {
                     }
                 }, 30000);
 
-                // 安定化後の処理
+                // Processing after stabilization
                 network.on("stabilizationIterationsDone", function() {
                     console.log("Stabilization finished");
                     network.setOptions({physics: {enabled: false}});
                 });
 
-                // プログレスバーの処理
+                // Progress bar processing
                 network.on("stabilizationProgress", function(params) {
                     console.log(params.iterations + " / " + params.total);
                 });
@@ -3022,7 +3042,7 @@ window.addEventListener('load', function() {
             </head>
             ''')
 
-    # ネットワークをファイルに保存
+    # Save network to file
     #net.save_graph(output_path)
     # write the pyvis HTML straight to your chosen path
     html_content = net.generate_html()
@@ -3116,15 +3136,15 @@ def get_hub_nodes(method: str, network: nx.DiGraph,
                   centrality_data: Dict[str, Dict], 
                   n: int = 5, percentile: float = 0.9) -> Set[str]:
     """
-    指定された手法でハブノードを特定
+    Identify hub nodes using specified method
 
     Args:
-        method: ハブ特定手法
-        network: ネットワーク
-        centrality_data: 中心性指標のデータ
+        method: Hub identification method
+        network: Network
+        centrality_data: Centrality data
             (weighted_degree, weighted_between, weighted_pagerank, weighted_eigenvector)
-        n: トップN（中心性ベースの場合）
-        percentile: パーセンタイル閾値（従来のハブ手法の場合）
+        n: Top N (for centrality-based methods)
+        percentile: Percentile threshold (for traditional hub methods)
     """
     weighted_degree, weighted_between, weighted_pagerank, weighted_eigenvector = centrality_data
     
@@ -3171,15 +3191,15 @@ def main():
                     del st.session_state[key]
             st.rerun()
 
-    st.markdown("##### Select edge weight data source:") #スペースを入れないと次の選択がうまくできない!!!!!!!!!!!!!!!!!!!!!!!!
+    st.markdown("##### Select edge weight data source:") #Need space or next selection won't work!!!!!!!!!!!!!!!!!!!!!!!!
 
-    # エッジに使用するデータの選択
+    # Select data to use for edges
     edge_weight_source = st.radio(
         "Data type:",
         ["CSI Data", "Adjacencies Data", "Equal Weights (No edge weight data)"],
         key="edge_data_source_radio",
-        help="""CSI:2つのレギュロン間の活性パターンの類似性がどれだけ特異的か 高いCSIを共有するレギュロンは下流の遺伝子を共同で制御している可能性が高い
-        　　Adjacencies:TFとその標的との間の調節関係の強さを示す。高い値は、より強い調節関係を示唆しTFの発現変化が標的遺伝子の発現に大きな影響を与える可能性　より信頼性の高い遺伝子制御関係を表す
+        help="""CSI: How specific the similarity of activation patterns between two regulons is. Regulons sharing high CSI are likely to co-regulate downstream genes.
+        Adjacencies: Indicates the strength of regulatory relationship between TF and its target. Higher values suggest stronger regulatory relationships where TF expression changes have greater impact on target gene expression, representing more reliable gene regulatory relationships.
         """
     )
 
@@ -3188,10 +3208,10 @@ def main():
     regulon_file = st.file_uploader(
         "regulons.json (pySCENIC) or regulons.seurat_object.filtered_by_pySCENIC.txt or regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txt or regulons.seurat_object.txt", 
         type=['txt', 'tsv', 'json'],
-        help ='regulons.seurat_object.filtered_by_pySCENIC.txtはpySCENICでフィルタリングされたもの、regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txtではregulonが活性化している細胞が10以下と判断されたregulonは除かれている'
+        help ='regulons.seurat_object.filtered_by_pySCENIC.txt is filtered by pySCENIC. In regulons.seurat_object.filtered_by_AUCell_exploreThresholds.txt, regulons with 10 or fewer cells determined to have activated regulon are excluded.'
     )
 
-    # 選択に応じたファイルアップロード
+    # File upload based on selection
     edge_weights_data = None
     csi_data = None
     adjacencies_data = None
@@ -3217,25 +3237,25 @@ def main():
         )
 
         if adjacencies_file:
-            # ファイルが変更されたかどうかをチェック
+            # Check if file has changed
             file_content = adjacencies_file.getvalue()
             content_hash = hashlib.md5(file_content).hexdigest()
             
             if 'adjacencies_hash' not in st.session_state or st.session_state.adjacencies_hash != content_hash:
                 with st.spinner('Processing adjacencies file (this may take a while)...'):
-                    # ロードと正規化の両方をセッションステートに保存
+                    # Save both loading and normalization to session state
                     raw_adjacencies_data = load_adjacencies_data(adjacencies_file)
                     
-                    # 正規化処理のための追加のスピナー
+                    # Additional spinner for normalization processing
                     with st.spinner('Normalizing adjacencies importance scores...'):
                         st.session_state.normalized_adjacencies_data = normalize_adjacency_importance(raw_adjacencies_data)
                     
-                    # 元のデータも必要な場合はこちらも保存
+                    # Also save original data if needed
                     st.session_state.raw_adjacencies_data = raw_adjacencies_data
                     st.session_state.adjacencies_hash = content_hash
                     st.info(f"Processed and normalized adjacencies data with hash: {content_hash[:8]}")
             
-            # キャッシュされたデータを使用
+            # Use cached data
             adjacencies_data = st.session_state.normalized_adjacencies_data
             edge_weights_data = adjacencies_data
             st.info("Adjacencies importance scores have been log10-normalized and scaled to 0-1 range.")
@@ -3247,7 +3267,7 @@ def main():
         st.info("Using equal weights for all edges (no weight data needed).")
 
 
-    # フィルタリングの選択（データがロードされた場合のみ表示）
+    # Filtering selection (shown only when data is loaded)
     if (edge_weight_source in ["CSI Data", "Adjacencies Data"] and edge_weights_data is not None) or use_equal_weights:
         
         use_rank_based = st.checkbox(
@@ -3257,7 +3277,7 @@ def main():
         )
 
         if use_rank_based:
-            # ランクベース変換のサブオプション
+            # Rank-based conversion sub-options
             rank_ties = st.radio(
                 "Rank calculation method:",
                 ["Same score = Same rank", "All ranks unique (continuous)"],
@@ -3266,20 +3286,20 @@ def main():
             
             use_ties = rank_ties == "Same score = Same rank"
             
-            # ハッシュキーの計算（入力データと設定に基づく）
+            # Calculate hash key (based on input data and settings)
             edge_data_hash = hashlib.md5(str(edge_weights_data).encode()).hexdigest()
             rank_config_hash = f"{edge_data_hash}_{use_ties}"
             
-            # セッションステートにキャッシュキーが存在するか確認
+            # Check if cache key exists in session state
             if ('rank_based_data' not in st.session_state or 
                 st.session_state.get('rank_config_hash', '') != rank_config_hash):
                 
-                # キャッシュがない場合は変換を実行
+                # Execute conversion if no cache
                 with st.spinner('Converting edge weights to rank-based...'):
-                    # キャッシュ付き関数を使用して変換
+                    # Convert using cached function
                     ranked_data = convert_to_rank_based(edge_weights_data, use_ties=use_ties)
                     
-                    # セッションステートに保存
+                    # Save to session state
                     st.session_state.rank_based_data = ranked_data
                     st.session_state.rank_config_hash = rank_config_hash
                     
@@ -3288,13 +3308,13 @@ def main():
                 else:
                     st.info("Edge weights converted to continuous rank-based (all weights are unique).")
             else:
-                # キャッシュから読み込み
+                # Load from cache
                 if use_ties:
                     st.info("Using cached rank-based weights (same scores = same rank).")
                 else:
                     st.info("Using cached continuous rank-based weights.")
             
-            # セッションステートから変換済みデータを使用
+            # Use converted data from session state
             edge_weights_data = st.session_state.rank_based_data
             
             if edge_weight_source == "CSI Data":
@@ -3304,7 +3324,7 @@ def main():
 
         st.subheader("Edge Filtering Options")
         
-        # フィルタリングを行うかどうか
+        # Whether to apply filtering
         apply_filtering = st.checkbox(
             "Apply filtering to edges", 
             value=False,
@@ -3312,7 +3332,7 @@ def main():
         )
         
         if apply_filtering:
-            # フィルタリング設定
+            # Filtering settings
             with st.expander("Filtering Settings", expanded=True):
                 filtering_method = st.radio(
                     "Filtering Method",
@@ -3348,7 +3368,7 @@ def main():
                     max_tfs = st.slider("Max TFs per level", 1, 50, 20)
                     weight_threshold = None
             
-            # 追加のフィルタリングオプション（シーケンシャルフィルタリング）
+            # Additional filtering options (sequential filtering)
             apply_secondary_filter = st.checkbox(
                 "Apply secondary filtering", 
                 value=False,
@@ -3357,7 +3377,7 @@ def main():
             
             if apply_secondary_filter:
                 with st.expander("Secondary Filtering", expanded=True):
-                    # 現在のデータソースに基づいて、もう一方を選択
+                    # Select the other based on current data source
                     if edge_weight_source == "CSI Data":
                         secondary_file = st.file_uploader(
                             "**Upload Adjacencies Data for Secondary Filtering**", 
@@ -3365,24 +3385,24 @@ def main():
                         )
 
                         if secondary_file:
-                            # ファイルが変更されたかどうかをチェック
+                            # Check if file has changed
                             secondary_content = secondary_file.getvalue()
                             secondary_hash = hashlib.md5(secondary_content).hexdigest()
                             
                             if 'secondary_hash' not in st.session_state or st.session_state.secondary_hash != secondary_hash:
                                 with st.spinner('Processing secondary adjacencies file...'):
-                                    # ロードと正規化の両方をセッションステートに保存
+                                    # Save both loading and normalization to session state
                                     raw_secondary_data = load_adjacencies_data(secondary_file)
                                     
                                     with st.spinner('Normalizing secondary importance scores...'):
                                         st.session_state.normalized_secondary_data = normalize_adjacency_importance(raw_secondary_data)
                                     
-                                    # 元のデータも保存
+                                    # Also save original data
                                     st.session_state.raw_secondary_data = raw_secondary_data
                                     st.session_state.secondary_hash = secondary_hash
                                     st.info("Adjacencies importance scores have been log10-normalized and scaled to 0-1 range.")
                             
-                            # キャッシュされたデータを使用
+                            # Use cached data
                             secondary_data = st.session_state.normalized_secondary_data
                             
                             secondary_threshold = st.slider(
@@ -3391,7 +3411,7 @@ def main():
                                 help="Keep only relationships with Adjacencies score above this threshold"
                             )
                             
-                            # フィルタリング順序
+                            # Filtering order
                             filter_order = st.radio(
                                 "Filtering Order",
                                 ["Filter by CSI, then by Adjacencies", "Filter by Adjacencies, then by CSI"],
@@ -3410,7 +3430,7 @@ def main():
                                         secondary_threshold
                                     )
                                     
-                                    # シーケンシャルフィルタリングを適用
+                                    # Apply sequential filtering
                                     edge_weights_data = filter_sequentially(
                                         csi_data, 
                                         secondary_data,
@@ -3428,7 +3448,7 @@ def main():
                                         secondary_threshold
                                     )
                                     
-                                    # シーケンシャルフィルタリングを適用
+                                    # Apply sequential filtering
                                     edge_weights_data = filter_sequentially(
                                         csi_data, 
                                         secondary_data,
@@ -3439,7 +3459,7 @@ def main():
                                 
                                 st.info(f"Applied sequential filtering according to the selected order.")
                                 
-                    # Adjacenciesデータを主に使用している場合
+                    # When primarily using Adjacencies data
                     elif edge_weight_source == "Adjacencies Data":
                         secondary_file = st.file_uploader(
                             "**Upload CSI Data for Secondary Filtering**", 
@@ -3455,7 +3475,7 @@ def main():
                                 help="Keep only relationships with CSI score above this threshold"
                             )
                             
-                            # フィルタリング順序
+                            # Filtering order
                             filter_order = st.radio(
                                 "Filtering Order",
                                 ["Filter by Adjacencies, then by CSI", "Filter by CSI, then by Adjacencies"],
@@ -3474,7 +3494,7 @@ def main():
                                         primary_threshold
                                     )
                                     
-                                    # シーケンシャルフィルタリングを適用
+                                    # Apply sequential filtering
                                     edge_weights_data = filter_sequentially(
                                         secondary_data, 
                                         adjacencies_data,
@@ -3492,7 +3512,7 @@ def main():
                                         weight_threshold if filtering_method == "Weight Threshold" else 0.0
                                     )
                                     
-                                    # シーケンシャルフィルタリングを適用
+                                    # Apply sequential filtering
                                     edge_weights_data = filter_sequentially(
                                         secondary_data, 
                                         adjacencies_data,
@@ -3503,13 +3523,13 @@ def main():
                                 
                                 st.info(f"Applied sequential filtering according to the selected order.")
         else:
-            # フィルタリングなしの場合のデフォルト値
+            # Default values when no filtering
             weight_threshold = 0.0
             max_tfs = None
 
 
-    # 2. データ読み込み条件の修正
-    # 必要なファイルがアップロードされたことを確認する条件を修正
+    # 2. Modify data loading conditions
+    # Modify condition to check if required files are uploaded
     required_files_uploaded = regulon_file and (
         (edge_weight_source == "CSI Data" and csi_file) or
         (edge_weight_source == "Adjacencies Data" and adjacencies_file) or
@@ -3519,18 +3539,18 @@ def main():
 
     
     if required_files_uploaded:
-        # データの読み込み
+        # Load data
         regulon_data, all_genes = load_regulon_data(regulon_file)
         
-        # TFリストを自動的に読み込み
+        # Automatically load TF list
         all_tfs = load_tfs_list(regulon_file)
-        # 生物種の判定
+        # Determine species
         species = determine_species(regulon_file)
 
         # Get visualization settings
         static_layout, interactive_layout, layout_scale, min_node_dist, hub_centric, color_hubs, enable_cleanup = add_visualization_settings(st)
 
-        # その他の可視化パラメータ
+        # Other visualization parameters
         with st.expander("Additional Visualization Parameters", expanded=False):
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -3563,14 +3583,21 @@ def main():
                 max_downstream = st.number_input("Max Downstream Level", 
                                                min_value=0, max_value=4, value=2)
             
-            # ネットワークモードの設定
+            # Network mode settings
             network_mode = st.checkbox(
-                "Enable Network Mode", 
+                "Enable Network Mode",
                 value=False,
                 help="If enabled, search both upstream and downstream connections for each TF"
             )
+
+            # Direct target display options
+            show_direct_targets = st.checkbox(
+                "Show non-TF targets (downstream level 1 only)",
+                value=False,
+                help="If enabled, show all target genes (not just TFs) directly regulated by TF of interest"
+            )
             
-            # フィルタリング設定 - Only show if not using sequential filtering
+            # Filtering settings - Only show if not using sequential filtering
             if edge_weight_source != "Sequential (CSI + Adjacencies)":
                 st.subheader("Filtering Settings")
                 with st.expander("Edge Weight Filtering", expanded=True):
@@ -3595,13 +3622,13 @@ def main():
                 weight_threshold = 0.0  # No additional filtering needed since we already filtered
                 max_tfs = None
 
-            # TRRUST設定
+            # TRRUST settings
             trrust_options = add_trrust_options(st, species)
 
-            # ChIP-Atlas設定
+            # ChIP-Atlas settings
             chip_atlas_options = add_chip_atlas_options(st, species)
 
-            # STRING-db設定
+            # STRING-db settings
             string_db_options = add_string_db_options(st, species)
 
             # PPI Extension settings
@@ -3611,7 +3638,7 @@ def main():
                 ppi_options = {
                     "enable": st.checkbox(
                         "Extend network with STRING-db PPI data", 
-                        help='Target geneと相互作用し、target geneの標的遺伝子をregulon（標的遺伝子）に含む転写因子を追加する'
+                        help='Add transcription factors that interact with target gene and include target gene target genes in their regulon (target genes)'
                     ),
                     "score_threshold": st.slider(
                         "PPI Score Threshold", 
@@ -3661,7 +3688,7 @@ def main():
                     )
                     
 
-            # 黄色のSubmitボタンスタイル
+            # Yellow submit button style
             st.markdown("""
                 <style>
                 div.stFormSubmitButton > button {
@@ -3705,7 +3732,8 @@ def main():
                     tf_network, regulators_by_level = build_expanded_tf_network(
                         regulon_data, edge_weights_data, all_tfs,
                         target_gene, max_upstream, max_downstream,
-                        network_mode, use_equal_weights, weight_threshold, max_tfs
+                        network_mode, use_equal_weights, weight_threshold, max_tfs,
+                        show_direct_targets
                     )
         
                     # Apply filters - use the renamed function
@@ -3800,7 +3828,7 @@ def main():
                             )
                             show_string_db_stats(st, tf_network, filtered_network, removed_edges, string_data)
 
-                    # Cleanup networkを条件付きで実行
+                    # Conditionally execute cleanup network
                     if enable_cleanup:
                         filtered_network, disconnected_edges = cleanup_network(filtered_network, target_gene)
                                         

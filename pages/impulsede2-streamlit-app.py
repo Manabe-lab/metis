@@ -13,7 +13,7 @@ import tempfile
 import os
 from scipy import stats
 
-# R パッケージのインポート
+# Import R packages
 pandas2ri.activate()
 impulsede2 = importr('ImpulseDE2')
 base = importr('base')
@@ -24,6 +24,8 @@ def load_data(uploaded_file):
         df = pd.read_csv(uploaded_file, index_col=0)
     elif uploaded_file.name.endswith('.tsv'):
         df = pd.read_csv(uploaded_file, sep='\t', index_col=0)
+    elif uploaded_file.name.endswith('.txt'):
+        df =  pd.read_csv(uploaded_file, index_col = 0, sep=None, engine='python') # Auto detect
     elif uploaded_file.name.endswith(('.xls', '.xlsx')):
         df = pd.read_excel(uploaded_file, index_col=0)
     else:
@@ -33,7 +35,7 @@ def load_data(uploaded_file):
 
 def filter_genes(count_data, threshold):
     """
-    指定されたthreshold以上の値を持つ遺伝子のみを残すフィルタリング関数
+    Filtering function to keep only genes with values above the specified threshold
     """
     filtered_data = count_data[(count_data >= threshold).all(axis=1)]
     return filtered_data
@@ -57,7 +59,7 @@ def run_impulsede2(count_data, annotation, case_ctrl, identify_transients, confo
 
                 # Run ImpulseDE2
                 objectImpulseDE2 <- runImpulseDE2(
-                  matCountData           = matCountData, 
+                  matCountData           = matCountData,
                   dfAnnotation           = dfAnnotation,
                   boolCaseCtrl           = {"TRUE" if case_ctrl else "FALSE"},
                   vecConfounders         = {confounders if confounders else "NULL"},
@@ -81,7 +83,7 @@ def run_impulsede2(count_data, annotation, case_ctrl, identify_transients, confo
 
         return results_df
     except Exception as e:
-        st.error(f"ImpulseDE2の実行中にエラーが発生しました: {str(e)}")
+        st.error(f"An error occurred while running ImpulseDE2: {str(e)}")
         return None
 
 def plot_genes(results_df, counts_df, annotation_df, n_top_ids=5):
@@ -119,7 +121,7 @@ def plot_heatmap(results_df, counts_df, annotation_df):
     z_scores = z_scores[sorted_times['Sample']]  # Use 'Sample' column to reorder
 
     fig = go.Figure(data=go.Heatmap(
-        z=z_scores.values, 
+        z=z_scores.values,
         x=sorted_times['Time'].values,
         y=z_scores.index,
         colorscale='RdBu_r'
@@ -137,7 +139,7 @@ def plot_heatmap(results_df, counts_df, annotation_df):
 def main():
     st.title("ImpulseDE2 time-course data analysis")
 
-    uploaded_file = st.file_uploader("Upload count data file （CSV、TSV、Excel）", type=["csv", "tsv", "xls", "xlsx"])
+    uploaded_file = st.file_uploader("Upload count data file (CSV, TSV, Excel)", type=["csv", "tsv", "txt", "xls", "xlsx"])
 
     if uploaded_file is not None:
         count_data = load_data(uploaded_file)
@@ -148,15 +150,15 @@ def main():
             # Gene filtering option
             st.subheader("Gene Filtering")
             filter_threshold = st.number_input("Enter threshold for gene filtering", min_value=0, value=0, step=1)
-            
+
             if st.button("Apply Filter"):
                 original_gene_count = count_data.shape[0]
                 filtered_count_data = filter_genes(count_data, filter_threshold)
                 filtered_gene_count = filtered_count_data.shape[0]
-                
+
                 st.write(f"Original number of genes: {original_gene_count}")
                 st.write(f"Number of genes after filtering: {filtered_gene_count}")
-                
+
                 count_data = filtered_count_data  # Update the count_data with filtered data
 
             # Case-control analysis option
@@ -233,34 +235,34 @@ def main():
                         st.markdown(href, unsafe_allow_html=True)
 
                         st.markdown("""
-#### 主要な結果項目
-- **Gene**: 遺伝子ID
-- **p**: 差次的発現のP値
-- **padj**: Benjamini-Hochberg法で補正された偽発見率（FDR）調整済みP値
-- **loglik_full**: 完全モデルの対数尤度
-- **loglik_red**: 縮小モデルの対数尤度
-- **df_full**: 完全モデルの自由度
-- **df_red**: 縮小モデルの自由度
-- **mean**: 最初のバッチの定数モデルの推定平均パラメータ
-- **allZero**: 遺伝子に非ゼロの観測値がなかったかどうか（TRUEの場合、フィッティングとDE解析はスキップされ、エントリはNA）
+#### Main Result Columns
+- **Gene**: Gene ID
+- **p**: P-value for differential expression
+- **padj**: Benjamini-Hochberg FDR-adjusted P-value
+- **loglik_full**: Log-likelihood of full model
+- **loglik_red**: Log-likelihood of reduced model
+- **df_full**: Degrees of freedom of full model
+- **df_red**: Degrees of freedom of reduced model
+- **mean**: Estimated mean parameter of constant model for the first batch
+- **allZero**: Whether the gene had no non-zero observations (if TRUE, fitting and DE analysis are skipped, and entry is NA)
 
-#### Case-only DE 解析の場合の追加項目
-- **converge_impulse**: インパルスモデルフィット（完全モデル）の収束状態
-- **converge_const**: 定数モデルフィット（縮小モデル）の収束状態
+#### Additional Columns for Case-only DE Analysis
+- **converge_impulse**: Convergence status of impulse model fit (full model)
+- **converge_const**: Convergence status of constant model fit (reduced model)
 
-#### Case-control DE 解析の場合の追加項目
-- **converge_combined**: ケースとコントロールのサンプルを組み合わせたインパルスモデルフィット（縮小モデル）の収束状態
-- **converge_case**: ケース条件のサンプルに対するインパルスモデルフィット（完全モデル1/2）の収束状態
-- **converge_control**: コントロール条件のサンプルに対するインパルスモデルフィット（完全モデル2/2）の収束状態
+#### Additional Columns for Case-control DE Analysis
+- **converge_combined**: Convergence status of impulse model fit combining case and control samples (reduced model)
+- **converge_case**: Convergence status of impulse model fit for case condition samples (full model 1/2)
+- **converge_control**: Convergence status of impulse model fit for control condition samples (full model 2/2)
 
-#### Transient 発現の識別（boolIdentifyTransients = TRUE の場合）
-- **converge_sigmoid**: ケース条件のサンプルに対するシグモイドモデルフィットの収束状態
-- **impulseTOsigmoid_p**: ケース条件のサンプルに対するインパルスモデルフィットとシグモイドモデルの対数尤度比検定のP値
-- **impulseTOsigmoid_padj**: 上記のBenjamini-Hochberg法で補正されたP値
-- **sigmoidTOconst_p**: ケース条件のサンプルに対するシグモイドモデルフィットと定数モデルの対数尤度比検定のP値
-- **sigmoidTOconst_padj**: 上記のBenjamini-Hochberg法で補正されたP値
-- **isTransient**: 遺伝子が一過性に活性化または不活性化され、差次的発現しているかどうか
-- **isMonotonous**: 遺伝子が一過性でなく差次的発現している（単調な発現レベルの増加または減少）かどうか
+#### Transient Expression Identification (when boolIdentifyTransients = TRUE)
+- **converge_sigmoid**: Convergence status of sigmoid model fit for case condition samples
+- **impulseTOsigmoid_p**: P-value of log-likelihood ratio test between impulse and sigmoid model fits for case condition samples
+- **impulseTOsigmoid_padj**: Benjamini-Hochberg corrected P-value of the above
+- **sigmoidTOconst_p**: P-value of log-likelihood ratio test between sigmoid and constant model fits for case condition samples
+- **sigmoidTOconst_padj**: Benjamini-Hochberg corrected P-value of the above
+- **isTransient**: Whether the gene is transiently activated or deactivated and differentially expressed
+- **isMonotonous**: Whether the gene is differentially expressed but not transiently (monotonic increase or decrease in expression level)
 """)
 
     else:

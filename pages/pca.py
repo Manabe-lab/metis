@@ -14,22 +14,22 @@ scaler = StandardScaler()
 st.set_page_config(page_title="PCA.", page_icon="√")
 st.markdown("### PCA")
 
-# プロットスタイルを設定する関数
+# Function to set plot style
 def set_plot_style():
-    plt.style.use('default')  # デフォルトスタイルをリセット
-    plt.rcParams['figure.facecolor'] = 'white'  # 図の背景色を白に
-    plt.rcParams['axes.facecolor'] = 'white'    # プロット領域の背景色を白に
-#    sns.set_style("white")                      # seabornのスタイルを白背景に
+    plt.style.use('default')  # Reset default style
+    plt.rcParams['figure.facecolor'] = 'white'  # Set figure background color to white
+    plt.rcParams['axes.facecolor'] = 'white'    # Set plot area background color to white
+#    sns.set_style("white")                      # Set seaborn style to white background
     
-# グラフ生成前に呼び出す
+# Call before generating graphs
 set_plot_style()
 
 def remove_common_suffix(strings):
     if not strings or len(strings) == 0:
         return []    
-    # 最も短い文字列の長さを取得
+    # Get length of shortest string
     min_length = min(len(s) for s in strings)
-    # 共通の末尾部分の長さを見つける
+    # Find length of common suffix
     suffix_length = 0
     for i in range(1, min_length + 1):
         suffix = strings[0][-i:]
@@ -37,10 +37,10 @@ def remove_common_suffix(strings):
             suffix_length = i
         else:
             break            
-    # 共通の末尾部分が見つからない場合は元のリストを返す
+    # Return original list if no common suffix found
     if suffix_length == 0:
         return strings        
-    # 共通の末尾部分を削除して新しいリストを作成
+    # Create new list by removing common suffix
     return [s[:-suffix_length] for s in strings]
 
 def normalize_totalreads(df):
@@ -89,12 +89,16 @@ def remove_sample_num(i):
     return i
 
 @st.cache_data
-def calc_pca(df):
+def calc_pca(df, scale=True):
     from sklearn.decomposition import PCA
-    z  = scaler.fit_transform(df.T)
-    df_z = pd.DataFrame(z.T, columns=df.columns.to_list(), index=df.index.to_list())
-    pca = PCA(random_state=0)
-    x_embedded = pca.fit_transform(df_z.T)
+    if scale:
+        z  = scaler.fit_transform(df.T)
+        df_z = pd.DataFrame(z.T, columns=df.columns.to_list(), index=df.index.to_list())
+        pca = PCA(random_state=0)
+        x_embedded = pca.fit_transform(df_z.T)
+    else:
+        pca = PCA(random_state=0)
+        x_embedded = pca.fit_transform(df.T)
     pca_col_name = ["PC" + str(i+1) for i in range(x_embedded.shape[1])]
     df_pca = pd.DataFrame(x_embedded[:,:], index= df.columns.to_list(), columns=pca_col_name)
     return df_pca, pca, pca_col_name
@@ -103,7 +107,7 @@ def calc_pca(df):
 @st.cache_data
 def calc_tsne(df, perplexity, n_components):
     from sklearn.manifold import TSNE
-    if perplexity >= color_num:   # perplexityはサンプル数より多くないといけない
+    if perplexity >= color_num:   # perplexity must not be greater than the number of samples
         perplexity = color_num - 1
         st.write('perplexity is set to ' + str(perplexity))
     embedding = TSNE(n_components=n_components, random_state=0, perplexity = perplexity)
@@ -113,7 +117,7 @@ def calc_tsne(df, perplexity, n_components):
 @st.cache_data
 def calc_umap(df, n_neighbors, min_dist, n_components):
     import umap.umap_ as UMAP
-    if n_neighbors >= color_num:   # perplexityはサンプル数より多くないといけない
+    if n_neighbors >= color_num:   # perplexity must not be greater than the number of samples
         n_neighbors = color_num - 1
         st.write('n_neighbors is set to ' + str(n_neighbors))
     embedding = UMAP.UMAP(n_components=n_components, random_state=0, n_neighbors=n_neighbors, min_dist=min_dist, spread=1.0)
@@ -131,7 +135,7 @@ def calc_mds(df, n_components=2):
 st.sidebar.title("Options")
 st.markdown("##### Options are displayed at the bottom of the left side panel")
 
-if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+if 'filename_add' not in globals(): #Keep previous data when starting over
  #   st.write('file name kept')
     filename_add = ""
 
@@ -286,7 +290,7 @@ if df is not None:
             df = df.fillna(0)
         else:
             df = df.dropna(how='any')
-    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+    df = df.loc[~(df==0).all(axis=1)] #Remove rows with all zeros
 ############
     st.write(str(len(df)) + ' genes')
     st.write(df.iloc[:3,:30])
@@ -334,14 +338,14 @@ if df is not None:
                 from rpy2.robjects.vectors import StrVector
                 import pyper
                 r = pyper.R(use_pandas=True)
-                f = ro.r(f"source('{os.path.join(os.path.dirname(__file__), 'deseq2_func.R')}')")  # full pathが必要
+                f = ro.r("source('./pages/deseq2_func.R')") # full pathが必要
                 condition = [str(i) for i in df.columns.tolist()]
-                group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
-                group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+                group_condition = remove_common_suffix(condition) #Remove common suffix elements
+                group_condition = [remove_sample_num(x) for x in group_condition] #Remove trailing numbers
                 df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
                 df = df.astype(float)
                 df = df.round(0)
-              #  df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+              #  df = df.loc[~(df==0).all(axis=1)] #Remove rows with all zeros
                 group = st.checkbox('Set groups for rlog?')
                 if group:
                     edited_df_e = st.data_editor(df_e)
@@ -440,8 +444,8 @@ if df is not None:
         condition = [str(i) for i in condition] # https://stackoverflow.com/questions/69578431/how-to-fix-streamlitapiexception-expected-bytes-got-a-int-object-conver
         # エラーが出るためすべてリストの内容をstrに変換してからdfを作る
 #        df_f = pd.DataFrame(df.columns.tolist(), index = df.columns.tolist() , columns = ["Group"]).copy()
-        group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
-        group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
+        group_condition = remove_common_suffix(condition) #Remove common suffix elements
+        group_condition = [remove_sample_num(x) for x in group_condition] #Remove trailing numbers
         df_f = pd.DataFrame(group_condition, index = condition , columns = ["Group"])
         df_f["Label"] = condition
         with st.form("input_groups and Label"):
@@ -505,6 +509,21 @@ if df is not None:
             n_components = 2
             dot_size = 8
         if reduc == 'PCA':
+            # Set default to False if filename contains rlog or vst
+            default_scale = True
+            if 'file_name_head' in locals():
+                file_name_lower = file_name_head.lower()
+                if 'rlog' in file_name_lower or 'vst' in file_name_lower:
+                    default_scale = False
+
+            pca_scale = st.checkbox('Standardize (Z-score) before PCA?', value=default_scale,
+                                   help='Standardize each gene to mean=0, variance=1 before PCA calculation.\n\n'
+                                        '**Recommended settings:**\n'
+                                        '- **Raw counts/CPM/TPM**: Checked (standardization needed)\n'
+                                        '- **rlog/vst normalized data**: Unchecked (already properly normalized)\n'
+                                        '- **TMM/UQF**: Variance stabilizing transformation to logCPM or voom needed\n\n'
+                                        'rlog/vst has already adjusted the scale between genes through variance stabilizing transformation,'
+                                        'so additional standardization is usually unnecessary.')
             x_show = int(st.text_input("X dim:", value = 1))
             y_show = int(st.text_input("Y dim:", value = 2))
             if x_show > 15 or y_show > 15:
@@ -527,12 +546,12 @@ if df is not None:
         if reduc == 'tSNE':
             perplexity = float(st.text_input("Perplexity:", value = 30))
             st.markdown('See https://distill.pub/2016/misread-tsne/ and https://qiita.com/maskot1977/items/2213e33c31cfc5403bf6')
-            st.write('perplexityは局所と全体的な特性のどちらを保存するかのバランスを決める。どれだけ近傍の点を考慮するかの指標。大きなデータセットには大きな値を用いる。典型的には5-50だが調整が必要。')
+            st.write('Perplexity determines the balance between preserving local and global structure. An indicator of how many neighboring points to consider. Use larger values for larger datasets. Typically 5-50 but requires adjustment.')
         if reduc == "UMAP":
             n_neighbors = st.number_input("n_neighbors:", min_value = 2, value = 15) # integer
             min_dist = st.number_input("min_dist:", min_value= 0.0, max_value=1.0, value = 0.1, step = 0.05)
-            st.write('n_neighborsは各データポイントを埋め込む際に考慮される近隣の点の数。数値が大きいと全体的構造が強調され、小さいと局所構造が保存される。典型的には2-100。')
-            st.write('次元圧縮後の点間の最短距離を示す。小さいと点が密集し、大きいと点が広がりトポロジカルな構造を保存する。')
+            st.write('n_neighbors is the number of neighboring points considered when embedding each data point. Larger values emphasize overall structure, smaller values preserve local structure. Typically 2-100.')
+            st.write('Indicates the minimum distance between points after dimensionality reduction. Small values result in dense clustering, large values spread points and preserve topological structure.')
 
 
 #        cmap  = st.radio(
@@ -569,9 +588,84 @@ if df is not None:
     color_num = len(df.columns.to_list())
     # Create an in-memory buffer
     buffer = io.BytesIO()
-    if st.button("Draw", type="primary"):
+
+    # Initialize session state for PCA results
+    if 'pca_results' not in st.session_state:
+        st.session_state.pca_results = None
+    if 'pca_params' not in st.session_state:
+        st.session_state.pca_params = None
+
+    # Create parameter hash to detect changes
+    current_params = {
+        'reduc': reduc,
+        'reduc_dim': reduc_dim,
+        'df_shape': df.shape,
+        'df_columns': tuple(df.columns),
+        'df_index': tuple(df.index),
+        'condition': tuple(condition) if isinstance(condition, list) else condition,
+        'show_text': show_text,
+        'marker_size': marker_size,
+        'width': width,
+        'height': height,
+        'c_choice': color_choice,
+    }
+
+    if reduc == 'PCA':
+        current_params.update({
+            'pca_scale': pca_scale,
+            'x_show': x_show,
+            'y_show': y_show,
+        })
+        if reduc_dim == '3D':
+            current_params['z_show'] = z_show
+    elif reduc == 'tSNE':
+        current_params.update({
+            'perplexity': perplexity,
+            'n_components': n_components,
+            'calc_z': calc_z if 'calc_z' in locals() else False
+        })
+    elif reduc == 'UMAP':
+        current_params.update({
+            'n_neighbors': n_neighbors,
+            'min_dist': min_dist,
+            'n_components': n_components,
+            'calc_z': calc_z if 'calc_z' in locals() else False
+        })
+    elif reduc == 'MDS':
+        current_params['n_components'] = n_components
+
+    # Check if parameters changed
+    params_changed = (st.session_state.pca_params != current_params)
+
+    # Draw button or use cached results
+    draw_clicked = st.button("Draw", type="primary")
+
+    if draw_clicked or (st.session_state.pca_results is not None and params_changed):
+        # Parameters changed, need to recalculate
+        if params_changed and not draw_clicked:
+            st.info("Parameters changed. Click 'Draw' to update the plot.")
+
+    if draw_clicked:
+        # Store parameters
+        st.session_state.pca_params = current_params
+
         if reduc == 'PCA':
-            df_pca, pca, pca_col_name = calc_pca(df)
+            df_pca, pca, pca_col_name = calc_pca(df, scale=pca_scale)
+
+            # Store PCA results in session state
+            st.session_state.pca_results = {
+                'reduc': reduc,
+                'df_pca': df_pca,
+                'pca': pca,
+                'pca_col_name': pca_col_name,
+                'pca_x': pca_x,
+                'pca_y': pca_y,
+                'pca_z': pca_z if reduc_dim == '3D' else None,
+                'x_show': x_show,
+                'y_show': y_show,
+                'z_show': z_show if reduc_dim == '3D' else None,
+                'df': df,  # Store for loadings calculation
+            }
 
             if reduc_dim == '2D':
                 if not show_text:
@@ -597,12 +691,21 @@ if df is not None:
                 st.write(pca_z + ": " + str(pca.explained_variance_ratio_[z_show - 1]))
             st.plotly_chart(fig)
 
+            # Store PCA figure for downloads
+            st.session_state.pca_results['fig'] = fig
+
         elif reduc == 'tSNE':
             x_embedded = calc_tsne(df, perplexity,n_components)
             if reduc_dim == "2D":
                 df_tsne = pd.DataFrame(x_embedded[:,:2], index= df.columns.to_list(), columns=["tSNE1","tSNE2"])
             else:
                 df_tsne = pd.DataFrame(x_embedded[:,:3], index= df.columns.to_list(), columns=["tSNE1","tSNE2",'tSNE3'])
+
+            # Store tSNE results in session state
+            st.session_state.pca_results = {
+                'reduc': reduc,
+                'df_result': df_tsne,
+            }
 
   #          if category:
   #              df_tsne.index = condition
@@ -625,10 +728,13 @@ if df is not None:
                 fig.update_layout(width = width, height=height)
             st.plotly_chart(fig)
 
+            # Store tSNE figure for downloads
+            st.session_state.pca_results['fig'] = fig
+
         elif reduc == 'UMAP':
             x_embedded = calc_umap(df, n_neighbors, min_dist, n_components)
 #            import umap.umap_ as UMAP
-#            if n_neighbors >= color_num:   # perplexityはサンプル数より多くないといけない
+#            if n_neighbors >= color_num:   # perplexity must not be greater than the number of samples
 #                n_neighbors = color_num - 1
 #                st.write('n_neighbors is set to ' + str(n_neighbors))
 #            x_embedded = umap_fit(df.T, n_components=n_components, random_state=0, n_neighbors=n_neighbors, min_dist = min_dist )
@@ -659,6 +765,9 @@ if df is not None:
 
             st.plotly_chart(fig)
 
+            # Store UMAP results
+            st.session_state.pca_results['fig'] = fig
+            st.session_state.pca_results['df_result'] = df_umap
 
         if reduc == 'MDS':
             x_embedded = calc_mds(df, n_components)
@@ -686,33 +795,94 @@ if df is not None:
 
             st.plotly_chart(fig)
 
-        if saveas == 'html':
-            #fig.write_html(file=buffer )
-            fig.write_html('dummy.html' )
-        else:
-            fig.write_image(file=buffer, format=saveas, engine="kaleido" )
-        file_name = file_name_head + '.' + reduc + '.' + saveas
+            # Store MDS results
+            st.session_state.pca_results['fig'] = fig
+            st.session_state.pca_results['df_result'] = df_umap
 
-        if saveas != 'html':
-            st.download_button(label="Download plot",
-                            data=buffer,
-                            file_name=file_name,
-                            mime='application/octet-stream')
-        else:
-            with open("dummy.html", "rb") as file:
+    # === Display cached results (if not just drawn) ===
+    # If results exist but Draw wasn't just clicked, display the cached figure
+    if st.session_state.pca_results is not None and not draw_clicked:
+        results = st.session_state.pca_results
+        reduc_type = results.get('reduc', 'PCA')
+
+        if 'fig' in results:
+            fig = results['fig']
+            st.plotly_chart(fig)
+
+            # Display PCA-specific information
+            if reduc_type == 'PCA' and 'pca' in results:
+                pca = results['pca']
+                x_show = results.get('x_show', 1)
+                y_show = results.get('y_show', 2)
+                z_show = results.get('z_show', None)
+                pca_x = results.get('pca_x', 'PC1')
+                pca_y = results.get('pca_y', 'PC2')
+                pca_z = results.get('pca_z', None)
+                reduc_dim_cached = '3D' if z_show is not None else '2D'
+
+                st.write("Explained variance ratio:")
+                st.write(pca_x + ": " + str(pca.explained_variance_ratio_[x_show - 1]))
+                st.write(pca_y + ": " + str(pca.explained_variance_ratio_[y_show - 1]))
+                if reduc_dim_cached == '3D' and z_show is not None:
+                    st.write(pca_z + ": " + str(pca.explained_variance_ratio_[z_show - 1]))
+
+    # === Download section (outside Draw button) ===
+    # Display download buttons if results exist
+    if st.session_state.pca_results is not None:
+        results = st.session_state.pca_results
+        reduc_type = results.get('reduc', 'PCA')
+
+        # Recreate fig from session state
+        if 'fig' in results:
+            fig = results['fig']
+
+            # Create buffer for image downloads
+            buffer = io.BytesIO()
+
+            if saveas == 'html':
+                #fig.write_html(file=buffer )
+                fig.write_html('dummy.html' )
+            else:
+                fig.write_image(file=buffer, format=saveas, engine="kaleido" )
+
+            file_name = file_name_head + '.' + reduc_type + '.' + saveas
+
+            if saveas != 'html':
                 st.download_button(label="Download plot",
-                            data=file,
-                            file_name=file_name,
-                            mime='text/html')
+                                data=buffer,
+                                file_name=file_name,
+                                mime='application/octet-stream')
+            else:
+                with open("dummy.html", "rb") as file:
+                    st.download_button(label="Download plot",
+                                data=file,
+                                file_name=file_name,
+                                mime='text/html')
 
-        if reduc == 'PCA':
+        # PCA-specific downloads
+        if reduc_type == 'PCA' and 'df_pca' in results:
+            df_pca = results['df_pca']
+            pca = results['pca']
+            pca_col_name = results['pca_col_name']
+            df_stored = results['df']
+
+            # PCA score tableのダウンロード
+            pca_score_tsv = convert_df(df_pca)
+            pca_score_file_name = file_name_head + '.PCA_scores.tsv'
+            st.download_button(label="Download PCA scores table",
+                                data=pca_score_tsv,
+                                file_name=pca_score_file_name,
+                                mime='text/csv',
+                                help='Table containing sample names and PC scores. Can be used for statistical analysis in pca_statistics.py.')
+
+            # Loadings matrixのダウンロード
             loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
-            loading_matrix = pd.DataFrame(loadings, columns=pca_col_name, index=df.index)
+            loading_matrix = pd.DataFrame(loadings, columns=pca_col_name, index=df_stored.index)
             loading_tsv = convert_df(loading_matrix)
             loading_file_name = file_name_head + '.LoadingsMatrix.tsv'
             st.download_button(label="Download loadings matrix",
                                 data=loading_tsv,
                                 file_name=loading_file_name,
-                                mime='test/csv')
+                                mime='text/csv')
 
 

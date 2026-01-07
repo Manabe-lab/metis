@@ -60,7 +60,7 @@ def convert_df(df):
 def read_h5ad(file):
     adata = sc.read_h5ad(file)
     if adata.raw.X is not None:
-        adata.layers['counts'] = adata.raw.X # layersにコピー
+        adata.layers['counts'] = adata.raw.X # Copy to layers
     else:
         st.markdown("### No adata.raw.X data. Use adata.X?")
     return adata
@@ -275,8 +275,8 @@ if "mete_edited" not in st.session_state:
 
 uploaded_file = st.file_uploader("Upload a h5ad file", type=['h5ad'])
 use_X = st.checkbox('Use adata.X instead of adata.raw.X? [Counts are usually in adata.raw.X.]', value =False)
-st.markdown("##### __通常はadata.raw.Xを用いsummarize methodはsum。__")
-st.write("Normalized dataを用いて平均値を求める場合は、adata.Xを用い、summarize methodはmean。")
+st.markdown("##### __Normally use adata.raw.X with summarize method sum.__")
+st.write("To calculate mean values using normalized data, use adata.X with summarize method mean.")
 
 
 #---------------
@@ -291,7 +291,7 @@ if uploaded_file is not None:
 
     nan_count, inf_count = clean_counts_layer(adata)
     if nan_count > 0 or inf_count > 0:
-        st.info(f"📊 Counts layerでNaN値 {nan_count}個、無限大値 {inf_count}個を0に置換しました。")
+        st.info(f"📊 Replaced {nan_count} NaN values and {inf_count} infinite values with 0 in counts layer.")
 
     st.markdown("__Uploaded data__")
     temp_df = pd.DataFrame(
@@ -300,7 +300,7 @@ if uploaded_file is not None:
     columns=adata.var_names[:8]
     )
     st.dataframe(temp_df) 
-    st.write("Countsは基本的に整数 整数でない場合はデータ構造に注意")
+    st.write("Counts should be integers; check data structure if not")
  #   st.write(adata.X[:5,:5])
     st.markdown("__adata.obs (metadata)__")
     st.write(adata.obs.head())
@@ -335,7 +335,7 @@ if uploaded_file is not None:
         edit_sample = st.checkbox("Edit sample names?", value=False)
         edit_cell = st.checkbox("Edit cell names?", value=False)
 
-        assemble_all = st.checkbox("Generate a matrix file with all data?", value=False)
+        assemble_all = st.checkbox("Generate a matrix file with all data?", value=True)
         save_h5ad = st.checkbox("Save h5ad file?", value = False)
 
         st.markdown("#### Quality threshold")
@@ -396,7 +396,7 @@ if uploaded_file is not None:
         try:
             pdata =  calc_pseudobulk1(adata, groups_col, sample_col, min_cells, min_counts, mode=method, cache_key=cache_key)
         except ValueError:
-            st.warning("countsが少数を含みます。データが正しいかどうか確認を。少数のまま計算します。")
+            st.warning("Counts contain decimals. Please verify data correctness. Calculating with decimals.")
             pdata = calc_pseudobulk1(adata, groups_col, sample_col, min_cells, min_counts, mode=method, cache_key=cache_key, skip_checks=True)
             skip_checks_flag = True
 

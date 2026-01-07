@@ -15,41 +15,42 @@ from scipy import stats
 import itertools
 from statsmodels.stats.multitest import multipletests
 import math
+from streamlit_sortables import sort_items
 
 st.set_page_config(page_title="Box_Violin_plot", page_icon="◫")
 
 st.sidebar.title("Options")
 
 
-# プロットスタイルを設定する関数
+# Function to set plot style
 def set_plot_style():
-    plt.style.use('default')  # デフォルトスタイルをリセット
-    plt.rcParams['figure.facecolor'] = 'white'  # 図の背景色を白に
-    plt.rcParams['axes.facecolor'] = 'white'    # プロット領域の背景色を白に
-    sns.set_style("white")                      # seabornのスタイルを白背景に
-    
-# グラフ生成前に呼び出す
+    plt.style.use('default')  # Reset to default style
+    plt.rcParams['figure.facecolor'] = 'white'  # Set figure background to white
+    plt.rcParams['axes.facecolor'] = 'white'    # Set plot area background to white
+    sns.set_style("white")                      # Set seaborn style to white background
+
+# Call before generating graphs
 set_plot_style()
 
-# 統計テスト関数を拡張：Student's t-testを追加
+# Extended statistical test function: Added Student's t-test
 def perform_statistical_test(data1, data2, test_type):
     """
     Perform statistical test between two groups
-    
+
     Args:
         data1, data2: Data for the two groups
         test_type: Type of test ('t', 'student_t', 'u', or 'wilcoxon')
-        
+
     Returns:
         p_value: p-value from the test
     """
     # Convert to numeric and remove NaN values
     data1 = pd.to_numeric(data1, errors='coerce').dropna()
     data2 = pd.to_numeric(data2, errors='coerce').dropna()
-    
+
     if len(data1) == 0 or len(data2) == 0:
         return float('nan')
-    
+
     try:
         if test_type == 't':
             # Perform t-test (Welch's t-test, does not assume equal variances)
@@ -70,41 +71,40 @@ def perform_statistical_test(data1, data2, test_type):
                 _, p_value = stats.mannwhitneyu(data1, data2, alternative='two-sided')
         else:
             return float('nan')
-            
+
         return p_value
     except:
         return float('nan')
 
-# 複数比較補正関数を拡張：Bonferroniを追加
-# 多重比較補正関数にHolm-BonferroniとBenjamini-Yekutieli法を追加
+# Multiple comparison correction function extended: Added Bonferroni, Holm-Bonferroni, and Benjamini-Yekutieli methods
 def perform_multiple_tests(df, gene, test_type, groups, adjust_method=None):
     """
     Perform all pairwise statistical tests for a gene across groups
-    
+
     Args:
         df: DataFrame with the data
         gene: Gene name to test
         test_type: Type of test ('t', 'student_t', 'u', or 'wilcoxon')
         groups: List of group names
-        adjust_method: Method for p-value adjustment 
+        adjust_method: Method for p-value adjustment
                       (None, 'bh', 'bonferroni', 'holm', 'by', 'tukey')
-        
+
     Returns:
         results: Dictionary with group pairs as keys and p-values as values
     """
     results = {}
     p_values = []
     group_pairs = []
-    
+
     # Generate all possible pairs of groups
     for group1, group2 in itertools.combinations(groups, 2):
         group1_data = df.T[df.T['Group'] == group1][gene]
         group2_data = df.T[df.T['Group'] == group2][gene]
-        
+
         p_value = perform_statistical_test(group1_data, group2_data, test_type)
         group_pairs.append((group1, group2))
         p_values.append(p_value)
-    
+
     # Apply multiple comparison correction if specified
     if adjust_method == 'bh' and len(p_values) > 1:
         # Benjamini-Hochberg procedure
@@ -139,96 +139,97 @@ def perform_multiple_tests(df, gene, test_type, groups, adjust_method=None):
             adjusted_p = p_values
     else:
         adjusted_p = p_values
-    
+
     # Store results
     for i, (group1, group2) in enumerate(group_pairs):
         results[(group1, group2)] = adjusted_p[i]
-    
+
     return results
 
 def logit_transform(df, gene):
     """
     Apply logit transformation to ratio data
-    
+
     Args:
         df: DataFrame with the data
         gene: Gene name to transform
-        
+
     Returns:
         transformed_data: Transformed data series
     """
     # Convert to numeric and handle NaN
     data = pd.to_numeric(df[gene], errors='coerce')
-    
+
     # Apply small offset to 0 and 1 values to avoid infinity
     epsilon = 1e-6
     data = data.apply(lambda x: epsilon if x <= 0 else (1-epsilon if x >= 1 else x))
-    
+
     # Apply logit transformation: log(x/(1-x))
     transformed = np.log(data / (1 - data))
-    
+
     return transformed
 
-# 統計注釈を追加する関数をさらに改良
-def add_stat_annotations(fig, test_results, y_pos, bar_height=15, x_offset=0.1, p_value_font_size=10, show_all_p=False):
+# Further improved function to add statistical annotations
+def add_stat_annotations(fig, test_results, y_pos, groups, bar_height=15, x_offset=0.1, p_value_font_size=10, show_all_p=False):
     """
     Add statistical annotation bars and p-values to plot
-    
+
     Args:
         fig: Plotly figure object
         test_results: Dictionary with group pairs as keys and p-values as values
         y_pos: Y position for the annotation
+        groups: List of groups in the order they appear on the X-axis
         bar_height: Height of the annotation bar
         x_offset: Horizontal offset for the annotation bar
         p_value_font_size: Font size for p-value text
         show_all_p: Whether to show all p-values, including non-significant ones
-        
+
     Returns:
         fig: Updated figure with annotations
         next_y_pos: Next Y position for annotations
     """
     max_y_pos = y_pos
-    
-    # Get the unique groups to determine their numeric positions
-    groups_list = list(set([g[0] for g in test_results.keys()] + [g[1] for g in test_results.keys()]))
-    
-    # バーの高さをグループペアごとにずらすためのオフセット計算用
+
+    # Use the provided groups list to maintain X-axis order
+    groups_list = list(groups)
+
+    # For calculating offsets to shift bar height for each group pair
     group_pairs = []
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
             if p_value < 0.05 or show_all_p:
-                # グループペアだけでなく、インデックスも格納
+                # Store not only group pair but also index
                 x1_pos = groups_list.index(group1)
                 x2_pos = groups_list.index(group2)
                 span = abs(x2_pos - x1_pos)
                 group_pairs.append((group1, group2, span))
-    
-    # スパンが長い順にソート（長いスパンを下に配置）
+
+    # Sort by span (place longer spans below)
     group_pairs.sort(key=lambda x: x[2], reverse=False)
-    
-    # バーの数に応じてオフセットを計算（バー間の距離を確保）
-    gap = bar_height * 1.2  # バー間の十分な間隔を確保
+
+    # Calculate offset according to number of bars (ensure sufficient spacing between bars)
+    gap = bar_height * 1.2  # Ensure sufficient spacing between bars
     bar_offsets = {}
     current_offset = 0
     for i, (group1, group2, _) in enumerate(group_pairs):
         bar_offsets[(group1, group2)] = current_offset
         current_offset += gap
-    
+
     # Add significance bars and p-value annotations
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
-            # 有意でない場合はスキップ（オプションによる）
+            # Skip non-significant cases (depending on option)
             if p_value >= 0.05 and not show_all_p:
                 continue
-            
+
             # Convert group names to numeric positions
             x1_pos = groups_list.index(group1)
             x2_pos = groups_list.index(group2)
-            
-            # このバーの位置オフセットを適用
+
+            # Apply position offset for this bar
             current_offset = bar_offsets.get((group1, group2), 0)
             current_y_pos = y_pos + current_offset
-            
+
             # Add horizontal bar
             fig.add_shape(
                 type="line",
@@ -237,7 +238,7 @@ def add_stat_annotations(fig, test_results, y_pos, bar_height=15, x_offset=0.1, 
                 line=dict(color="black", width=1.5),
                 xref="x", yref="y"
             )
-            
+
             fig.add_shape(
                 type="line",
                 x0=x1_pos, x1=x2_pos,
@@ -245,7 +246,7 @@ def add_stat_annotations(fig, test_results, y_pos, bar_height=15, x_offset=0.1, 
                 line=dict(color="black", width=1.5),
                 xref="x", yref="y"
             )
-            
+
             fig.add_shape(
                 type="line",
                 x0=x2_pos, x1=x2_pos,
@@ -253,32 +254,32 @@ def add_stat_annotations(fig, test_results, y_pos, bar_height=15, x_offset=0.1, 
                 line=dict(color="black", width=1.5),
                 xref="x", yref="y"
             )
-            
-            # P値テキストを数字のみに変更
+
+            # Change p-value text to numbers only
             p_text = f"{p_value:.4g}"
             fig.add_annotation(
-                x=(x1_pos + x2_pos) / 2, 
-                y=current_y_pos + bar_height,  # バーの上に表示
+                x=(x1_pos + x2_pos) / 2,
+                y=current_y_pos + bar_height,  # Display above bar
                 text=p_text,
                 showarrow=False,
-                yshift=0,  # わずかな上方向のシフト
+                yshift=0,  # Slight upward shift
                 font=dict(size=p_value_font_size),
                 xanchor="center",
-                yanchor="bottom"  # 下揃えに変更
+                yanchor="bottom"  # Changed to bottom alignment
             )
-            
+
             max_y_pos = max(max_y_pos, current_y_pos + bar_height + 20)
-    
+
     return fig, max_y_pos
 
 
-def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, points='all', c_choice=None, 
-                          py_x_size=600, py_y_size=400, 
-                          legend_font_size=12, x_font_size=12, y_font_size=12, gene_font_size=16, 
+def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, points='all', c_choice=None,
+                          py_x_size=600, py_y_size=400,
+                          legend_font_size=12, x_font_size=12, y_font_size=12, gene_font_size=16,
                           jitter=0.3, y_min=None, y_max=None, show_box=True, marker_size=6,
                           stat_test=None, adjust_method=None, apply_logit=False, p_value_font_size=10,
                           show_all_p=False, stat_bar_height=15):
-    
+
     # Apply logit transformation if specified
     plot_data = df_show.copy()
     if apply_logit and gene in plot_data.index:
@@ -292,15 +293,15 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
                         plot_data.loc[gene, :] = logit_transform(plot_data.T, gene)
                 except:
                     pass
-    
+
     gene_title = f"<i>{gene}</i>"
-    
+
     if color_split:
         fig = go.Figure()
-        
+
         for idx, color_group in enumerate(df_show.T['Color_group'].unique()):
             group_data = df_show.T[df_show.T['Color_group'] == color_group]
-            
+
             if plot_type == 'box':
                 fig.add_trace(go.Box(
                     y=group_data[gene],
@@ -329,10 +330,10 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
                 ))
     else:
         fig = go.Figure()
-        
+
         for idx, group in enumerate(df_show.T['Group'].unique()):
             group_data = df_show.T[df_show.T['Group'] == group]
-            
+
             if plot_type == 'box':
                 fig.add_trace(go.Box(
                     y=group_data[gene],
@@ -357,7 +358,7 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
                     box_visible=show_box,
                     meanline_visible=True
                 ))
-    
+
     fig.update_layout(
         plot_bgcolor='rgb(255, 255, 255)',
         paper_bgcolor='rgb(255, 255, 255)',
@@ -367,24 +368,40 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
         showlegend=True,
         font=dict(family='Arial')
     )
-    
-    # Y軸の範囲を設定（指定がある場合のみ）
+
+    # Set Y-axis range (only if specified)
     y_axis_range = {}
     if y_min is not None:
         y_axis_range['min'] = y_min
     if y_max is not None:
         y_axis_range['max'] = y_max
-        
-    fig.update_xaxes(tickfont_size=x_font_size, title='', tickfont_family='Arial')
+
+    # Set X-axis category order
+    if not color_split:
+        category_order = list(df_show.T['Group'].unique())
+        # Use manually sorted order if available
+        if st.session_state.get('sorted_groups') is not None:
+            category_order = st.session_state.sorted_groups
+
+        fig.update_xaxes(tickfont_size=x_font_size, title='', tickfont_family='Arial',
+                        categoryorder='array', categoryarray=category_order)
+    else:
+        category_order = list(df_show.T['Color_group'].unique())
+        # Use manually sorted order if available
+        if st.session_state.get('sorted_groups') is not None:
+            category_order = st.session_state.sorted_groups
+
+        fig.update_xaxes(tickfont_size=x_font_size, title='', tickfont_family='Arial')
+
     fig.update_yaxes(
-        tickfont_size=y_font_size, 
-        title=gene_title, 
+        tickfont_size=y_font_size,
+        title=gene_title,
         titlefont_size=gene_font_size,
         range=[y_axis_range.get('min'), y_axis_range.get('max')],
         tickfont_family='Arial',
         titlefont_family='Arial'
     )
-    
+
     # Add statistical annotations if test is specified
     if stat_test in ['t', 'student_t', 'u', 'wilcoxon']:
         if color_split:
@@ -393,10 +410,10 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
         else:
             # Otherwise, perform tests between groups
             groups = df_show.T['Group'].unique()
-        
+
         # Perform statistical tests
         test_results = perform_multiple_tests(df_show, gene, stat_test, groups, adjust_method)
-        
+
         # Get the maximum y value from the data for positioning annotations
         y_values = pd.to_numeric(df_show.T[gene], errors='coerce').dropna().values
         if len(y_values) > 0:
@@ -404,32 +421,32 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
                 max_y = y_max
             else:
                 max_y = np.max(y_values)
-            
-            # バーの位置をボックスに近づける (1.15 → 1.05)
+
+            # Move bar position closer to box (1.15 → 1.05)
             annotation_start_y = max_y * 1.05
-            
-            # 複数のバーに対応するために高さの余裕を持たせる
-            # バーの数を考慮して、プロットの高さを自動調整
+
+            # Allow margin for multiple bars by considering bar height
+            # Automatically adjust plot height considering number of bars
             significant_pairs = sum(1 for _, p in test_results.items() if p < 0.05 or show_all_p)
-            extra_height = significant_pairs * stat_bar_height * 1.5  # バーとスペースの合計高さ
-            
-            fig, _ = add_stat_annotations(fig, test_results, annotation_start_y, 
-                                         bar_height=stat_bar_height, 
+            extra_height = significant_pairs * stat_bar_height * 1.5  # Total height of bars and spaces
+
+            fig, _ = add_stat_annotations(fig, test_results, annotation_start_y, groups,
+                                         bar_height=stat_bar_height,
                                          p_value_font_size=p_value_font_size,
                                          show_all_p=show_all_p)
-            
+
             # Adjust plot height to accommodate annotations
             fig.update_layout(height=py_y_size + extra_height)
-    
+
     return fig
 
 
 
-# 複合プロット用の統計バー表示関数をさらに改良 - バーの位置をボックスに合わせる
-def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, stat_bar_height, p_value_font_size, show_all_p):
+# Further improved statistical bar display function for combined plots - align bar position with boxes
+def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, groups, stat_bar_height, p_value_font_size, show_all_p):
     """
     Add statistical annotations to a combined plot for a specific gene index
-    
+
     Args:
         fig: Plotly figure object
         test_results: Dictionary with group pairs as keys and p-values as values
@@ -437,69 +454,70 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
         gene: Current gene name
         df_show: DataFrame with the data
         y_max: Maximum y value for this gene
+        groups: List of groups in the order they appear on the X-axis
         stat_bar_height: Height of the annotation bar (relative to data scale)
         p_value_font_size: Font size for p-value text
         show_all_p: Whether to show all p-values, including non-significant ones
-        
+
     Returns:
         fig: Updated figure with annotations
     """
-    # Get the unique groups to determine their numeric positions
-    groups_list = list(set([g[0] for g in test_results.keys()] + [g[1] for g in test_results.keys()]))
-    
-    # バーの高さをグループペアごとにずらすためのオフセット計算用
+    # Use the provided groups list to maintain X-axis order
+    groups_list = list(groups)
+
+    # For calculating offsets to shift bar height for each group pair
     group_pairs = []
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
             if p_value < 0.05 or show_all_p:
                 group_pairs.append((group1, group2))
-    
-    # バーの数に応じてオフセットを計算（バー間の距離を確保）
-    gap = stat_bar_height * 0.6  # バー間の間隔を設定
+
+    # Calculate offset according to number of bars (set spacing between bars)
+    gap = stat_bar_height * 0.6  # Set spacing between bars
     bar_offsets = {}
     current_offset = 0
     for i, (group1, group2) in enumerate(group_pairs):
         bar_offsets[(group1, group2)] = current_offset
         current_offset += gap
-    
-    # 各遺伝子の値範囲に対する相対的なバーの高さを計算
+
+    # Calculate relative bar height for each gene's value range
     y_values = pd.to_numeric(df_show.T[gene], errors='coerce').dropna().values
     if len(y_values) > 0:
         data_range = y_max - min(y_values)
-        rel_bar_height = data_range * 0.1  # データ範囲の10%をバーの高さに
+        rel_bar_height = data_range * 0.1  # Set bar height to 10% of data range
         rel_gap = rel_bar_height * 0.6
     else:
         rel_bar_height = stat_bar_height
         rel_gap = gap
-    
+
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
-            # 有意でない場合はスキップ（オプションによる）
+            # Skip non-significant cases (depending on option)
             if p_value >= 0.05 and not show_all_p:
                 continue
-            
-            # このバーの位置オフセットを適用
+
+            # Apply position offset for this bar
             current_offset = bar_offsets.get((group1, group2), 0) * rel_gap / gap
-            
-            # バーの位置をデータの最大値のすぐ上に配置
+
+            # Place bar just above the maximum value of data
             current_y_pos = y_max * 1.02 + current_offset
-            
-            # グループ情報を取得
+
+            # Get group information
             if group1 in df_show.T['Group'].unique() and group2 in df_show.T['Group'].unique():
-                # サブプロット内でのグループの位置情報を取得
+                # Get position information of groups within subplot
                 group_positions = {}
                 for i, g in enumerate(df_show.T['Group'].unique()):
                     group_positions[g] = i / (len(df_show.T['Group'].unique()) - 1) if len(df_show.T['Group'].unique()) > 1 else 0.5
-                
-                # 各グループの相対位置を計算
+
+                # Calculate relative position of each group
                 x1_pos = group_positions.get(group1, 0)
                 x2_pos = group_positions.get(group2, 1)
             else:
-                # デフォルトの位置を使用
+                # Use default positions
                 x1_pos = 0
                 x2_pos = 1
-            
-            # Add horizontal bars - ボックスの位置に合わせる
+
+            # Add horizontal bars - align to box positions
             fig.add_shape(
                 type="line",
                 x0=x1_pos, x1=x1_pos,
@@ -508,7 +526,7 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
                 xref=f'x{idx+1} domain' if idx > 0 else 'x domain',
                 yref=f'y{idx+1}' if idx > 0 else 'y'
             )
-            
+
             fig.add_shape(
                 type="line",
                 x0=x1_pos, x1=x2_pos,
@@ -517,7 +535,7 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
                 xref=f'x{idx+1} domain' if idx > 0 else 'x domain',
                 yref=f'y{idx+1}' if idx > 0 else 'y'
             )
-            
+
             fig.add_shape(
                 type="line",
                 x0=x2_pos, x1=x2_pos,
@@ -526,8 +544,8 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
                 xref=f'x{idx+1} domain' if idx > 0 else 'x domain',
                 yref=f'y{idx+1}' if idx > 0 else 'y'
             )
-            
-            # P値テキストをバーの中央に表示
+
+            # Display p-value text at center of bar
             p_text = f"{p_value:.4g}"
             fig.add_annotation(
                 x=(x1_pos + x2_pos) / 2,
@@ -541,7 +559,7 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
                 xanchor="center",
                 yanchor="bottom"
             )
-    
+
     return fig
 
 def create_combined_plots(df_show, genes, plot_type='box', color_split=False, points='all', c_choice=None,
@@ -550,7 +568,7 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
                         jitter=0.3, y_min=None, y_max=None, show_box=True, marker_size=6,
                         stat_test=None, adjust_method=None, apply_logit=False, p_value_font_size=10,
                         show_all_p=False, stat_bar_height=15):
-    
+
     # Apply logit transformation if specified
     plot_data = df_show.copy()
     if apply_logit:
@@ -564,8 +582,8 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
                         plot_data.loc[gene, :] = logit_transform(plot_data.T, gene)
                 except:
                     pass
-    
-    # 各遺伝子の値範囲を計算
+
+    # Calculate value range for each gene
     gene_y_ranges = {}
     for gene in genes:
         values = pd.to_numeric(df_show.T[gene].values, errors='coerce')
@@ -573,23 +591,23 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
         if len(values) > 0:
             gene_min = float(min(values))
             gene_max = float(max(values))
-            range_padding = (gene_max - gene_min) * 0.2  # 20%のパディングを追加
+            range_padding = (gene_max - gene_min) * 0.2  # Add 20% padding
             gene_y_ranges[gene] = (gene_min - range_padding, gene_max + range_padding)
         else:
             gene_y_ranges[gene] = (None, None)
-    
-    # 共通のYスケールを使用する場合
+
+    # When using common Y scale
     if y_min is None or y_max is None:
         all_values = []
         for gene in genes:
             values = pd.to_numeric(df_show.T[gene].values, errors='coerce')
             values = values[~np.isnan(values)]
             all_values.extend(values)
-        
+
         if all_values:
             global_min = float(min(all_values))
             global_max = float(max(all_values))
-            
+
             range_padding = (global_max - global_min) * 0.05
             if y_min is None:
                 y_min = global_min - range_padding
@@ -598,24 +616,24 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
 
     if py_x_size is None:
         py_x_size = 400 * len(genes)
-    
+
     fig = go.Figure()
     plot_width = 1.0 / len(genes)
-    
-    # 各遺伝子ごとに統計バーの情報を保存
+
+    # Store statistical bar information for each gene
     stat_annotations_info = []
-    
+
     for idx, gene in enumerate(genes):
         x_domain = [idx * plot_width, (idx + 1) * plot_width - 0.02]
-        
-        # この遺伝子の値範囲を取得
+
+        # Get value range for this gene
         gene_range = gene_y_ranges[gene]
-        
+
         if color_split:
             for color_idx, color_group in enumerate(df_show.T['Color_group'].unique()):
                 group_data = df_show.T[df_show.T['Color_group'] == color_group]
                 group_data[gene] = pd.to_numeric(group_data[gene], errors='coerce')
-                
+
                 if plot_type == 'box':
                     fig.add_trace(go.Box(
                         y=group_data[gene],
@@ -650,7 +668,7 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
             for group_idx, group in enumerate(df_show.T['Group'].unique()):
                 group_data = df_show.T[df_show.T['Group'] == group]
                 group_data[gene] = pd.to_numeric(group_data[gene], errors='coerce')
-                
+
                 if plot_type == 'box':
                     fig.add_trace(go.Box(
                         y=group_data[gene],
@@ -679,49 +697,65 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
                         box_visible=show_box,
                         meanline_visible=True
                     ))
-        
-        # 各サブプロットのY軸範囲を設定 - 個別の範囲を使用
-        # 統計バー用のスペースを確保するため、上限に余裕を持たせる
+
+        # Set Y-axis range for each subplot - use individual ranges
+        # Allow margin at top to accommodate statistical bars
         y_axis_min = gene_range[0] if y_min is None else y_min
         y_axis_max = gene_range[1] if y_max is None else y_max
-        
+
+        # Set X-axis category order
+        xaxis_settings = {
+            'domain': x_domain,
+            'showticklabels': True,
+            'tickfont_size': x_font_size,
+            'title': '',
+            'tickangle': 45,
+            'tickfont_family': 'Arial'
+        }
+        if not color_split:
+            category_order = list(df_show.T['Group'].unique())
+            # Use manually sorted order if available
+            if st.session_state.get('sorted_groups') is not None:
+                category_order = st.session_state.sorted_groups
+
+            xaxis_settings['categoryorder'] = 'array'
+            xaxis_settings['categoryarray'] = category_order
+        else:
+            category_order = list(df_show.T['Color_group'].unique())
+            # Use manually sorted order if available
+            if st.session_state.get('sorted_groups') is not None:
+                category_order = st.session_state.sorted_groups
+
         fig.update_layout(**{
-            f'xaxis{idx+1 if idx > 0 else ""}': {
-                'domain': x_domain,
-                'showticklabels': True,
-                'tickfont_size': x_font_size,
-                'title': '',
-                'tickangle': 45,
-                'tickfont_family': 'Arial'
-            },
+            f'xaxis{idx+1 if idx > 0 else ""}': xaxis_settings,
             f'yaxis{idx+1 if idx > 0 else ""}': {
                 'title': '',
                 'titlefont_size': gene_font_size,
                 'tickfont_size': y_font_size,
-                'range': [y_axis_min, y_axis_max * 1.25],  # 上部に余裕を持たせる
+                'range': [y_axis_min, y_axis_max * 1.25],  # Allow margin at top
                 'tickfont_family': 'Arial'
             }
         })
-        
-        # 統計テスト情報を保存
+
+        # Store statistical test information
         if stat_test in ['t', 'student_t', 'u', 'wilcoxon']:
             if color_split:
                 groups = df_show.T['Color_group'].unique()
             else:
                 groups = df_show.T['Group'].unique()
-                
+
             test_results = perform_multiple_tests(df_show, gene, stat_test, groups, adjust_method)
-            
-            # 各遺伝子の実際の最大値を計算
+
+            # Calculate actual maximum value for each gene
             gene_max_values = pd.to_numeric(df_show.T[gene], errors='coerce').dropna().values
             if len(gene_max_values) > 0:
                 gene_max_actual = float(max(gene_max_values))
             else:
                 gene_max_actual = gene_range[1] if y_max is None else y_max
-                
-            stat_annotations_info.append((idx, gene, test_results, gene_max_actual))
-    
-    # プロット全体のレイアウトを更新
+
+            stat_annotations_info.append((idx, gene, test_results, gene_max_actual, groups))
+
+    # Update overall plot layout
     annotations = []
     for idx, gene in enumerate(genes):
         x_pos = (idx * plot_width) + (plot_width / 2)
@@ -741,20 +775,20 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
         plot_bgcolor='rgb(255, 255, 255)',
         paper_bgcolor='rgb(255, 255, 255)',
         width=py_x_size,
-        height=py_y_size * 1.5,  # 統計バー用に十分な高さを確保
+        height=py_y_size * 1.5,  # Ensure sufficient height for statistical bars
         legend_font=dict(size=legend_font_size, family='Arial'),
         showlegend=True,
         annotations=annotations,
         font=dict(family='Arial')
     )
-    
-    # 全てのグラフ描画が完了した後で、統計バーを追加
-    for idx, gene, test_results, gene_max in stat_annotations_info:
+
+    # After all graph drawing is complete, add statistical bars
+    for idx, gene, test_results, gene_max, groups in stat_annotations_info:
         fig = add_combined_stat_annotations(
-            fig, test_results, idx, gene, df_show, gene_max,
+            fig, test_results, idx, gene, df_show, gene_max, groups,
             stat_bar_height, p_value_font_size, show_all_p
         )
-    
+
     return fig
 
 
@@ -807,6 +841,9 @@ if "set_group" not in st.session_state:
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ''
 
+if 'sorted_groups' not in st.session_state:
+    st.session_state.sorted_groups = None
+
 st.markdown("## Box/Violin plot generator")
 
 use_upload = 'Yes'
@@ -848,7 +885,7 @@ if use_upload == 'Yes':
         df = df.drop(0, axis=0)
         content = df.columns.tolist()
         Gene_column = content[0]
-        
+
         if "Annotation/Divergence" in content:
             search_word = '([^\ \(]+).*'
             for i in range(1, len(content)):
@@ -857,7 +894,7 @@ if use_upload == 'Yes':
                     content[i] = match.group(1).replace(' ', '_')
             df.columns = content
             df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str)
-            
+
             df = df.loc[:,'Annotation/Divergence':]
             content = df.columns.tolist()
             content[0] = 'Gene'
@@ -872,15 +909,15 @@ if use_upload == 'Yes':
                 content)
 
         df = df.set_index(Gene_column)
-        
+
         pattern = "^([^|]*)"
         repatter = re.compile(pattern)
         f_annotation = lambda x: repatter.match(x).group(1) if repatter.match(x) else x
-        
+
         original_index = list(df.index)
         new_index = [f_annotation(x) for x in original_index]
         df.index = new_index
-        
+
         if original_index != new_index:
             st.warning("Removed content after '|' from gene symbols.")
 
@@ -966,37 +1003,37 @@ if df is not None:
     with st.sidebar:
         st.markdown("### Statistical analysis")
         perform_stats = st.checkbox('Perform statistical tests?')
-        
+
         if perform_stats:
             stat_test = st.radio(
                 "Test type:",
                 ('t', 'student_t', 'u', 'wilcoxon'),
-                format_func=lambda x: {'t': 't-test (Welch)', 
+                format_func=lambda x: {'t': 't-test (Welch)',
                                        'student_t': "Student's t-test",
-                                       'u': 'Mann-Whitney U test', 
+                                       'u': 'Mann-Whitney U test',
                                        'wilcoxon': 'Wilcoxon test'}[x],
                                        index=1
-                
+
             )
 
-            
+
             adjust_method = st.radio(
                 "P-value adjustment:",
                 (None, 'bh', 'bonferroni', 'holm', 'by', 'tukey'),
-                format_func=lambda x: {None: 'None', 
+                format_func=lambda x: {None: 'None',
                                       'bh': 'Benjamini-Hochberg (FDR)',
                                       'bonferroni': 'Bonferroni',
                                       'holm': 'Holm-Bonferroni',
                                       'by': 'Benjamini-Yekutieli',
                                       'tukey': 'Tukey-Kramer'}[x]
             )
-            
+
             # Add p-value font size option
             p_value_font_size = st.number_input("P-value font size:", min_value=3, max_value=24, value=8)
-            
+
             # Add options for p-value display
             show_all_p = st.checkbox("Show all p-values (including non-significant)", value=False)
-            
+
             # Add bar height option
             stat_bar_height = st.number_input("Statistical bar height:", min_value=0.1, max_value=20.0, value=10.0)
             st.markdown("---")
@@ -1006,14 +1043,14 @@ if df is not None:
             p_value_font_size = 10
             show_all_p = False
             stat_bar_height = 20
-            
+
         st.markdown("### Plot type")
         plot_type = st.radio("Plot type:", ('Individual plots', 'Combined plot'), index=0, label_visibility="collapsed")
-        
+
         st.markdown("### Plot style")
         plot_style = st.radio("Plot style:", ('Box', 'Violin'), index=0)
         plot_style = plot_style.lower()  # 'box' or 'violin'
-        
+
         # Show box option for violin plot
         show_box = True
         if plot_style == 'violin':
@@ -1065,7 +1102,7 @@ if df is not None:
     df_e["Condition"] = reduced_condition
     df_e["Color_group"] = color_condition
     df_show = df.copy(deep=True)
-    
+
     with st.form("Group"):
         st.write('Set group and color:')
         df_e = st.data_editor(df_e)
@@ -1074,8 +1111,33 @@ if df is not None:
         df_show.loc['Group',:] = df_e['Group'].tolist()
         df_show.loc['Color_group',:] = df_e['Color_group'].tolist()
         df_show.loc['Condition',:] = df_e['Condition'].tolist()
-        
+
     if submitted or st.session_state.set_group:
+        # Add checkbox for changing group order
+        change_group_order = st.checkbox("Change group order?", value=False)
+
+        if change_group_order:
+            # Get current groups based on color_split setting
+            if color_split:
+                current_groups = list(df_show.T['Color_group'].unique())
+            else:
+                current_groups = list(df_show.T['Group'].unique())
+
+            # Initialize sorted_groups with current groups if not set
+            if st.session_state.sorted_groups is None:
+                st.session_state.sorted_groups = current_groups.copy()
+
+            st.markdown("##### Sort groups (drag and drop):")
+            with st.form("Group_Sorter"):
+                sorted_groups = sort_items(st.session_state.sorted_groups)
+                submitted_sort = st.form_submit_button("Apply group order")
+                if submitted_sort:
+                    st.session_state.sorted_groups = sorted_groups
+                    st.rerun()
+        else:
+            # Reset sorted_groups if checkbox is not checked
+            st.session_state.sorted_groups = None
+
         st.markdown("##### Genes (comma, space, CR separated):")
         genes = st.text_input("genes", label_visibility='collapsed', value=st.session_state.user_input)
         st.session_state.user_input = genes
@@ -1103,19 +1165,19 @@ if df is not None:
                         gene_title = "<i>" + i + "</i>"
                         st.markdown(gene_name)
 
-                        fig = create_plot_with_points(df_show, i, 
+                        fig = create_plot_with_points(df_show, i,
                                                     plot_type=plot_style,
-                                                    color_split=color_split, 
+                                                    color_split=color_split,
                                                     points=points,
-                                                    c_choice=c_choice, 
+                                                    c_choice=c_choice,
                                                     py_x_size=py_x_size,
-                                                    py_y_size=py_y_size, 
+                                                    py_y_size=py_y_size,
                                                     legend_font_size=legend_font_size,
-                                                    x_font_size=x_font_size, 
+                                                    x_font_size=x_font_size,
                                                     y_font_size=y_font_size,
-                                                    gene_font_size=gene_font_size, 
+                                                    gene_font_size=gene_font_size,
                                                     jitter=jitter,
-                                                    y_min=y_min, 
+                                                    y_min=y_min,
                                                     y_max=y_max,
                                                     show_box=show_box,
                                                     marker_size=marker_size,
@@ -1134,20 +1196,20 @@ if df is not None:
 
                 else:  # Combined plot
                     combined_x_size = py_x_size * len(gene_subset)
-                    
-                    fig = create_combined_plots(df_show, gene_subset, 
+
+                    fig = create_combined_plots(df_show, gene_subset,
                                               plot_type=plot_style,
                                               color_split=color_split,
-                                              points=points, 
+                                              points=points,
                                               c_choice=c_choice,
-                                              py_x_size=combined_x_size, 
+                                              py_x_size=combined_x_size,
                                               py_y_size=py_y_size,
                                               legend_font_size=legend_font_size,
-                                              x_font_size=x_font_size, 
+                                              x_font_size=x_font_size,
                                               y_font_size=y_font_size,
-                                              gene_font_size=gene_font_size, 
+                                              gene_font_size=gene_font_size,
                                               jitter=jitter,
-                                              y_min=y_min, 
+                                              y_min=y_min,
                                               y_max=y_max,
                                               show_box=show_box,
                                               marker_size=marker_size,
@@ -1157,9 +1219,9 @@ if df is not None:
                                               p_value_font_size=p_value_font_size,
                                               show_all_p=show_all_p,
                                               stat_bar_height=stat_bar_height)
-                    
+
                     st.plotly_chart(fig, theme=None)
-                    
+
                     if save_type == 'html':
                         fig.write_html(res_dir + "/combined_plot." + save_type)
                     else:

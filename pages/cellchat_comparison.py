@@ -27,7 +27,7 @@ from pages.cellchat_vis import (
     netVisual_heatmap, create_chord_diagram_pycirclize, netAnalysis_signalingRole_scatter,
     netAnalysis_signalingChanges_scatter)
 
-# ロギング設定を最初に行う
+# Configure logging first
 import logging
 import traceback
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -95,7 +95,7 @@ def run_cellchat_for_group(
         fun_type=fun_type,
         raw_use=True,
         nboot=n_perms,
-        seed=1,  # Rのデフォルトと一致
+        seed=1,  # Match R default
         n_jobs=n_cpus,
         key_added="cellchat_res",
         trim=trim,
@@ -292,31 +292,31 @@ def identify_union_overexpressed_genes(adata1, adata2, gene_use,
 
     st.write(f"original data1: {adata1.shape[0]} cells x {adata1.shape[1]} genes")
 
-    # 1. 細胞グループの細胞数チェック
+    # 1. Check cell counts in cell groups
    # cell_counts = adata1.obs[group_by].value_counts()
   #  valid_groups = cell_counts[cell_counts >= min_cells].index.tolist()
  #   if len(valid_groups) < len(cell_counts):
- #       st.warning(f"{len(cell_counts) - len(valid_groups)}個の細胞グループが{min_cells}細胞未満のため除外されました")                   
-    # 有効なグループの細胞だけを保持
+ #       st.warning(f"{len(cell_counts) - len(valid_groups)} cell groups with fewer than {min_cells} cells have been excluded")                   
+    # Keep only cells in valid groups
   #  adata1_filtered = adata1[adata1.obs[group_by].isin(valid_groups)].copy()
     valid_signaling_genes = [g for g in gene_use if g in adata1.var_names]
-    # シグナリング遺伝子のみを保持（R版のsubsetData相当の処理）
+    # Keep only signaling genes (equivalent to R's subsetData)
     adata1_filtered = adata1[:, valid_signaling_genes].copy()
     st.write(f"LR gene data of data1: {adata1_filtered.shape[0]} cells x {adata1_filtered.shape[1]} genes")
 
    # cell_counts = adata2.obs[group_by].value_counts()
    # valid_groups = cell_counts[cell_counts >= min_cells].index.tolist()
    # if len(valid_groups) < len(cell_counts):
-   #     st.warning(f"{len(cell_counts) - len(valid_groups)}個の細胞グループが{min_cells}細胞未満のため除外されました")                   
-    # 有効なグループの細胞だけを保持
+   #     st.warning(f"{len(cell_counts) - len(valid_groups)} cell groups with fewer than {min_cells} cells have been excluded")                   
+    # Keep only cells in valid groups
    # adata2_filtered = adata2[adata2.obs[group_by].isin(valid_groups)].copy()
     valid_signaling_genes = [g for g in gene_use if g in adata2.var_names]
-    # シグナリング遺伝子のみを保持（R版のsubsetData相当の処理）
+    # Keep only signaling genes (equivalent to R's subsetData)
     adata2_filtered = adata2[:, valid_signaling_genes].copy()
     st.write(f"LR gene data of data2: {adata2_filtered.shape[0]} cells x {adata2_filtered.shape[1]} genes")
 
 
-    # グループ1のオーバーエクスプレス遺伝子を特定
+    # Identify overexpressed genes in group 1
     result1 = identify_overexpressed_genes(
         adata1_filtered,
         group_by=group_by,
@@ -328,7 +328,7 @@ def identify_union_overexpressed_genes(adata1, adata2, gene_use,
         min_cells=min_cells
     )
     
-    # グループ2のオーバーエクスプレス遺伝子を特定
+    # Identify overexpressed genes in group 2
     result2 = identify_overexpressed_genes(
         adata2_filtered,
         group_by=group_by,
@@ -340,7 +340,7 @@ def identify_union_overexpressed_genes(adata1, adata2, gene_use,
         min_cells=min_cells
     )
     
-    # 両方のオーバーエクスプレス遺伝子の和集合を作成
+    # Create union of overexpressed genes from both groups
     genes1 = set(result1['features'])
     genes2 = set(result2['features'])
     if use_union_genes=="union":
@@ -361,11 +361,11 @@ if __name__ == "__main__":
     # Main title
     st.title("CellChat Comparison Analysis")
 
-    # analysis_modeの初期化と管理
+    # Initialize and manage analysis_mode
     if 'completed_analysis' not in st.session_state:
         st.session_state.completed_analysis = False
 
-    # モード選択のデフォルト値を動的に設定
+    # Dynamically set default value for mode selection
     default_mode_index = 1 if st.session_state.get('completed_analysis', False) else 0
 
     analysis_mode = st.radio(
@@ -511,7 +511,7 @@ if __name__ == "__main__":
                     n_cpus = st.slider("Num CPUs:", 
                                   min_value=1, max_value=os.cpu_count(), step=1, value=os.cpu_count()-2)
                    # r_patcher = st.checkbox("Fine-tune to match R calc results", value=False,
-                   #     help="Rとの計算結果の違いをある程度吸収する。weightについてはチェックしなくても近似する。countはチェックしないと多くなるが、傾向は一致する。countのthresholdの基準はやや恣意的。")
+                   #     help="Absorbs some differences from R calculation results. Weight approximates even without checking. Count increases if not checked, but trend matches. Count threshold criteria are somewhat arbitrary.")
                     r_patcher = False
 
                     n_perms = st.slider("Permutation number:", 
@@ -520,34 +520,34 @@ if __name__ == "__main__":
 
                     min_cells = st.number_input('Min cells in a cell-type:', 
                                                min_value=0, max_value=100, step=1, value=10,
-                                               help="SCALAのcellchatではフィルタリングはoff。")
+                                               help="Filtering is off in SCALA's cellchat.")
 
                     expr_prop = st.number_input('Min fraction of expressing cells:', 
                                                min_value=0.0, max_value=0.9, step=0.01, value=0.0)
                     st.markdown('---')
-                    population_size = st.checkbox("population.size", value=False, help="細胞数が多いクラスター同士の通信ほど強く（確率が高めに）評価する場合。")
+                    population_size = st.checkbox("population.size", value=False, help="Use when you want to evaluate communication between larger clusters more strongly (with higher probability).")
 
 
 
                 with col2:
 
                     do_de = st.checkbox("Filter pathways by differential expression in at least one cell type.",
-                                        value=True, help="どれか一つのクラスターでDEGのものを選別。offの場合、発現細胞数でフィルタリング。")
+                                        value=True, help="Filter for DEGs in at least one cluster. If off, filter by number of expressing cells.")
 
                     thresh_p = st.number_input('Threshold p value for overexpressed genes:', 
                                                min_value=0.0, max_value=0.9, step=0.01, value=0.05,
-                                               help = "Wilcoxonによる変化遺伝子選択のthreshold")
+                                               help = "Threshold for selecting changed genes by Wilcoxon test")
 
-                    # ネストしたカラムでインデント
+                    # Indent with nested columns
                     subcol1, subcol2 = st.columns([0.1, 0.9])
                     with subcol2:
                         st.write("If DEG filtering is off:")
                         min_cells_expr = st.number_input('Gene filtering for min expressing cells:', 
                                                    min_value=0, max_value=100, step=1, value=10,
-                                                   help="DEGによるフィルタリングがoffのときに全細胞の中で発現している細胞数でフィルタリング。かなり低くしないと、むしろ厳しくなる。")
+                                                   help="Filter by number of expressing cells among all cells when DEG filtering is off. Must be quite low or filtering becomes stricter.")
                    
                     st.markdown("---")
-                    fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="推定されるリガンド-受容体ペアの数は、細胞グループごとの平均遺伝子発現量を計算する方法に依存する。trimeanは他の方法よりも少ない相互作用を生成。CellChatはより強い相互作用を予測する性能が優れていることがわかっており、実験的検証のために相互作用を絞り込む上で非常に有用。trimeanは25%切断平均に近似しており、これは1つのグループで発現している細胞の割合が25%未満の場合、平均遺伝子発現量がゼロになることを意味する。truncatedMeanでは5%および10%切断平均等を設定できる")
+                    fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="The number of predicted ligand-receptor pairs depends on how average gene expression per cell group is calculated. trimean generates fewer interactions than other methods. CellChat is known to perform well in predicting stronger interactions, which is very useful for narrowing down interactions for experimental validation. trimean approximates a 25% trimmed mean, meaning that if the proportion of expressing cells in a group is less than 25%, the average gene expression becomes zero. With truncatedMean, you can set 5% or 10% trimmed means, etc.")
 
                     st.markdown("*To reduce stringency for pathway selection, use truncatedMean.*")
                     trim = st.number_input("Trimming for truncated mean:", min_value=0.00, max_value=0.25, value=0.10)
@@ -563,7 +563,7 @@ if __name__ == "__main__":
                         "Use individual overexpressed genes, or union or intersection from both groups",
                         ['individual','union','intersection'],
                         index=0,
-                        help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis.CellChatのtutorialでは個々にDEG等でフィルタリングしたデータを解析し、それらの遺伝子についてLRの解析を行います。そのため、一方で検討対象とならない遺伝子が生じます。また、個々の解析で有意とならないLRペアはinteraction scoreが0になります。"
+                        help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis. In CellChat tutorial, data is filtered individually by DEG etc., and LR analysis is performed on those genes. Therefore, some genes may not be included in the analysis. Also, LR pairs that are not significant in individual analyses will have an interaction score of 0."
                     )
                 
                 submit_button = st.form_submit_button("Run Comparison Analysis")              
@@ -605,17 +605,17 @@ if __name__ == "__main__":
                         
                         st.write(f"Using {len(cellchatdb['interaction'])} ligand-receptor pairs")
 
-                    #ここでdbを展開しておく
+                    # Expand database here
                     gene_use, resource, complex_input, cofactor_input, gene_info = extractGene(cellchatdb)
 
-                    # データベースの検証
+                    # Validate database
                     if resource.empty:
-                        raise ValueError("DBの相互作用情報(interaction)が空です。有効なCellChatDBか確認してください。")
+                        raise ValueError("The interaction information in the database is empty. Please verify that you have a valid CellChatDB.")
                         
-                    # 必要な列の存在を確認
+                    # Check for required columns
                     for required_col in ['ligand', 'receptor']:
                         if required_col not in resource.columns:
-                            raise ValueError(f"リソースデータフレームには '{required_col}' 列が必要です")
+                            raise ValueError(f"Resource dataframe requires '{required_col}' column")
 
                     st.write(f"LR genes in db: {len(gene_use)}")
                     
@@ -629,7 +629,7 @@ if __name__ == "__main__":
                     group2_status = st.expander(f"Status for {group2} analysis", expanded=True)
 
                     if use_union_genes != "individual":
-                        #まずpreprocessing
+                        # First do preprocessing
                         with st.spinner("Identifying overexpressed genes from both groups..."):
                             union_genes, genes1, genes2 = identify_union_overexpressed_genes(
                                 adata1, adata2, gene_use,
@@ -760,11 +760,11 @@ if __name__ == "__main__":
                             help="Download both group analyses as a single file for later import"
                         )
 
-                    # 解析成功時
+                    # When analysis succeeds
                     st.session_state.completed_analysis = True
                     st.session_state.combined_results = combined_results
                     
-                    # 成功メッセージと次のステップを案内
+                    # Success message and guide to next steps
                     st.success("Comparison analysis completed successfully!")
                     st.info("Please select 'Load saved results for visualization' from the mode selector above to view the results.")
 
@@ -941,8 +941,8 @@ if __name__ == "__main__":
             "Heatmaps", 
             "Pathway Analysis",
             "LR Contribution",
-            "Cell Signaling Roles",  # 新しいタブ
-            "Signaling Changes"      # 新しいタブ
+            "Cell Signaling Roles",  # New tab
+            "Signaling Changes"      # New tab
         ])
         
         combined_results = st.session_state.combined_results
@@ -979,9 +979,9 @@ if __name__ == "__main__":
             else:
                 cell_list = []
             
-            # カラーマップ選択部分の後に追加
+            # Add after colormap selection section
             if cell_list:
-                # カラーマップが変更された場合または初めての場合
+                # If colormap changed or first time
                 if 'cell_color_map' not in st.session_state or st.session_state.get('current_cmap', '') != cmap_name:
                     st.session_state.cell_color_map = create_cell_color_mapping(cell_list, cmap_name)
                     st.session_state.current_cmap = cmap_name
@@ -1139,7 +1139,7 @@ if __name__ == "__main__":
 
                 with col1:
 
-                    # 選択肢: "Aggregate" または 個別パスウェイの複数選択
+                    # Options: "Aggregate" or multiple selection of individual pathways
                     option_type = st.radio(
                         "Pathway selection:",
                         ["Aggregate", "Specific pathways"],
@@ -1161,7 +1161,7 @@ if __name__ == "__main__":
                                 sorted(common_pathways),
                                 default=[common_pathways[0]] if common_pathways else []
                             )
-                            measure_key = "weight"  # 特定パスウェイでは常にweight
+                            measure_key = "weight"  # Always use weight for specific pathways
                         else:
                             st.warning("No pathways found in either group")
                             selected_pathway = None
@@ -1176,7 +1176,7 @@ if __name__ == "__main__":
 
 
                 with col2:
-                    # 表示カスタマイズオプション
+                    # Display customization options
                     edge_width_max = st.slider("Max edge width:", min_value=1, max_value=20, value=8, step=1)
                     circle_alpha_edge = st.slider("Edge transparency:", min_value=0.1, max_value=1.0, value=0.6, step=0.1)
                     vertex_size_max= st.slider("Max node size:", min_value=1, max_value=15, value=6, step=1)
@@ -1218,9 +1218,9 @@ if __name__ == "__main__":
                                         arrow=True,
                                         edge_width_max=edge_width_max,
                                         alpha_edge=circle_alpha_edge,
-                                     #   vertex_weight=vertex_weight, #計算できてない
+                                     #   vertex_weight=vertex_weight, # Not calculated yet
                                         vertex_size_max=vertex_size_max,
-                                        color_use=st.session_state.get('cell_color_map', None),  # 色マッピングを追加
+                                        color_use=st.session_state.get('cell_color_map', None),  # Add color mapping
                                         sources_use=sources_use,
                                         targets_use=targets_use
                                     )
@@ -1234,9 +1234,9 @@ if __name__ == "__main__":
                                         arrow=True,
                                         edge_width_max=edge_width_max,
                                         alpha_edge=circle_alpha_edge,
-                                     #   vertex_weight=vertex_weight, #計算できてない
+                                     #   vertex_weight=vertex_weight, # Not calculated yet
                                         vertex_size_max=vertex_size_max,
-                                        color_use=st.session_state.get('cell_color_map', None)  # 色マッピングを追加
+                                        color_use=st.session_state.get('cell_color_map', None)  # Add color mapping
                                     )
                             
                             st.pyplot(fig1)
@@ -1278,9 +1278,9 @@ if __name__ == "__main__":
                                         arrow=True,
                                         edge_width_max=edge_width_max,
                                         alpha_edge=circle_alpha_edge,
-                                     #   vertex_weight=vertex_weight, #計算できてない
+                                     #   vertex_weight=vertex_weight, # Not calculated yet
                                         vertex_size_max=vertex_size_max,
-                                        color_use=st.session_state.get('cell_color_map', None),  # 色マッピングを追加
+                                        color_use=st.session_state.get('cell_color_map', None),  # Add color mapping
                                         sources_use=sources_use,
                                         targets_use=targets_use
                                     )
@@ -1297,7 +1297,7 @@ if __name__ == "__main__":
                                         alpha_edge=circle_alpha_edge,
                                       #  vertex_weight=vertex_weight,
                                         vertex_size_max=vertex_size_max,
-                                        color_use=st.session_state.get('cell_color_map', None)  # 色マッピングを追加
+                                        color_use=st.session_state.get('cell_color_map', None)  # Add color mapping
                                     )
                             
                             st.pyplot(fig2)
@@ -1410,9 +1410,9 @@ if __name__ == "__main__":
             if st.button("Generate heatmaps"):
                 heatmap_files = []
                 
-                # データマトリックスを取得して最大値を計算
+                # Get data matrices and calculate maximum values
                 with st.spinner("Computing unified scale..."):
-                    # 選択されたヒートマップタイプに基づいてマトリックスを取得
+                    # Get matrices based on selected heatmap type
                     if heatmap_type == "Interaction strength":
                         matrix1 = result1['network']['strength_matrix'] 
                         matrix2 = result2['network']['strength_matrix']
@@ -1420,18 +1420,18 @@ if __name__ == "__main__":
                         matrix1 = result1['network']['count_matrix']
                         matrix2 = result2['network']['count_matrix']
                     
-                    # 共通の細胞タイプに揃える
+                    # Align to common cell types
                     if use_sorted_order:
                         matrix1 = matrix1.reindex(index=use_sorted_order, columns=use_sorted_order)
                         matrix2 = matrix2.reindex(index=use_sorted_order, columns=use_sorted_order)
                     
-                    # グローバルな最大値を計算
+                    # Calculate global maximum value
                     global_max = max(matrix1.values.max(), matrix2.values.max())
                     st.write(f"Max value: {global_max:.2f}")
                 
-                # 修正版関数を使用してヒートマップを生成
+                # Generate heatmap using modified function
                 with st.spinner("Generating heatmaps with unified scale..."):
-                    # measure の設定
+                    # Configure measure
                     measure = "weight" if heatmap_type == "Interaction strength" else "count"
                     
                     # Pathway filtering: create filtered result if pathways are selected
@@ -1468,7 +1468,7 @@ if __name__ == "__main__":
                         title1 = f"{group1_name} - {heatmap_type}"
                         title2 = f"{group2_name} - {heatmap_type}"
                     
-                    # 1つ目のヒートマップを生成
+                    # Generate first heatmap
                     fig_heatmap1 = netVisual_heatmap(
                         result1_to_use, 
                         measure=measure, 
@@ -1478,15 +1478,15 @@ if __name__ == "__main__":
                         sorted_order=use_sorted_order,
                         title=title1,
                         annot=heatmap_annot,
-                        vmin=0,            # 明示的に最小値を設定
-                        vmax=max_to_use,    # 共通の最大値を設定
+                        vmin=0,            # Explicitly set minimum value
+                        vmax=max_to_use,    # Set common maximum value
                         figx=heatmap_x,
                         figy=heatmap_y,
                         sources_use=sources_use if filter_cells else None,
                         targets_use=targets_use if filter_cells else None
                     )
                     
-                    # 2つ目のヒートマップを生成
+                    # Generate second heatmap
                     fig_heatmap2 = netVisual_heatmap(
                         result2_to_use, 
                         measure=measure, 
@@ -1496,22 +1496,22 @@ if __name__ == "__main__":
                         sorted_order=use_sorted_order,
                         title=title2,
                         annot=heatmap_annot,
-                        vmin=0,            # 明示的に最小値を設定
-                        vmax=max_to_use,    # 共通の最大値を設定
+                        vmin=0,            # Explicitly set minimum value
+                        vmax=max_to_use,    # Set common maximum value
                         figx=heatmap_x,
                         figy=heatmap_y,
                         sources_use=sources_use if filter_cells else None,
                         targets_use=targets_use if filter_cells else None
                     )
                 
-                # 各ヒートマップを表示
+                # Display each heatmap
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     st.write(f"### {group1_name}")
                     st.pyplot(fig_heatmap1)
                     
-                    # PDF保存とダウンロード
+                    # Save PDF and download
                     # Create pathway suffix for filename
                     if selected_pathways:
                         pathway_filename = '_'.join(selected_pathways[:2])  # Use first 2 pathways
@@ -1538,7 +1538,7 @@ if __name__ == "__main__":
                     st.write(f"### {group2_name}")
                     st.pyplot(fig_heatmap2)
                     
-                    # PDF保存とダウンロード
+                    # Save PDF and download
                     pdf_path = f"{cellchat_temp_dir}/heatmap_{group2_name}{filename_suffix}.pdf"
                     fig_heatmap2.savefig(pdf_path, bbox_inches='tight')
                     heatmap_files.append(pdf_path)
@@ -1552,7 +1552,7 @@ if __name__ == "__main__":
                             mime='application/octet-stream'
                         )
                 
-                # 差分ヒートマップの生成
+                # Generate difference heatmap
                 if 'network' in result1 and 'strength_matrix' in result1['network'] and 'network' in result2 and 'strength_matrix' in result2['network']:
                     st.subheader("Differential Heatmap")
                     
@@ -1568,9 +1568,9 @@ if __name__ == "__main__":
                                 filtered_matrix1 = matrix1.copy()
                                 filtered_matrix2 = matrix2.copy()
                             
-                            # source/targetフィルタリングを適用
+                            # Apply source/target filtering
                             if filter_cells and sources_use and targets_use:
-                                # sources_use/targets_useで指定された細胞のみを保持
+                                # Keep only cells specified in sources_use/targets_use
                                 valid_sources = [s for s in sources_use if s in filtered_matrix1.index and s in filtered_matrix1.columns]
                                 valid_targets = [t for t in targets_use if t in filtered_matrix1.columns and t in filtered_matrix1.index]
                                 
@@ -1595,19 +1595,19 @@ if __name__ == "__main__":
                                 diff_matrix = filtered_matrix2 - filtered_matrix1
                                 title = f"Differential {heatmap_type}: {group2_name} - {group1_name}{pathway_suffix}"
                             
-                            # 対称的な境界値を取得
+                            # Get symmetric boundary values
                             max_abs_val = max(abs(diff_matrix.min().min()), abs(diff_matrix.max().max()))
                             vmin = -max_abs_val
                             vmax = max_abs_val
                             
-                            # 図を作成
+                            # Create figure
                             fig_diff, ax = plt.subplots(figsize=(10, 8))
                             fmt = ".2f" if measure == "weight" else ".0f"
                             
-                            # 発散型カラーマップでヒートマップをプロット
+                            # Plot heatmap with diverging colormap
                             sns.heatmap(
                                 diff_matrix,
-                                cmap="RdBu_r",  # 発散型カラーマップ: 青が正、赤が負
+                                cmap="RdBu_r",  # Diverging colormap: blue for positive, red for negative
                                 center=0,
                                 vmin=vmin,
                                 vmax=vmax,
@@ -1625,16 +1625,16 @@ if __name__ == "__main__":
                             plt.yticks(rotation=0, fontsize=heatmap_font)
                             fig_diff.tight_layout()
 
-                            # tight_layoutの後にカラーバーを調整
+                            # Adjust colorbar after tight_layout
                             cbar_ax = fig_diff.axes[-1]
                             current_pos = cbar_ax.get_position()
-                            new_pos = [current_pos.x0, current_pos.y0, 0.01, 0.2]  # 横幅を0.02に変更
+                            new_pos = [current_pos.x0, current_pos.y0, 0.01, 0.2]  # Change width to 0.02
                             cbar_ax.set_position(new_pos)
                             
-                            # プロットを表示
+                            # Display plot
                             st.pyplot(fig_diff)
                             
-                            # PDF保存とダウンロード
+                            # Save PDF and download
                             pdf_path = f"{cellchat_temp_dir}/diff_heatmap{filename_suffix}.pdf"
                             fig_diff.savefig(pdf_path, bbox_inches='tight')
                             heatmap_files.append(pdf_path)
@@ -1648,10 +1648,10 @@ if __name__ == "__main__":
                                     mime='application/octet-stream'
                                 )
                     except Exception as e:
-                        st.error(f"差分ヒートマップの生成中にエラーが発生しました: {str(e)}")
+                        st.error(f"Error occurred while generating difference heatmap: {str(e)}")
                         st.exception(e)
                 
-                # すべてのヒートマップをZIPでダウンロード
+                # Download all heatmaps as ZIP
                 if len(heatmap_files) > 0:
                     try:
                         zip_buffer = create_zip_from_files(heatmap_files)
@@ -1664,7 +1664,7 @@ if __name__ == "__main__":
                                 mime='application/zip'
                             )
                     except Exception as e:
-                        st.error(f"ZIPファイル作成中にエラーが発生しました: {str(e)}")
+                        st.error(f"Error occurred while creating ZIP file: {str(e)}")
 
         # Tab 4: Pathway Analysis
         with tabs[3]:
@@ -1862,8 +1862,23 @@ if __name__ == "__main__":
                     # Use the lr_contribution visualization
                     try:
                         from pages.cellchat_vis import plot_lr_contribution
+                        
+                        # Prepare network data like in cellchat.py
+                        network_data1 = result1['network'].copy()
+                        
+                        # Add interaction names and LR pairs information
+                        if 'results' in result1 and not result1['results'].empty:
+                            results_df = result1['results']
+                            interaction_names = results_df['interaction_name'].tolist()
+                            lr_pairs = {}
+                            for _, row in results_df.iterrows():
+                                lr_pairs[row['interaction_name']] = f"{row['ligand']}-{row['receptor']}"
+                            
+                            network_data1['lr_names'] = lr_pairs
+                            network_data1['interaction_names'] = interaction_names
+                        
                         fig_lr1 = plot_lr_contribution(
-                            result1,
+                            network_data1,
                             top_n=10,
                             figsize=(10, 8)
                         )
@@ -1897,8 +1912,23 @@ if __name__ == "__main__":
                     # Use the lr_contribution visualization
                     try:
                         from pages.cellchat_vis import plot_lr_contribution
+                        
+                        # Prepare network data like in cellchat.py
+                        network_data2 = result2['network'].copy()
+                        
+                        # Add interaction names and LR pairs information
+                        if 'results' in result2 and not result2['results'].empty:
+                            results_df = result2['results']
+                            interaction_names = results_df['interaction_name'].tolist()
+                            lr_pairs = {}
+                            for _, row in results_df.iterrows():
+                                lr_pairs[row['interaction_name']] = f"{row['ligand']}-{row['receptor']}"
+                            
+                            network_data2['lr_names'] = lr_pairs
+                            network_data2['interaction_names'] = interaction_names
+                        
                         fig_lr2 = plot_lr_contribution(
-                            result2,
+                            network_data2,
                             top_n=10,
                             figsize=(10, 8)
                         )
@@ -2075,20 +2105,20 @@ if __name__ == "__main__":
             st.markdown("#### Cell Type Signaling Role Comparison")
             
             st.info("""
-            このタブでは、2つのデータセット間で各細胞タイプのシグナリング役割の変化を比較します。
-            散布図の左右の位置（X軸）は送信シグナル強度、上下の位置（Y軸）は受信シグナル強度を表します。
-            円の大きさは相互作用数（リンク数）を表します。
-            右上に位置する細胞タイプほど、ネットワーク内で中心的な役割を担っています。
+            In this tab, we compare changes in signaling roles of each cell type between two datasets.
+            The left-right position (X-axis) in the scatter plot represents outgoing signal strength, and the up-down position (Y-axis) represents incoming signal strength.
+            The size of the circles represents the number of interactions (links).
+            Cell types positioned in the upper right have more central roles in the network.
             """)
             
-            # リンク数に基づいてドットサイズを標準化
+            # Standardize dot size based on link count
             col1, col2 = st.columns(2)
             
             with col1:
-                dot_size_min = st.slider("最小ドットサイズ:", 1, 10, 2)
-                dot_size_max = st.slider("最大ドットサイズ:", dot_size_min+1, 20, 6)
-                font_size = st.slider("フォントサイズ:", 6, 14, 10)
-                do_label = st.checkbox("細胞タイプをラベル表示", value=True)
+                dot_size_min = st.slider("Minimum dot size:", 1, 10, 2)
+                dot_size_max = st.slider("Maximum dot size:", dot_size_min+1, 20, 6)
+                font_size = st.slider("Font size:", 6, 14, 10)
+                do_label = st.checkbox("Show cell type labels", value=True)
             
             with col2:
                 role_x = st.slider("Fig width:", min_value=1, max_value=20, value=8)
@@ -2097,14 +2127,14 @@ if __name__ == "__main__":
             if st.button("Generate Cell Signaling Role Plots"):
                 with st.spinner("Generating plots..."):
                     try:
-                        # 各データセットのネットワークリンク数を取得
+                        # Get network link counts for each dataset
                         from pages.cellchat_vis import netAnalysis_signalingRole_scatter
                         
-                        # 両方のデータセットのリンク数を取得して統一的なスケールを適用
+                        # Get link counts from both datasets and apply unified scale
                         count_matrix1 = result1['network']['count_matrix']
                         count_matrix2 = result2['network']['count_matrix']
                         
-                        # リンク数の計算: 行和+列和-対角要素
+                        # Calculate link count: row sum + column sum - diagonal
                         if hasattr(count_matrix1, 'values'):
                             num_link1 = np.sum(count_matrix1.values, axis=0) + np.sum(count_matrix1.values, axis=1) - np.diag(count_matrix1.values)
                             num_link2 = np.sum(count_matrix2.values, axis=0) + np.sum(count_matrix2.values, axis=1) - np.diag(count_matrix2.values)
@@ -2117,7 +2147,7 @@ if __name__ == "__main__":
                         weight_MinMax = [np.min(num_link), np.max(num_link)]
                     #    st.write(weight_MinMax)
 
-                        # グループ1のプロット
+                        # Plot for group 1
                         fig1 = netAnalysis_signalingRole_scatter(
                             result1,
                             title=f"Signaling Roles - {group1_name}",
@@ -2134,7 +2164,7 @@ if __name__ == "__main__":
                         )
 
                                      
-                        # グループ2のプロット
+                        # Plot for group 2
                         fig2 = netAnalysis_signalingRole_scatter(
                             result2,
                             title=f"Signaling Roles - {group2_name}",
@@ -2149,9 +2179,9 @@ if __name__ == "__main__":
                             sources_use=sources_use if filter_cells else None,
                             targets_use=targets_use if filter_cells else None
                         )
-                        # x, y のmin-maxを揃える
-                        ax1 = fig1.axes[0]  # fig1 の Axes オブジェクトを取得
-                        ax2 = fig2.axes[0]  # fig2 の Axes オブジェクトを取得
+                        # Align min-max for x, y
+                        ax1 = fig1.axes[0]  # Get Axes object from fig1
+                        ax2 = fig2.axes[0]  # Get Axes object from fig2
 
                         xlim1 = ax1.get_xlim()
                         xlim2 = ax2.get_xlim()
@@ -2172,7 +2202,7 @@ if __name__ == "__main__":
                         with col1:
                             st.pyplot(fig1)
                             
-                            # PDF保存・ダウンロード
+                            # Save PDF and download
                             pdf_path1 = f"{cellchat_temp_dir}/signaling_roles_{group1_name}.pdf"
                             fig1.savefig(pdf_path1, bbox_inches='tight')
                             
@@ -2185,7 +2215,7 @@ if __name__ == "__main__":
                                 )
                         with col2:
                             st.pyplot(fig2)                       
-                            # PDF保存・ダウンロード
+                            # Save PDF and download
                             pdf_path2 = f"{cellchat_temp_dir}/signaling_roles_{group2_name}.pdf"
                             fig2.savefig(pdf_path2, bbox_inches='tight')
                             
@@ -2197,7 +2227,7 @@ if __name__ == "__main__":
                                     mime='application/octet-stream'
                                 )
                         
-                        # すべてのプロットをZIPでダウンロード
+                        # Download all plots as ZIP
                         zip_files = [pdf_path1, pdf_path2]
                         if len(zip_files) > 0:
                             try:
@@ -2216,96 +2246,96 @@ if __name__ == "__main__":
                         st.error(f"Error generating signaling role plots: {str(e)}")
                         st.exception(e)
 
-        # 新しいタブ - 特定の細胞タイプのシグナル変化
-        # 「Signaling Changes」タブの部分のみを更新
+        # New tab - Cell-specific signaling changes
+        # Update only the 'Signaling Changes' tab section
 
 
         with tabs[6]:
             st.markdown("#### Cell-Specific Signaling Changes Analysis")
-            
+
             st.info("""
-            このタブでは、特定の細胞タイプに着目し、2つのデータセット間でのシグナリングパスウェイの変化を分析します。
-            
-            - X軸: 送信シグナル強度の差分 (第2グループ - 第1グループ)
-            - Y軸: 受信シグナル強度の差分 (第2グループ - 第1グループ)
-            - 形状: 
-              - 四角形 (□): 受信特異的な変化
-              - 三角形 (△): 送信特異的な変化
-              - ダイヤモンド (◇): 送受信両方に特異的な変化
-            
-            右上の領域にあるパスウェイは、2つ目のデータセットで増加したシグナルを表します。
+            This tab analyzes signaling pathway changes between two datasets, focusing on a specific cell type.
+
+            - X-axis: Difference in outgoing signal strength (Group 2 - Group 1)
+            - Y-axis: Difference in incoming signal strength (Group 2 - Group 1)
+            - Shape:
+              - Square (□): Incoming-specific changes
+              - Triangle (△): Outgoing-specific changes
+              - Diamond (◇): Both incoming and outgoing specific changes
+
+            Pathways in the upper-right region represent increased signals in the second dataset.
             """)
 
-            # 共通の細胞タイプを抽出
+            # Extract common cell types
             cell_types1 = result1['net']['dimnames'][0]
             cell_types2 = result2['net']['dimnames'][0]
             common_cells = sorted(set(cell_types1).intersection(set(cell_types2)))
             
             if not common_cells:
-                st.warning("2つのデータセット間に共通の細胞タイプが見つかりません")
+                st.warning("No common cell types found between the two datasets")
             else:
-                # 細胞タイプの選択
+                # Cell type selection
                 idents_use = st.selectbox(
-                    "分析する細胞タイプを選択:",
+                    "Select cell type to analyze:",
                     options=common_cells,
                     index=0
                 )
                 
-                # パスウェイの選択・除外オプション
+                # Pathway selection/exclusion options
                 all_pathways1 = set(result1['netP']['pathways']) if 'netP' in result1 and 'pathways' in result1['netP'] else set()
                 all_pathways2 = set(result2['netP']['pathways']) if 'netP' in result2 and 'pathways' in result2['netP'] else set()
                 all_pathways = sorted(all_pathways1.union(all_pathways2))
                 
                 if not all_pathways:
-                    st.warning("パスウェイ情報が見つかりません")
+                    st.warning("Pathway information not found")
                 else:
-                    # パスウェイ選択方法
+                    # Pathway selection method
                     pathway_selection = st.radio(
-                        "パスウェイ選択方法:",
-                        ["すべて表示", "特定のパスウェイを選択", "特定のパスウェイを除外"],
+                        "Pathway selection method:",
+                        ["Show all", "Select specific pathways", "Exclude specific pathways"],
                         horizontal=True
                     )
                     
                     signaling_include = None
                     signaling_exclude = None
                     
-                    if pathway_selection == "特定のパスウェイを選択":
+                    if pathway_selection == "Select specific pathways":
                         signaling_include = st.multiselect(
-                            "含めるパスウェイを選択:",
+                            "Select pathways to include:",
                             options=all_pathways,
                             default=all_pathways[:min(5, len(all_pathways))]
                         )
-                    elif pathway_selection == "特定のパスウェイを除外":
+                    elif pathway_selection == "Exclude specific pathways":
                         default_exclude = [p for p in ["MIF"] if p in all_pathways]
                         signaling_exclude = st.multiselect(
-                            "除外するパスウェイを選択:",
+                            "Select pathways to exclude:",
                             options=all_pathways,
                             default=default_exclude
                         )
                     
-                    # プロット設定
+                    # Plot settings
                     col1, col2, col3 = st.columns(3)
                     
                     with col1:
-                        dot_size = st.slider("ドットサイズ:", 2, 10, 3)
-                        font_size = st.slider("フォントサイズ:", 8, 16, 12)
+                        dot_size = st.slider("Dot size:", 2, 10, 3)
+                        font_size = st.slider("Font size:", 8, 16, 12)
                         scatter_x = st.slider("Scatter width:", min_value=1, max_value=20, value=6)
                         scatter_y = st.slider("Scatter height:", min_value=1, max_value=20, value=6)
                                                     
                     with col2:
-                        # カラー設定の追加
+                        # Add color settings
                         color_mode = st.radio(
-                            "カラーモード:",
-                            ["単色", "パターン別色分け"],
+                            "Color mode:",
+                            ["Single color", "Color by pattern"],
                             horizontal=True,
-                            help="単色: すべてのドットに同じ色を使用、パターン別色分け: パターン(Incoming/Outgoing/Both/Other)ごとに異なる色を使用",
+                            help="Single color: Use same color for all dots. Color by pattern: Use different colors for each pattern (Incoming/Outgoing/Both/Other)",
                             index=1
                         )
                         
-                        if color_mode == "単色":
+                        if color_mode == "Single color":
                             use_color_by_pattern = False
                             color_use = st.selectbox(
-                                "ドットの色:",
+                                "Dot color:",
                                 ["teal", "blue", "green", "red", "purple", "orange"],
                                 index=0
                             )
@@ -2314,27 +2344,27 @@ if __name__ == "__main__":
                             use_color_by_pattern = True
                             color_use = None
                             color_palette = st.selectbox(
-                                "カラーパレット:",
+                                "Color palette:",
                                 ["Set1", "Set2", "Set3", "tab10", "tab20", "Dark2", "Pastel1", "Pastel2", "Paired", "Accent"],
                                 index=9,
-                                help="パターンごとの色分けに使用するカラーパレット"
+                                help="Color palette used for coloring by pattern"
                             )
-                                                # ラベル設定
-                        max_label = st.slider("表示するラベル数:", 5, 50, 20)
+                                                # Label settings
+                        max_label = st.slider("Number of labels to display:", 5, 50, 20)
 
-                        use_arrows = st.checkbox("矢印でラベル表示", value=True, 
-                                                help="ONにすると矢印を使ってラベルを表示します。OFFにするとラベルが直接ポイントの横に表示されます。")
+                        use_arrows = st.checkbox("Show labels with arrows", value=True, 
+                                                help="When ON, labels are displayed using arrows. When OFF, labels are displayed directly next to points.")
 
-                        reverse_groups = st.checkbox("グループの順序を反転する", value=False,
-                                                 help="チェックすると、解析時に第1グループと第2グループの差分が逆転します。")
+                        reverse_groups = st.checkbox("Reverse group order", value=False,
+                                                 help="When checked, the difference between group 1 and group 2 is reversed during analysis.")
 
 
                     
-                    # 実行ボタン
+                    # Run button
                     if st.button("Generate Signaling Changes Plot"):
                         with st.spinner("Analyzing signaling changes..."):
                             try:
-                                # マージされたCellChatオブジェクトを作成
+                                # Create merged CellChat object
                                 merged_cellchat = {
                                     'group1': {
                                         'name': group1_name,
@@ -2346,7 +2376,7 @@ if __name__ == "__main__":
                                     }
                                 }
                                 
-                                # 逆転スイッチがオンの場合、グループの順序を入れ替える
+                                # If reverse switch is on, swap group order
                                 if reverse_groups:
                                     merged_cellchat = {
                                         'group1': {
@@ -2359,15 +2389,15 @@ if __name__ == "__main__":
                                         }
                                     }
                                 
-                                # 分析実行
+                                # Run analysis
                                 fig = netAnalysis_signalingChanges_scatter(
                                     merged_cellchat,
                                     idents_use=idents_use,
                                     signaling_exclude=signaling_exclude,
                                     signaling_include=signaling_include,
                                     color_use=color_use,
-                                    use_color_by_pattern=use_color_by_pattern,  # 新しいパラメータ
-                                    color_palette=color_palette,  # 新しいパラメータ
+                                    use_color_by_pattern=use_color_by_pattern,  # New parameter
+                                    color_palette=color_palette,  # New parameter
                                     font_size=font_size,
                                     dot_size=dot_size,
                                     max_label=max_label,
@@ -2375,10 +2405,10 @@ if __name__ == "__main__":
                                     figsize=(scatter_x, scatter_y)
                                 )
                                 
-                                # プロット表示
+                                # Display plot
                                 st.pyplot(fig)
                                 
-                                # PDF保存・ダウンロード
+                                # Save PDF and download
                                 pdf_path = f"{cellchat_temp_dir}/signaling_changes_{idents_use}.pdf"
                                 fig.savefig(pdf_path, bbox_inches='tight')
                                 

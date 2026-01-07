@@ -44,16 +44,29 @@ def remove_after_space(i):
     else:
         return i
 
-def plot_mean_sd_comparison(df_before, df_after):
+def plot_mean_sd_comparison(df_before, df_after, groups=None):
+    """
+    Plot mean-SD comparison before and after normalization.
+
+    Parameters:
+    -----------
+    df_before : DataFrame
+        Data before normalization
+    df_after : DataFrame
+        Data after normalization
+    groups : list or None
+        Group labels for each sample (same order as columns)
+        If provided, samples will be color-coded by group
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
-    
-    # 各遺伝子（行）の平均と標準偏差を計算
+
+    # Calculate mean and standard deviation for each gene (row)
     mean_before = df_before.mean(axis=1)
     sd_before = df_before.std(axis=1)
     mean_after = df_after.mean(axis=1)
     sd_after = df_after.std(axis=1)
-    
-    # 正規化前のプロット
+
+    # Plot before normalization
     ax1.scatter(mean_before, sd_before, alpha=0.3, color='blue')
     ax1.set_title('Before Normalization', fontsize = 30)
     ax1.set_xlabel('Mean (log scale)', fontsize = 24)
@@ -61,8 +74,8 @@ def plot_mean_sd_comparison(df_before, df_after):
     ax1.set_xscale('symlog')
     ax1.set_yscale('symlog')
     ax1.grid(True, linestyle='--', alpha=0.7)
-    
-    # 正規化後のプロット
+
+    # Plot after normalization
     ax2.scatter(mean_after, sd_after, alpha=0.3, color='red')
     ax2.set_title('After Normalization', fontsize = 30)
     ax2.set_xlabel('Mean (log scale)', fontsize = 24)
@@ -70,22 +83,95 @@ def plot_mean_sd_comparison(df_before, df_after):
     ax2.set_xscale('symlog')
     ax2.set_yscale('symlog')
     ax2.grid(True, linestyle='--', alpha=0.7)
-    
-    # 全体のタイトル
+
+    # Overall title
     fig.suptitle('Mean-SD Comparison Before and After Normalization', fontsize=36)
-    
-    # レイアウトの調整
+
+    # Layout adjustment
     plt.tight_layout()
-    
+
+    return fig
+
+def plot_mean_sd_by_group(df_before, df_after, groups):
+    """
+    Plot mean-SD comparison with group-wise coloring.
+    Each group's samples are used to calculate mean and SD separately.
+
+    Parameters:
+    -----------
+    df_before : DataFrame
+        Data before normalization (genes x samples)
+    df_after : DataFrame
+        Data after normalization (genes x samples)
+    groups : list
+        Group labels for each sample (same order as columns)
+    """
+    import matplotlib.cm as cm
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+
+    # Get unique groups and assign colors
+    unique_groups = sorted(set(groups))
+    n_groups = len(unique_groups)
+    colors = cm.get_cmap('tab10')(range(n_groups))
+    group_colors = {group: colors[i] for i, group in enumerate(unique_groups)}
+
+    # Plot for each group
+    for group in unique_groups:
+        # Get sample indices for this group
+        group_mask = [g == group for g in groups]
+        group_samples_before = df_before.loc[:, group_mask]
+        group_samples_after = df_after.loc[:, group_mask]
+
+        # Calculate mean and SD across samples in this group
+        mean_before_group = group_samples_before.mean(axis=1)
+        sd_before_group = group_samples_before.std(axis=1)
+        mean_after_group = group_samples_after.mean(axis=1)
+        sd_after_group = group_samples_after.std(axis=1)
+
+        # Plot before normalization
+        ax1.scatter(mean_before_group, sd_before_group,
+                   alpha=0.4, color=group_colors[group],
+                   label=f'Group: {group}', s=20)
+
+        # Plot after normalization
+        ax2.scatter(mean_after_group, sd_after_group,
+                   alpha=0.4, color=group_colors[group],
+                   label=f'Group: {group}', s=20)
+
+    # Configure before plot
+    ax1.set_title('Before Normalization (by group)', fontsize=30)
+    ax1.set_xlabel('Mean (log scale)', fontsize=24)
+    ax1.set_ylabel('Standard Deviation (log scale)', fontsize=24)
+    ax1.set_xscale('symlog')
+    ax1.set_yscale('symlog')
+    ax1.grid(True, linestyle='--', alpha=0.7)
+    ax1.legend(fontsize=16, loc='upper left')
+
+    # Configure after plot
+    ax2.set_title('After Normalization (by group)', fontsize=30)
+    ax2.set_xlabel('Mean (log scale)', fontsize=24)
+    ax2.set_ylabel('Standard Deviation (log scale)', fontsize=24)
+    ax2.set_xscale('symlog')
+    ax2.set_yscale('symlog')
+    ax2.grid(True, linestyle='--', alpha=0.7)
+    ax2.legend(fontsize=16, loc='upper left')
+
+    # Overall title
+    fig.suptitle('Mean-SD Comparison by Group', fontsize=36)
+
+    # Layout adjustment
+    plt.tight_layout()
+
     return fig
 
 
-# Rを呼び出すときはsession_stateを設定する
+# Set session_state when calling R
 if 'use_R' not in st.session_state:
     st.session_state.use_R = False
 
 
-if 'filename_add' not in globals(): #最初からやり直しになるときに以前のデータを保持
+if 'filename_add' not in globals(): #Keep previous data when starting over
  #   st.write('file name kept')
     filename_add = ""
 
@@ -190,7 +276,7 @@ if uploaded_file is not None:
     st.pyplot(fig)
     st.write(df_sum)
 
-    if any(df.sum() == 0): # count 0の列を除く
+    if any(df.sum() == 0): # Remove columns with zero counts
         st.markdown('#### There are the samples that have zero counts.')
         st.write(", ".join(df.columns[df.sum()  == 0].to_list()))
         st.write('They are removed. Now data are:')
@@ -218,26 +304,103 @@ if uploaded_file is not None:
 
 
     show_cor = st.checkbox('Show correlation coeficient matrix?')
+    st.info("💡 **Filtering options** are available in the **side panel** (left sidebar)")
     if show_cor:
         correlation_coefficients = df.corr()
-        fig_c, ax_c = plt.subplots() #この形式でないとエラーになる
+        fig_c, ax_c = plt.subplots() #This format is required to avoid errors
         ax_c = sns.heatmap(correlation_coefficients, vmax=1, vmin=-1, cmap='seismic', square=True,
             annot=False, xticklabels=1, yticklabels=1)
         st.pyplot(fig_c)
 
     with st.sidebar:
         st.markdown("### Filter out weakly-expressed samples")
-        st.markdown("#### Total count min:")
-        min_sample_threshold = st.number_input("count total minimum", value = 0.0, label_visibility = 'collapsed')
-       # min_sample_threshold = float(min_sample_threshold)
+        use_basic_filter = st.checkbox("Enable basic filtering", value=False)
+
+        if use_basic_filter:
+            st.markdown("#### Total count min:")
+            min_sample_threshold = st.number_input("count total minimum", value = 0.0, label_visibility = 'collapsed')
+           # min_sample_threshold = float(min_sample_threshold)
+            st.markdown("---")
+            st.markdown("##### Filter the genes > counts in all samples:")
+            min_threshold = st.number_input("count minimum", value = 0.0, label_visibility = 'collapsed')
+            min_threshold = float(min_threshold)
+            st.markdown("##### Filter the genes > counts in at least n samples:")
+            max_threshold = st.number_input("count max", value = 0.0, label_visibility = 'collapsed')
+            max_n = st.number_input("count max", value = 1, label_visibility = 'collapsed')
+            max_threshold = float(max_threshold)
+        else:
+            # Set default values (no filtering)
+            min_sample_threshold = 0.0
+            min_threshold = 0.0
+            max_threshold = 0.0
+            max_n = 1
+
         st.markdown("---")
-        st.markdown("##### Filter the genes > counts in all samples:")
-        min_threshold = st.number_input("count minimum", value = 0.0, label_visibility = 'collapsed')
-        min_threshold = float(min_threshold)
-        st.markdown("##### Filter the genes > counts in at least n samples:")
-        max_threshold = st.number_input("count max", value = 0.0, label_visibility = 'collapsed')
-        max_n = st.number_input("count max", value = 1, label_visibility = 'collapsed')
-        max_threshold = float(max_threshold)
+        st.markdown("### edgeR::filterByExpr filtering")
+        use_edgeR_filter = st.checkbox("Use edgeR::filterByExpr()", value=False)
+        if use_edgeR_filter:
+            st.markdown("##### min.count:")
+            filter_min_count = st.number_input("Minimum count required per sample", value=10, min_value=0, label_visibility='collapsed')
+            st.markdown("##### min.total.count:")
+            filter_min_total_count = st.number_input("Minimum total count across all samples", value=15, min_value=0, label_visibility='collapsed')
+            st.markdown("##### min.prop:")
+            filter_min_prop = st.number_input("Minimum proportion of samples in smallest group", value=0.7, min_value=0.0, max_value=1.0, step=0.1, label_visibility='collapsed')
+            st.markdown("##### large.n:")
+            filter_large_n = st.number_input("Group size considered to be 'large'", value=10, min_value=0, label_visibility='collapsed',
+                                            help="If group size is larger than this value, the calculation method for min.prop changes. For small group sizes, decreasing this value makes min.prop more effective. Set to a value smaller than the minimum group size.")
+
+            with st.expander("ℹ️ About edgeR::filterByExpr"):
+                st.info("""
+                **edgeR::filterByExpr()** filters genes with low expression based on CPM (counts per million).
+
+                **Parameters**:
+                - **min.count**: Minimum count for each sample (default: 10). Used to calculate CPM threshold
+                - **min.total.count**: Minimum total count across all samples (default: 15)
+                - **min.prop**: Proportion of samples in the smallest group (default: 0.7)
+                - **large.n**: Group size considered "large" (default: 10)
+
+                ---
+
+                **⚠️ Important Behavior Rules**:
+
+                **With default settings (large.n=10)**:
+                - Min group size ≤ 10 → **min.prop is ignored**. Expression required in at least min group size samples
+                - Min group size > 10 → min.prop takes effect
+
+                **Formula**:
+                ```
+                if min_group_size > large.n:
+                    required_samples = large.n + (min_group_size - large.n) × min.prop
+                else:
+                    required_samples = min_group_size  # min.prop is ignored
+                ```
+
+                ---
+
+                **🔧 How to use min.prop with small groups**:
+
+                **Rule**: Set `large.n < min_group_size`
+
+                **Recommended settings**:
+                - Min group size = 1 → `large.n = 0`
+                - Min group size = 2 → `large.n = 0` or `1`
+                - Min group size = 3-9 → `large.n = 0 to (min_group_size-1)`
+                - Min group size ≥ 10 → Default (10) is OK
+
+                **Example 1**: Min group=2, large.n=1, min.prop=0.5
+                → Required samples = 1 + (2-1)×0.5 = 1.5 → 2 samples (rounded up)
+
+                **Example 2**: Min group=2, large.n=0, min.prop=0.0
+                → Required samples = 0 + (2-0)×0.0 = 0 → 0 samples (very lenient)
+
+                **Example 3**: Min group=2, large.n=0, min.prop=1.0
+                → Required samples = 0 + (2-0)×1.0 = 2 → 2 samples
+                """)
+        else:
+            filter_min_count = None
+            filter_min_total_count = None
+            filter_min_prop = None
+            filter_large_n = None
 
 
     if min_sample_threshold > 0:
@@ -264,8 +427,9 @@ if uploaded_file is not None:
         st.write("Filtered after max threshold:")
         st.write(f"From {org_len} to {len(df)} genes.")
 
-    with st.form("Set_method and transformation"):
-        st.markdown("##### 1. Normalization method:")
+
+    with st.form("Set_method"):
+        st.markdown("##### Normalization method:")
         convert_to = st.radio(
         "",
         ('TMM','UQ','CTF', 'CUF', 'CPM', 'rlog', 'vst', 'RPKM to TPM', 'None'), key='TMM', label_visibility='collapsed')
@@ -273,23 +437,22 @@ if uploaded_file is not None:
             st.write("using rnanorm package: https://rnanorm.readthedocs.io/en/latest/index.html")
             st.write("For CTF and CUF: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02568-9")
 
-        st.markdown("##### 2. Log transformation:")
-        log_transform = st.radio(
-        "",
-        ('None', 'log2(x+1)', 'ln(x+1)', 'log10(x+1)', 'asinh (hyperbolic arcsine transformation)'), key='None', label_visibility='collapsed')
-        st.write("###### Log transformation does not apply to rlog or vst.")
-        st.write("  ")
-        st.markdown("##### 3. Standardization:")
+        submitted = st.form_submit_button("Set normalization method and go")
+
+    # Log transformation and standardization options (outside form)
+    if submitted or st.session_state.use_R:
+        # Show log transformation option only if NOT rlog or vst
+        if convert_to not in ['rlog', 'vst']:
+            st.markdown("##### Log transformation:")
+            log_transform = st.radio(
+            "",
+            ('None', 'log2(x+1)', 'ln(x+1)', 'log10(x+1)', 'asinh (hyperbolic arcsine transformation)'), key='log_transform_radio', label_visibility='collapsed')
+        else:
+            log_transform = "None"  # rlog/vst don't need log transformation
+
+        st.markdown("##### Standardization:")
         zscore = st.checkbox(" Z-score transformation", value = False)
         st.write("  ")
-
-        submitted = st.form_submit_button("Set options and go")
-
-
-    if submitted or st.session_state.use_R:
-
-        if convert_to in ['rlog', 'vst']:
-            log_transform = "None" # log_transofrmをキャンセル
 
         if convert_to == "CTF":
             from rnanorm import CTF
@@ -324,12 +487,8 @@ if uploaded_file is not None:
             st.session_state.use_R = True
             import rpy2.robjects as ro
             from rpy2.robjects.packages import importr
-            from rpy2.robjects import pandas2ri
             from rpy2.robjects.vectors import StrVector
-            import pyper
-            r = pyper.R(use_pandas=True)
-            script_path = os.path.join(os.path.dirname(__file__), "deseq2_func.R")
-            f = ro.r(f"source('{script_path}')") # full pathが必要
+            f = ro.r("source('./pages/deseq2_func.R')") # full pathが必要
 
             condition = [str(i) for i in df.columns.tolist()] #error防止
             group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
@@ -339,11 +498,26 @@ if uploaded_file is not None:
             df = df.astype(float)
             df = df.round(0)
             batch = None
-            group = st.checkbox('Set group?', value=True)
+            group = st.checkbox('Set group for vst and rlog?', value=True,
+                               help='Choose whether to use group information for rlog/vst normalization.'
+                                    'Checked (recommended): equivalent to blind=FALSE. Emphasizes between-group differences, suitable for PCA/heatmaps.'
+                                    'Unchecked: equivalent to blind=TRUE. Completely unsupervised analysis, suitable for quality control and outlier detection.')
             use_batch = st.checkbox('Set batch and use limma::removeBatchEffect?', value=False)
-            if group or use_batch:
-                with st.form("Set_groups and batch"):
+
+            # Show group setting form if either edgeR filter is enabled OR group/batch is checked
+            if use_edgeR_filter or group or use_batch:
+                with st.form("Set_groups_and_batch"):
+                    # Display appropriate message based on what group is being used for
+                    group_usage_msg = "##### Group table for "
+                    purposes = []
+                    if use_edgeR_filter:
+                        purposes.append("edgeR::filterByExpr filtering")
                     if group:
+                        purposes.append("vst/rlog normalization")
+                    group_usage_msg += " AND ".join(purposes) if purposes else "filtering/normalization"
+                    st.markdown(group_usage_msg)
+
+                    if group or use_edgeR_filter:
                         edited_df_e = st.data_editor(df_e)
                         condition = edited_df_e.iloc[:,0].tolist()
                         st.write('Group: ' + '  '.join(condition))
@@ -362,6 +536,7 @@ if uploaded_file is not None:
                     group_submitted = st.form_submit_button("Set group/batch")
 
             if st.button('Run calc'):
+                # Create temp directory first
                 temp_dir = "temp/" + str(round(time.time()))
 
                 if not os.path.exists('temp'):
@@ -371,15 +546,98 @@ if uploaded_file is not None:
                     clear_old_files("temp")
                 os.mkdir(temp_dir)
 
-                r.assign('df',df)
-                pyper_df_path = "saveRDS(df, '" + temp_dir + "/pyper_df.RDS')"
-                r(pyper_df_path)
-                read_pyper_df = "cts <- readRDS('" + temp_dir + "/pyper_df.RDS')"
-                ro.r(read_pyper_df)
+                # Apply edgeR::filterByExpr filtering first if enabled
+                if use_edgeR_filter:
+                    org_len = len(df)
+                    st.markdown("#### Applying edgeR::filterByExpr filtering...")
 
+                    import rpy2.robjects as ro
+                    from rpy2.robjects.packages import importr
 
-                #まずベクターに変換
-                r_condition =  ro.StrVector(condition)
+                    # Import edgeR
+                    edgeR = importr('edgeR')
+
+                    # Save DataFrame to CSV temporarily
+                    filter_temp_csv = temp_dir + "/filter_temp.csv"
+                    df.to_csv(filter_temp_csv)
+
+                    # Create R code to set filter_groups
+                    filter_groups_code = '"' + '", "'.join(condition) + '"'
+
+                    # Run filterByExpr with group information
+                    r_output = ro.r(f"""
+                    library(edgeR)
+
+                    # Read data from CSV
+                    df_filter <- read.csv('{filter_temp_csv}', row.names=1, check.names=FALSE)
+
+                    # Set parameters
+                    min_count <- {filter_min_count}
+                    min_total_count <- {filter_min_total_count}
+                    min_prop <- {filter_min_prop}
+                    large_n <- {filter_large_n}
+
+                    # Set groups
+                    filter_groups <- c({filter_groups_code})
+
+                    cat('Number of samples:', ncol(df_filter), '\\n')
+                    cat('Parameters: min.count=', min_count, ', min.total.count=', min_total_count, ', min.prop=', min_prop, ', large.n=', large_n, '\\n')
+
+                    # Create group factor
+                    group <- factor(filter_groups)
+                    cat('Groups:', as.character(group), '\\n')
+                    group_table <- table(group)
+                    cat('Group sizes:', paste(names(group_table), '=', group_table, collapse=', '), '\\n')
+                    smallest_group <- min(group_table)
+                    cat('Smallest group size:', smallest_group, '\\n')
+                    min_samples_needed <- ceiling(smallest_group * min_prop)
+                    cat('Minimum samples needed (', min_prop, ' of smallest group):', min_samples_needed, '\\n')
+                    cat('Note: Since smallest group (', smallest_group, ') is ', ifelse(smallest_group >= large_n, '>=', '<'), ' large.n (', large_n, '), edgeR will use ', ifelse(smallest_group >= large_n, 'standard', 'modified'), ' calculation.\\n\\n')
+
+                    # Create DGEList object
+                    dge <- DGEList(counts=df_filter, group=group)
+
+                    # Apply filterByExpr
+                    keep <- filterByExpr(dge, min.count=min_count, min.total.count=min_total_count, min.prop=min_prop, large.n=large_n)
+                    cat('Genes passing filter:', sum(keep), 'out of', length(keep), '\\n')
+
+                    filtered_genes <- rownames(df_filter)[keep]
+                    """)
+
+                    # Get the filtered gene names
+                    filtered_genes = list(ro.r['filtered_genes'])
+                    df = df.loc[filtered_genes]
+
+                    st.write(f"**Filter parameters:**")
+                    st.write(f"- min.count={filter_min_count}, min.total.count={filter_min_total_count}, min.prop={filter_min_prop}, large.n={filter_large_n}")
+                    st.write(f"- Groups: {', '.join(set(condition))}")
+                    st.write(f"**Result:** From {org_len} to {len(df)} genes ({len(df)/org_len*100:.1f}% retained, {org_len - len(df)} genes removed).")
+                    st.write(df.head(3))
+                    st.markdown("---")
+
+                # If group checkbox is OFF for vst/rlog, use sample names instead of edited groups
+                # This needs to be done BEFORE edgeR filtering uses 'condition'
+                vst_rlog_condition = condition if group else [str(i) for i in df.columns.tolist()]
+
+                # Convert DataFrame to R matrix using rpy2 directly (avoiding pandas2ri.iteritems issue)
+                from rpy2.robjects import FloatVector, StrVector, IntVector
+                import rpy2.robjects as robjects
+
+                # Flatten dataframe to vector (column-major order for R)
+                r_vector = FloatVector(df.values.T.flatten())
+
+                # Create R matrix with proper dimensions
+                r_matrix = robjects.r.matrix(r_vector, nrow=len(df), ncol=len(df.columns), byrow=False)
+
+                # Assign to R environment first
+                ro.r.assign('cts', r_matrix)
+
+                # Set column and row names in R
+                ro.r('colnames(cts) <- c(' + ','.join([f'"{c}"' for c in df.columns]) + ')')
+                ro.r('rownames(cts) <- c(' + ','.join([f'"{r}"' for r in df.index]) + ')')
+
+                #まずベクターに変換 (use vst_rlog_condition for DESeq2)
+                r_condition =  ro.StrVector(vst_rlog_condition)
                 ro.r.assign('condition', r_condition)
                 ro.r.assign('temp_dir', temp_dir)
 
@@ -517,15 +775,15 @@ if uploaded_file is not None:
             
             with st.expander("ℹ️ RLE Plotについて"):
                 st.info("""
-                **RLE (Relative Log Expression) Plot**とは：
+                **RLE (Relative Log Expression) Plot** explanation:
                 
-                各サンプルの発現量を、全サンプルの中央値と比較したプロットです。
+                A plot comparing each sample's expression levels to the median across all samples.
                 
-                - **計算方法**: 各遺伝子について、全サンプルの中央値を計算し、各サンプルの値から中央値を引いた値をプロット
-                - **理想的な状態**: すべてのボックスが0付近に中心を持ち、幅が狭い
-                - **問題がある場合**: 特定のサンプルが0から大きく離れている、または幅が広い
+                - **Calculation method**: For each gene, calculate the median across all samples and plot the difference between each sample value and the median
+                - **Ideal state**: All boxes centered around 0 with narrow width
+                - **Problematic case**: Specific samples far from 0 or wide box width
                 
-                このプロットは、正規化の効果やバッチ効果の確認に有用です。
+                This plot is useful for confirming normalization effects and batch effects.
                 """)
             # Use the normalized data (df_conv) for RLE calculation
             if log_transform != "None":
@@ -555,7 +813,7 @@ if uploaded_file is not None:
 
             if show_cor:
                 correlation_coefficients = df.corr()
-                fig_c, ax_c = plt.subplots() #この形式でないとエラーになる
+                fig_c, ax_c = plt.subplots() #This format is required to avoid errors
                 ax_c = sns.heatmap(correlation_coefficients, vmax=1, vmin=-1, cmap='seismic', square=True,
                     annot=False, xticklabels=1, yticklabels=1)
                 st.pyplot(fig_c)
@@ -569,13 +827,21 @@ if uploaded_file is not None:
                 st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + '.filtered' + log_transform_word
             else:
                 file_name = os.path.splitext(uploaded_file.name)[0] + '.' + convert_to + log_transform_word + '.txt'
-                st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + log_transform_word
+                st.session_state.uploaded_file_name = os.path.splitext(uploaded_file.name)[0] + '.' + convert_to + log_transform_word
 
             st.session_state.df = df_conv
 
                 # Mean-SD Comparison Plotを追加
             fig_mean_sd = plot_mean_sd_comparison(df, df_conv)
             st.pyplot(fig_mean_sd)
+
+            # グループ別Mean-SDプロット（rlog/vstでgroupがTrueの場合のみ）
+            if convert_to in ['rlog', 'vst'] and group and 'vst_rlog_condition' in locals():
+                st.markdown("---")
+                st.markdown("### Mean-SD Comparison by Group")
+                st.caption("Each group's samples are analyzed separately to show group-specific patterns")
+                fig_mean_sd_group = plot_mean_sd_by_group(df, df_conv, vst_rlog_condition)
+                st.pyplot(fig_mean_sd_group)
 
 
             if zscore:
@@ -585,8 +851,8 @@ if uploaded_file is not None:
                 s = df_z.std(1)
                 df_z = df_z.sub(m, axis=0).div(s, axis = 0)
                 df_z = np.round(df_z, decimals=10)
-                df_z = df_z.loc[~(df_z==0).all(axis=1)] #すべて0のrowを除く
-                df_z = df_z.dropna(how='any', axis=0) #エラー対応
+                df_z = df_z.loc[~(df_z==0).all(axis=1)] #Remove rows with all zeros
+                df_z = df_z.dropna(how='any', axis=0) #Error handling
                 df_conv = df_z
                 st.markdown("#### Normalized data are standardized.")
                 

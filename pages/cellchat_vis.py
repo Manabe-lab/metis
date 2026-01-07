@@ -56,18 +56,18 @@ def netAnalysis_signalingRole_scatter(
     from matplotlib.lines import Line2D
     import traceback
     
-    # 単純化のために変換関数
+    # Conversion function for simplification
     def transform_size(size):
         return size**2 * 10
     
     try:
-        # 中心性情報の存在チェック
+        # Check for centrality information existence
         if slot_name not in net or 'centr' not in net[slot_name]:
             raise ValueError("Please run netAnalysis_computeCentrality to compute network centrality scores")
         
         centr = net[slot_name]['centr']
         
-        # 細胞タイプの取得
+        # Get cell types
         if 'net' in net and 'dimnames' in net['net'] and len(net['net']['dimnames']) > 0:
             all_cell_types = net['net']['dimnames'][0]
         else:
@@ -103,7 +103,7 @@ def netAnalysis_signalingRole_scatter(
         outgoing_cells_all = np.zeros(n_all_cells)
         incoming_cells_all = np.zeros(n_all_cells)
         
-        # 集計モード
+        # Aggregation mode
         if signaling is None:
             print("Signaling role analysis on the aggregated cell-cell communication network")
             if isinstance(centr, dict) and "aggregate" in centr:
@@ -129,21 +129,21 @@ def netAnalysis_signalingRole_scatter(
             outgoing_cells = outgoing_cells_all[filtered_indices]
             incoming_cells = incoming_cells_all[filtered_indices]
         
-        # 特定パスウェイモード
+        # Specific pathway mode
         else:
             print(f"Signaling role analysis on pathway: {signaling}")
             
-            # 文字列を配列に変換
+            # Convert string to array
             if isinstance(signaling, str):
                 signaling = [signaling]
             
-            # パスウェイ情報を取得
+            # Get pathway information
             if 'pathways' in net[slot_name]:
                 pathways = net[slot_name]['pathways']
                 if isinstance(pathways, np.ndarray):
                     pathways = pathways.tolist()
                 
-                # マッチングパスウェイの検索
+                # Search for matching pathways
                 valid_pathways = []
                 for s in signaling:
                     if s in pathways:
@@ -152,12 +152,12 @@ def netAnalysis_signalingRole_scatter(
                 if valid_pathways:
                     print(f"Found valid pathways: {valid_pathways}")
                     
-                    # パスウェイごとに中心性を集計
+                    # Aggregate centrality by pathway
                     for path in valid_pathways:
                         path_idx = pathways.index(path)
                         print(f"Processing pathway: {path} (index: {path_idx})")
                         
-                        # 中心性値へのアクセス（辞書形式）
+                        # Access centrality values（辞書形式）
                         if isinstance(centr, dict):
                             for key in centr:
                                 if (str(key) == str(path) or 
@@ -169,11 +169,11 @@ def netAnalysis_signalingRole_scatter(
                                         full_outgoing = np.array(centr[key][x_measure])
                                         full_incoming = np.array(centr[key][y_measure])
                                         
-                                        # 全細胞の値を初期化
+                                        # Initialize values for all cells
                                         temp_outgoing = np.zeros(n_all_cells)
                                         temp_incoming = np.zeros(n_all_cells)
                                         
-                                        # 値を設定
+                                        # Set values
                                         if len(full_outgoing) == n_all_cells:
                                             temp_outgoing = full_outgoing
                                         else:
@@ -182,11 +182,11 @@ def netAnalysis_signalingRole_scatter(
                                         if len(full_incoming) == n_all_cells:
                                             temp_incoming = full_incoming
                                         
-                                        # フィルタリング後の細胞のみを加算
+                                        # Add only filtered cells
                                         outgoing_cells_all[filtered_indices] += temp_outgoing[filtered_indices]
                                         incoming_cells_all[filtered_indices] += temp_incoming[filtered_indices]
                         
-                        # 中心性値へのアクセス（リスト形式）
+                        # Access centrality values（リスト形式）
                         elif path_idx < len(centr):
                             if isinstance(centr[path_idx], dict):
                                 if x_measure in centr[path_idx] and y_measure in centr[path_idx]:
@@ -194,7 +194,7 @@ def netAnalysis_signalingRole_scatter(
                                     full_outgoing = np.array(centr[path_idx][x_measure])
                                     full_incoming = np.array(centr[path_idx][y_measure])
                                     
-                                    # 配列長チェックとフィルタリング
+                                    # Check array length and filter
                                     if len(full_outgoing) == n_all_cells:
                                         outgoing_cells += full_outgoing[filtered_indices]
                                     elif len(full_outgoing) == len(filtered_indices):
@@ -218,7 +218,7 @@ def netAnalysis_signalingRole_scatter(
                                 full_outgoing = np.array(centr[key][x_measure])
                                 full_incoming = np.array(centr[key][y_measure])
                                 
-                                # 配列長チェックとフィルタリング（fallback用）
+                                # Check array length and filter（fallback用）
                                 if len(full_outgoing) == n_all_cells:
                                     outgoing_cells += full_outgoing[filtered_indices] * 0.0001
                                 elif len(full_outgoing) == len(filtered_indices):
@@ -229,7 +229,7 @@ def netAnalysis_signalingRole_scatter(
                                 elif len(full_incoming) == len(filtered_indices):
                                     incoming_cells += full_incoming * 0.0001
             
-            # 直接パスウェイ指定の場合
+            # For direct pathway specification
             else:
                 for path in signaling:
                     if path in centr:
@@ -237,7 +237,7 @@ def netAnalysis_signalingRole_scatter(
                             full_outgoing = np.array(centr[path][x_measure])
                             full_incoming = np.array(centr[path][y_measure])
                             
-                            # 配列長チェックとフィルタリング（直接パスウェイ指定用）
+                            # Check array length and filter（直接パスウェイ指定用）
                             if len(full_outgoing) == n_all_cells:
                                 outgoing_cells += full_outgoing[filtered_indices]
                             elif len(full_outgoing) == len(filtered_indices):
@@ -252,7 +252,7 @@ def netAnalysis_signalingRole_scatter(
                             else:
                                 print(f"Warning: Path {path} incoming array length {len(full_incoming)} doesn't match expected {n_all_cells} or {len(filtered_indices)}")
         
-        # リンク数の計算
+        # Calculate number of links
         if use_count:
             if 'network' in net and 'count_matrix' in net['network']:
                 count_matrix = net['network']['count_matrix']
@@ -273,7 +273,7 @@ def netAnalysis_signalingRole_scatter(
         for i, cell_idx in enumerate(filtered_indices):
             num_link[i] = np.sum(count_matrix[cell_idx, :]) + np.sum(count_matrix[:, cell_idx]) - count_matrix[cell_idx, cell_idx]
         
-        # データフレームの作成
+        # Create DataFrame
         df = pd.DataFrame({
             'x': outgoing_cells,
             'y': incoming_cells,
@@ -301,14 +301,14 @@ def netAnalysis_signalingRole_scatter(
         
         print(f"Data ranges - X: {min(outgoing_cells)}-{max(outgoing_cells)}, Y: {min(incoming_cells)}-{max(incoming_cells)}")
         
-        # グループ情報の追加
+        # Add group information
         if group is not None:
             if isinstance(group, dict):
                 df['Group'] = df['labels'].map(lambda x: group.get(x, "Others"))
             else:
                 df['Group'] = group
         
-        # カラーマッピングの設定
+        # Set color mapping
         if color_use is None:
             cmap = plt.cm.tab10
             node_colors = [cmap(i % 10) for i in range(n_cells)]
@@ -327,13 +327,13 @@ def netAnalysis_signalingRole_scatter(
         else:
             color_map_dict = {ct: color_use[i % len(color_use)] for i, ct in enumerate(cell_types)}
         
-        # マーカー設定（group情報がある場合）
+        # Set markers（group情報がある場合）
         marker_dict = {}
         if group is not None:
             unique_groups = sorted(df['Group'].unique())
             marker_dict = {g: point_shape[i % len(point_shape)] for i, g in enumerate(unique_groups)}
         
-        # ドットサイズの正規化
+        # Normalize dot size
         sizes = df['Count'].values.astype(float)
         if weight_MinMax is not None:
             min_w, max_w = weight_MinMax
@@ -347,7 +347,7 @@ def netAnalysis_signalingRole_scatter(
         dot_size_min, dot_size_max = dot_size
         sizes_plot = dot_size_min + (dot_size_max - dot_size_min) * sizes_norm
         
-        # 単一シグナルモードのデータ調整（必要に応じて）
+        # Adjust data for single signal mode（必要に応じて）
         if signaling is not None:
             # 軸範囲を調整して中心位置を合わせる必要がある場合
             # outgoing_cells と incoming_cells が非常に小さい値の場合に調整
@@ -371,10 +371,10 @@ def netAnalysis_signalingRole_scatter(
                     print(f"Applied scaling factor {scale_factor} to pathway data")
                     print(f"New data ranges - X: {min(outgoing_cells)}-{max(outgoing_cells)}, Y: {min(incoming_cells)}-{max(incoming_cells)}")
         
-        # 単一プロット形式に変更（GridSpecを使わない）
+        # Change to single plot format（GridSpecを使わない）
         fig, ax = plt.subplots(figsize=(width, height))
         
-        # 散布図のプロット
+        # Plot scatter diagram
         if group is not None:
             for g in df['Group'].unique():
                 group_df = df[df['Group'] == g]
@@ -404,7 +404,7 @@ def netAnalysis_signalingRole_scatter(
                     linewidth=0.5
                 )
         
-        # ラベル（細胞名は黒で、少し上に配置）
+        # Labels (cell names in black, slightly above)
         if do_label:
             for idx, row in df.iterrows():
                 # 単一シグナルモードでラベル位置を調整
@@ -422,7 +422,7 @@ def netAnalysis_signalingRole_scatter(
                     bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=0)
                 )
         
-        # タイトルと軸ラベルの設定
+        # Set title and axis labels
         if title:
             # タイトルをプロットの上部に配置（余白を増やす）
             plt.subplots_adjust(top=0.85)  # タイトル用の余白を確保
@@ -431,13 +431,13 @@ def netAnalysis_signalingRole_scatter(
         ax.set_xlabel(xlabel, fontsize=font_size)
         ax.set_ylabel(ylabel, fontsize=font_size)
         
-        # 軸の範囲設定
+        # Set axis range
         if xlim is not None:
             ax.set_xlim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
             
-        # 単一シグナルモードで軸範囲を自動調整
+        # Auto-adjust axis range for single signal mode
         if signaling is not None:
             # 0と最大値の間に適切なマージンを設ける
             x_max = max(outgoing_cells)
@@ -462,14 +462,14 @@ def netAnalysis_signalingRole_scatter(
             else:
                 ax.set_ylim(y_min - y_margin, y_max + y_margin)
         
-        # グリッドとスタイル
+        # Grid and style
         ax.grid(True, linestyle='--', alpha=0.3)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         
-        # 凡例の作成と配置
+        # Create and place legend
         if show_legend:
-            # 細胞タイプ凡例要素
+            # Cell type legend elements
             cell_legend_elements = []
             for ct in cell_types:
                 color = color_map_dict.get(ct, 'gray')
@@ -478,7 +478,7 @@ def netAnalysis_signalingRole_scatter(
                          markerfacecolor=color, markersize=8, alpha=dot_alpha)
                 )
             
-            # グループ凡例要素
+            # Group legend elements
             if group is not None:
                 for g in sorted(marker_dict.keys()):
                     marker = marker_dict.get(g, 'o')
@@ -487,7 +487,7 @@ def netAnalysis_signalingRole_scatter(
                               markerfacecolor='gray', markersize=8)
                     )
             
-            # サイズ凡例要素
+            # Size legend elements
             size_legend_elements = []
             if size_max > size_min:
                 min_count = df['Count'].min()
@@ -499,7 +499,7 @@ def netAnalysis_signalingRole_scatter(
                 mid_size = (dot_size_min + dot_size_max)/2
                 max_size = dot_size_max
                 
-                # サイズ凡例要素を作成
+                # Size legend elementsを作成
                 for count, size in zip([min_count, mid_count, max_count], [min_size, mid_size, max_size]):
                     adjusted_size = np.sqrt(transform_size(size))
                     size_legend_elements.append(
@@ -530,11 +530,11 @@ def netAnalysis_signalingRole_scatter(
                     frameon=True
                 )
         
-        # レイアウト調整
+        # Layout adjustment
         plt.tight_layout()
 
-        # 余白を追加して凡例が見切れないようにする
-        fig.subplots_adjust(right=0.75, bottom=0.2)  # この行を追加
+        # Add margins to prevent legend clipping
+        fig.subplots_adjust(right=0.75, bottom=0.2)  # Add this line
         
         return fig
         
@@ -542,7 +542,7 @@ def netAnalysis_signalingRole_scatter(
         print(f"Error in netAnalysis_signalingRole_scatter: {str(e)}")
         print(traceback.format_exc())
         
-        # エラー時にはシンプルな図を返す
+        # Return simple figure on error
         fig, ax = plt.subplots(figsize=(width, height))
         ax.text(0.5, 0.5, f"Error plotting data: {str(e)}", 
                ha='center', va='center', wrap=True)
@@ -567,7 +567,7 @@ def compute_flow_betweenness(G):
         # Import the required R packages
         sna = importr('sna')
         
-        # 元のグラフから直接隣接行列を作成 (修正部分)
+        # Create adjacency matrix directly from original graph (modified section)
         adj_matrix = nx.to_numpy_array(G, weight='weight')
         
         # Create the R matrix
@@ -611,7 +611,7 @@ def compute_information_centrality(G):
         sna = importr('sna')
         base = importr('base')
 
-        # 元のグラフから直接隣接行列を作成（修正部分）
+        # 元のグラフから直接隣接行列を作成（Modified section）
         adj_matrix = nx.to_numpy_array(G, weight='weight')
         
         # Create the R matrix
@@ -620,7 +620,7 @@ def compute_information_centrality(G):
         # R CellChatと同じパラメータを使用
         infocent_result = sna.infocent(r_adj_matrix, diag=True, rescale=True, cmode="lower")
         
-        # G_u を G に変更（修正部分）
+        # G_u を G に変更（Modified section）
         infocent_dict = {node: float(infocent_result[i]) for i, node in enumerate(G.nodes())}
         
         return infocent_dict
@@ -647,35 +647,35 @@ def netAnalysis_signalingRole_network(
     color_use=None  # 新しいパラメータ追加
 ):
     """
-    シグナリングネットワークの役割分析をヒートマップで可視化する関数
+    Function to visualize signaling network role analysis as heatmap
     
     Parameters
     ----------
     net : dict
-        ネットワークオブジェクト。
+        Network object。
     signaling : str, optional
-        シグナル経路名。Noneの場合は集計モード。
+        Signal pathway name。Noneの場合は集計モード。
     font_size : int, optional
-        ラベル等のフォントサイズ
+        Font size for labels
     width : int, optional
-        プロットの幅（インチ単位）
+        Plot width (inches)
     height : int, optional
-        プロットの高さ（インチ単位）
+        Plot height (inches)
     color_heatmap : str, optional
-        ヒートマップのカラースキーム
+        Heatmap color scheme
     sorted_order : list, optional
-        セルの表示順序を指定するリスト
+        List specifying cell display order
     show_value : bool, optional
-        ヒートマップの値を表示するかどうか
+        Whether to display heatmap values
     cmap_name : str, optional
-        カラーマップ名
+        Colormap name
     hide_color_bar : bool, optional
-        上部の細胞カラーバーを非表示にするかどうか
+        Whether to hide top cell color bar
         
     Returns
     -------
     fig : matplotlib.figure.Figure
-        ヒートマップ描画結果の図オブジェクト
+        Figure object with heatmap result
     """
     import matplotlib.pyplot as plt
     import numpy as np
@@ -686,14 +686,14 @@ def netAnalysis_signalingRole_network(
     import matplotlib.cm as cm
     import matplotlib.patches as patches
     
-    # --- 1. 集計モードかパスウェイ別モードかを判定 ---
+    # --- 1. Aggregation modeかパスウェイ別モードかを判定 ---
     if signaling == "Aggregate":
         if 'net' not in net or 'centr' not in net['net']:
             raise ValueError("Aggregate network centrality data not found.")
         centrality = net['net']['centr']
         title_prefix = "Aggregated "
         
-        # 集計モードの場合の隣接行列を取得
+        # Aggregation modeの場合の隣接行列を取得
         adj = np.array(net['net']['prob'])
         if adj.ndim == 3:
             adj = np.sum(adj, axis=2)
@@ -1110,7 +1110,7 @@ def netVisual_circle_individual(
         net_array = net
 
     if net_array is None:
-        raise ValueError("ネットワークマトリックスデータが見つかりません。")
+        raise ValueError("Network matrix data not found.")
 
     # 2. cell_types 未定義なら自動生成
     if cell_types is None:
@@ -1296,7 +1296,7 @@ def netVisual_circle(
     targets_use=None  # 新しいパラメータ: 使用するターゲット細胞タイプのリスト
 ):
     """
-    1枚の円形ネットワーク図を生成する関数。
+    Function to generate single circular network diagram。
     """
     import networkx as nx
     import matplotlib.cm as cm
@@ -1402,7 +1402,7 @@ def netVisual_circle(
         net_array = net
 
     if net_array is None:
-        raise ValueError("ネットワークマトリックスデータが見つかりません。")
+        raise ValueError("Network matrix data not found.")
 
     # 3) cell_types が未定義なら自動生成
     if cell_types is None:
@@ -1499,7 +1499,7 @@ def netVisual_circle(
     connected_indices = [i for i, w in enumerate(total_weights) if w > 0]
     if not connected_indices:
         fig, ax = plt.subplots(figsize=(8, 8))
-        ax.text(0.5, 0.5, "該当する細胞間相互作用がありません", ha='center', va='center', fontsize=14)
+        ax.text(0.5, 0.5, "No cell-cell interactions found", ha='center', va='center', fontsize=14)
         ax.axis('off')
         return fig
 
@@ -2253,13 +2253,13 @@ def netVisual_heatmap(
     annot : bool
         ヒートマップにデータ値を表示するか
     color_use : dict or None
-        細胞名と色のマッピング辞書。カラーバー表示に使用
+        Dictionary mapping cell names to colors。カラーバー表示に使用
     show_color_bar : bool
         カラーバーを軸に表示するか
     sources_use : list or None
-        使用するソース細胞タイプのリスト。Noneの場合は全て使用
+        List of source cell types to use。Noneの場合は全て使用
     targets_use : list or None
-        使用するターゲット細胞タイプのリスト。Noneの場合は全て使用
+        List of target cell types to use。Noneの場合は全て使用
     
     Returns
     -------
@@ -2863,7 +2863,7 @@ def create_chord_diagram_pycirclize(
     
     # 行列とセルタイプを抽出
     if pathway_name[0] == "Aggregate":
-        # 集計モード
+        # Aggregation mode
         if 'network' not in net:
             raise ValueError("Aggregated network information is not available.")
         if measure == "weight":
@@ -2991,7 +2991,7 @@ def create_chord_diagram_pycirclize(
     if not connected_indices:
         # 接続がない場合、空の図を返す
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"'{title}' に接続が見つかりません", ha='center', va='center', fontsize=14)
+        ax.text(0.5, 0.5, f"No connections found for '{title}'", ha='center', va='center', fontsize=14)
         ax.axis('off')
         plt.title(title, fontsize=16)
         return fig
@@ -3134,12 +3134,12 @@ def create_chord_diagram_pycirclize(
         return plt.gcf()
         
     except Exception as e:
-        print(f"コードダイアグラム生成エラー: {str(e)}")
+        print(f"Chord diagram generation error: {str(e)}")
         print(traceback.format_exc())
         
         # エラー時は空の図を返す
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"コードダイアグラム生成エラー: {str(e)}", 
+        ax.text(0.5, 0.5, f"Chord diagram generation error: {str(e)}", 
                 ha='center', va='center', fontsize=12, wrap=True)
         ax.axis('off')
         plt.title(title, fontsize=16)
@@ -3576,7 +3576,7 @@ def plot_network_centrality(network_summary, figsize=(12, 8)):
     try:
         if 'network_centrality' not in network_summary or network_summary['network_centrality'].empty:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "有効なネットワーク中心性データがありません", ha='center', va='center')
+            ax.text(0.5, 0.5, "No valid network centrality data", ha='center', va='center')
             ax.axis('off')
             plt.title('Network Centrality Measures')
             return fig
@@ -3585,7 +3585,7 @@ def plot_network_centrality(network_summary, figsize=(12, 8)):
         
         if len(centrality_df) == 0:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "有効なネットワーク中心性データがありません", ha='center', va='center')
+            ax.text(0.5, 0.5, "No valid network centrality data", ha='center', va='center')
             ax.axis('off')
             plt.title('Network Centrality Measures')
             return fig
@@ -3616,7 +3616,7 @@ def plot_network_centrality(network_summary, figsize=(12, 8)):
         
         if len(available_cols) <= 1:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "中心性指標が見つかりません", ha='center', va='center')
+            ax.text(0.5, 0.5, "Centrality metrics not found", ha='center', va='center')
             ax.axis('off')
             plt.title('Network Centrality Measures')
             return fig
@@ -3654,158 +3654,15 @@ def plot_network_centrality(network_summary, figsize=(12, 8)):
         return fig
     except Exception as e:
         import traceback
-        print(f"ネットワーク中心性プロット作成エラー: {str(e)}")
+        print(f"Network centrality plot error: {str(e)}")
         print(traceback.format_exc())
         
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"ネットワーク中心性プロット作成エラー: {str(e)}", ha='center', va='center', wrap=True)
+        ax.text(0.5, 0.5, f"Network centrality plot error: {str(e)}", ha='center', va='center', wrap=True)
         ax.axis('off')
         plt.title('Network Centrality Measures')
         return fig
 
-def plot_lr_contribution(network_summary, top_n=20, figsize=(12, 8)):
-    """
-    リガンド-レセプターペアの寄与度を棒グラフで描画（直接的な解決策）
-    
-    Parameters
-    ----------
-    network_summary : dict
-        ネットワーク集計結果
-    top_n : int
-        表示する上位ペアの数
-    figsize : tuple
-        図のサイズ
-        
-    Returns
-    -------
-    matplotlib.figure.Figure
-        プロットのFigureオブジェクト
-    """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
-    import traceback
-    
-    try:
-        # 寄与度データを取得
-        if 'lr_contribution' not in network_summary or np.all(network_summary['lr_contribution'] == 0):
-            fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "有効なLR寄与度データがありません", ha='center', va='center')
-            ax.axis('off')
-            plt.title('Ligand-Receptor Contributions')
-            return fig
-        
-        # 結果テーブルからリガンド-レセプター情報を取得
-        # これは必ず存在する想定
-        if 'results' not in network_summary or network_summary['results'].empty:
-            fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "結果テーブルが見つかりません", ha='center', va='center')
-            ax.axis('off')
-            plt.title('Ligand-Receptor Contributions')
-            return fig
-        
-        # LR寄与度とインタラクション名のマッピング
-        lr_values = network_summary['lr_contribution']
-        interaction_names = []
-        
-        # dimnames[2]からインタラクション名を取得
-        if 'net' in network_summary and 'dimnames' in network_summary['net'] and len(network_summary['net']['dimnames']) > 2:
-            interaction_names = list(network_summary['net']['dimnames'][2])
-        
-        # この時点でinteraction_namesが空の場合はダミー名を生成
-        if not interaction_names:
-            interaction_names = [f"LR_{i}" for i in range(len(lr_values))]
-        
-        # 各インタラクション名に対応するリガンド-レセプターペア名を見つける
-        # 結果テーブルから直接マッピング
-        results_df = network_summary['results']
-        
-        # 必要な列があるか確認
-        required_cols = ['interaction_name', 'ligand', 'receptor']
-        if not all(col in results_df.columns for col in required_cols):
-            # 必要な列がない場合、interaction_name列だけで処理
-            display_names = interaction_names
-        else:
-            # リガンド-レセプターの表示名を作成
-            name_map = {}
-            for _, row in results_df.iterrows():
-                # interaction_nameをキーとして、ligand-receptor形式のテキストをvalueとする
-                if pd.notna(row['interaction_name']) and pd.notna(row['ligand']) and pd.notna(row['receptor']):
-                    name_map[row['interaction_name']] = f"{row['ligand']}-{row['receptor']}"
-            
-            # display_namesリストを作成（存在しないものはそのままinteraction_nameを使用）
-            display_names = [name_map.get(name, name) for name in interaction_names]
-        
-        # 寄与度と表示名をまとめたデータフレームを作成
-        data = []
-        for i, (value, name) in enumerate(zip(lr_values, display_names)):
-            if value > 0:  # 寄与度が正の場合のみ含める
-                data.append({
-                    'index': i,
-                    'name': name,
-                    'value': value
-                })
-        
-        # データフレームに変換
-        df = pd.DataFrame(data)
-        
-        # 寄与度で降順ソート（明示的にascending=Falseを指定）
-        df = df.sort_values('value', ascending=False).head(top_n)
-        
-        # 図の高さを動的に調整
-        height = max(figsize[1], 0.4 * len(df) + 3)
-        adjusted_figsize = (figsize[0], height)
-        
-        # 図を作成
-        fig, ax = plt.subplots(figsize=adjusted_figsize)
-        
-        # カラーマップ（viridisの場合、高い値ほど明るい色に）
-        colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(df)))
-        
-        # 横向きの棒グラフで描画（値の大きい順）
-        bars = ax.barh(
-            range(len(df)),
-            df['value'].values,
-            color=colors
-        )
-        
-        # Y軸のラベルを明示的に設定
-        ax.set_yticks(range(len(df)))
-        ax.set_yticklabels(df['name'].values)  # ここで名前を明示的に設定
-        
-        # 棒グラフに数値を表示
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            label_x_pos = width + 0.05
-            ax.text(label_x_pos, i, f"{width:.2f}", va='center')
-        
-        # 軸ラベルなどの設定
-        ax.set_xlabel('Contribution Strength')
-        ax.set_title(f'Top {min(top_n, len(df))} Ligand-Receptor Contributions')
-        
-        # Y軸のラベル設定を調整（長い名前に対応）
-        plt.yticks(fontsize=10)
-        plt.tight_layout()
-        
-        # グリッド線の追加
-        ax.grid(axis='x', linestyle='--', alpha=0.3)
-        
-        # スタイル調整
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.set_axisbelow(True)  # グリッド線を背景に
-        
-        return fig
-    except Exception as e:
-        print(f"LR寄与度プロット作成エラー: {str(e)}")
-        print(traceback.format_exc())
-        
-        # エラーの場合は説明付きの空のプロットを返す
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"LR寄与度プロット作成エラー: {str(e)}", ha='center', va='center', wrap=True)
-        ax.axis('off')
-        plt.title('Ligand-Receptor Contributions')
-        return fig
 
 def plot_lr_contribution(network_summary, top_n=20, figsize=(12, 8)):
     """
@@ -3831,7 +3688,7 @@ def plot_lr_contribution(network_summary, top_n=20, figsize=(12, 8)):
         # 寄与度データを取得
         if 'lr_contribution' not in network_summary or np.all(network_summary['lr_contribution'] == 0):
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "有効なLR寄与度データがありません", ha='center', va='center')
+            ax.text(0.5, 0.5, "No valid LR contribution data", ha='center', va='center')
             ax.axis('off')
             plt.title('Ligand-Receptor Contributions')
             return fig
@@ -3897,7 +3754,7 @@ def plot_lr_contribution(network_summary, top_n=20, figsize=(12, 8)):
         
         if not lr_contrib_data:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "有効なLR寄与度データがありません", ha='center', va='center')
+            ax.text(0.5, 0.5, "No valid LR contribution data", ha='center', va='center')
             ax.axis('off')
             plt.title('Ligand-Receptor Contributions')
             return fig
@@ -3959,7 +3816,7 @@ def plot_lr_contribution(network_summary, top_n=20, figsize=(12, 8)):
         
         # エラーの場合は説明付きの空のプロットを返す
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"LR寄与度プロット作成エラー: {str(e)}", ha='center', va='center', wrap=True)
+        ax.text(0.5, 0.5, f"LR contribution plot error: {str(e)}", ha='center', va='center', wrap=True)
         ax.axis('off')
         plt.title('Ligand-Receptor Contributions')
         return fig
@@ -4122,7 +3979,7 @@ def plotGeneExpression(result, signaling, cellchatdb=None, group_by=None, cmap_n
     print(f"Matching genes: {', '.join(existing_genes[:10])}" + ("..." if len(existing_genes) > 10 else ""))
     
     if not existing_genes:
-        raise ValueError(f"パスウェイ {signaling} の遺伝子がデータセットに見つかりません。")
+        raise ValueError(f"Genes for pathway {signaling} not found in dataset.")
     
     # 最大表示する遺伝子数（必要に応じて調整）
     max_genes = 20

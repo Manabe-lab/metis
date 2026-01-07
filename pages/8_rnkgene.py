@@ -67,7 +67,7 @@ if use_upload == 'Yes':
 
 if df is not None:
 
-    #indexgが存在する場合はそれをGeneにする
+    # If index exists, use it as Gene column
     if type(df.index) != pd.RangeIndex:
         df['Gene'] = df.index.to_list()
 
@@ -83,7 +83,7 @@ if df is not None:
         P_column = st.selectbox(
             'Select nomilal p-value column (Don not use adjusted P values)',
             pvalue, index = 0)
-        # ジャロ・ウィンクラー距離法
+        # Jaro-Winkler distance method
         JW_dist = [Levenshtein.jaro_winkler(P_column, x) for x in fc]
         try:
             FC_column = st.selectbox(
@@ -121,8 +121,8 @@ if df is not None:
 	    if m2h & m2cap:
 	        st.write('Cannot select the both')
 	    elif m2h:
-	        #gene nameをhumanに
-	        # 欠損分は大文字に変換する
+	        # Convert gene names to human
+	        # Missing genes will be capitalized
 	        m2h_dic = load_m2h()
 	        gene_names = df.loc[:, Gene_column]
 	        human_genes = []
@@ -173,36 +173,36 @@ if df is not None:
 
 
     if st.button('Make rank file'):
-        # gene nameの欠損値判定
+        # Check for missing gene names
         na_count = df[Gene_column].isnull().sum()
         if na_count > 0:
             st.write(str (na_count) + " gene names are null. They will be removed.")
             df = df.dropna(subset=[Gene_column])
 
-        # FCやpがNAのものを除く
+        # Remove rows where FC or p are NA
         df = df[np.isfinite(df[FC_column])]
         if input_file_type != "iDEP":
-            df = df[np.isfinite(df[P_column])]        # FCやpがNAのものを除く
-            # p=0がないか、みる
+            df = df[np.isfinite(df[P_column])]        # Remove rows where FC or p are NA
+            # Check for p=0
             p_0 = (df.loc[:,P_column] == 0)
             if not any(p_0):
-                #scoreを作る
+                # Create score
 
                 if rank_metric == 'sign(LFC) x -log10(P)':
                     df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
                 else:
                     df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-             # p=0があるとき
+             # When p=0 exists
             else:
                 st.write("p=0 data are:")
                 st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
-                # 0e0がとして読まれる　LogFCも0のはず
+                # Read as 0e0, LogFC should also be 0
                 if any((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)):
                     st.write("And FC=0. Probably original 0.00E+00 means 1.")
                     st.write(df.loc[((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)), [Gene_column,FC_column,P_column]])
                     st.write("Convert 0 to 1.")
                     df.loc[((df.loc[:,FC_column] == 0) & (df.loc[:,P_column] == 0)), [FC_column,P_column]] = [1,1]
-                    p_0 = (df.loc[:,P_column] == 0) # FC>0の0
+                    p_0 = (df.loc[:,P_column] == 0) # p=0 where FC>0
                     if any(p_0):
                         st.write("Remaining p=0 data are:")
                         st.write(df.loc[(df.loc[:,P_column] == 0), (Gene_column, FC_column, P_column)])
@@ -211,33 +211,33 @@ if df is not None:
                     df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * np.sign(x[FC_column]) * inv_parameter, axis =1)
                 else:
                     df.loc[:, 'score'] = df.apply(lambda x: -1 * np.log10(x[P_column]) * x[FC_column] * inv_parameter, axis =1)
-                #Seurat "MAST"だと318あたり？
+                # Seurat "MAST" is around 318?
                 if input_file_type == 'Seurat':
-                    #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる log10を計算するとinf
+                    #max_score = np.log10(1e-324) # 1e-324 == 0 returns TRUE, calculating log10 returns inf
                     max_score = -324
                     st.write("\nMax score: "+str(max_score))
                 else:
-                    #max_score = np.log10(1e-324) # 1e-324 == 0でTRUEになる pythonでも同じ　1e-324 + 1e-323でも計算される
+                    #max_score = np.log10(1e-324) # 1e-324 == 0 returns TRUE in python too, even 1e-324 + 1e-323 is calculated
                     max_score = -324
                     st.write("\nMax score: "+str(max_score))
-                # 順位付けのためにFCの値を足す
-                df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column] #条件を括弧で囲むこと！！！
+                # Add FC values for ranking
+                df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column] # Must enclose conditions in parentheses!!!
                 df.loc[(p_0 & (df.loc[:,FC_column]<0)),'score'] = max_score + df.loc[:,FC_column]
                 st.write('Ranking score are -log10(P-values)')
         else:
             df.loc[:, 'score'] = df.loc[:,FC_column]
             st.write('Ranking scores are log2FC')
-            # gene symbolが欠損値の場合
+            # When gene symbol is missing
             df[Gene_column][df['Symbol'].isna()] = df['Row-names'][df['Symbol'].isna()]
-        # FC > 0のとき
+        # When FC > 0
         #    df.loc[(p_0 & df.loc[:,FC_column]>0),'score'] = max_score
-        #    # FC <0のとき
+        #    # When FC <0
         #    df.loc[(p_0 & df.loc[:,FC_column]<0),'score'] = max_score * -1
 
-        #NaNを除く
+        # Remove NaN
         # df = df[np.isfinite(df['score'])]
 
-        #sort
+        # Sort
         df = df.sort_values(by=["score"], ascending=False)
 
         rnk = df.loc[:, [Gene_column, 'score']]

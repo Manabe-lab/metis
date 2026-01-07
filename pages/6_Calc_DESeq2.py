@@ -1,7 +1,7 @@
-#!!!!!!!!!!!!!! pip install rpy2==3.5.1  新しいバージョンはエラーが出る
+#!!!!!!!!!!!!!! pip install rpy2==3.5.1  Newer versions cause errors
 
-# 基本的にglobal変数で計算する。
-# pythonからassgnされるのはglobal変数
+# Basically calculated using global variables.
+# Variables assigned from Python are global variables
 
 
 import streamlit as st
@@ -32,50 +32,50 @@ def clean_column_names_for_r(df):
     original_columns = df.columns.tolist()
     cleaned_columns = []
     mapping = {}
-    
+
     for col in original_columns:
-        # R安全な文字（英数字とアンダースコア）以外をピリオドに置換
+        # Replace characters that are not R-safe (alphanumeric and underscore) with periods
         cleaned = re.sub(r'[^a-zA-Z0-9_]', '.', str(col))
-        # 先頭が数字の場合はXを追加
+        # Add X if it starts with a number
         if cleaned and cleaned[0].isdigit():
             cleaned = 'X' + cleaned
-        # 連続するピリオドを1つに
+        # Collapse consecutive periods into one
         cleaned = re.sub(r'\.+', '.', cleaned)
-        # 末尾のピリオドを削除
+        # Remove trailing periods
         cleaned = cleaned.rstrip('.')
-        
+
         cleaned_columns.append(cleaned)
         if col != cleaned:
             mapping[col] = cleaned
-    
-    # データフレームのカラム名を変更
+
+    # Change DataFrame column names
     df.columns = cleaned_columns
-    
+
     return df, mapping, original_columns
 
 def remove_common_suffix(strings):
     if not strings or len(strings) == 0:
-        return []    
-    # 最も短い文字列の長さを取得
+        return []
+    # Get the length of the shortest string
     min_length = min(len(s) for s in strings)
-    # 共通の末尾部分の長さを見つける
+    # Find the length of the common suffix
     suffix_length = 0
     for i in range(1, min_length + 1):
         suffix = strings[0][-i:]
         if all(s.endswith(suffix) for s in strings):
             suffix_length = i
         else:
-            break            
-    # 共通の末尾部分が見つからない場合は元のリストを返す
+            break
+    # If no common suffix is found, return the original list
     if suffix_length == 0:
-        return strings        
-    # 共通の末尾部分を削除して新しいリストを作成
+        return strings
+    # Create a new list with the common suffix removed
     return [s[:-suffix_length] for s in strings]
 
 
 def rename_duplicates(df):
     """
-    Rename duplicate indices by adding _2, _3, etc. to subsequent occurrences   
+    Rename duplicate indices by adding _2, _3, etc. to subsequent occurrences
     Args:
         df: pandas DataFrame
     Returns:
@@ -83,34 +83,34 @@ def rename_duplicates(df):
     """
     # Get current index values
     lis = df.index.values
-    
+
     # Count occurrences of each value
     counts = Counter()
     new_indices = []
-    
+
     for x in lis:
         counts[x] += 1
         if counts[x] == 1:
             new_indices.append(x)
         else:
             new_indices.append(f"{x}_{counts[x]}")
-    
+
     # Check if there were any duplicates
     if len(lis) != len(set(lis)):
         st.markdown("#### There are duplicated rows. Converting the names...")
         st.write("The gene names of subsequent occurrences have _2, _3, etc. at the end.")
-        
+
         # Display which names were changed
         for name, count in counts.items():
             if count > 1:
-                st.write(f"'{name}' appears {count} times → {name}, " + 
+                st.write(f"'{name}' appears {count} times → {name}, " +
                         ", ".join([f"{name}_{i}" for i in range(2, count + 1)]))
-    
+
     # Set new index
     df.index = new_indices
     return df
 
-#March-1 Sept-1対応
+# Handle March-1 Sept-1 Excel auto-conversion
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -150,7 +150,10 @@ def check_excel_autoconversion(dfx):
 #    return(dfx)
 
 r = pyper.R(use_pandas=True)
-f = ro.r("source('pages/deseq2_func.R')") # full pathが必要
+f = ro.r("source('pages/deseq2_func.R')") # full path required
+
+# Set graphics device to avoid X11 errors in non-interactive environments
+ro.r('options(bitmapType="cairo")')
 
 st.set_page_config(page_title="Calculate DESeq2.", page_icon="📃")
 
@@ -184,18 +187,18 @@ st.sidebar.title("Options")
 st.markdown("#### Options are displayed at the bottom of the left side panel")
 with st.sidebar:
     st.markdown("### Analysis Method:")
-    test_method = st.radio("Select analysis method:", 
-                         ["DESeq2", "limma eBayes", "Beta Regression", 
-                          "Generalized Linear Model (GLM)"], 
+    test_method = st.radio("Select analysis method:",
+                         ["DESeq2", "limma eBayes", "Beta Regression",
+                          "Generalized Linear Model (GLM)"],
                          index=0)
-    
+
     st.markdown("###### limma eBayes with logit transformation, beta regression and GLM with beta regression are for proportion data.")
 
-# temp内に保存する
+# Save to temp directory
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
-    #古いdirecotryとファイルを削除する
+    # Delete old directories and files
     temp_dir = "temp/" + str(round(time.time()))
     if not os.path.exists('temp'):
         os.mkdir('temp')
@@ -221,9 +224,9 @@ else:
         os.mkdir(res_dir)
 
 
-st.markdown("### DESeq2にはraw count dataを使う")
+st.markdown("### Use raw count data for DESeq2")
 
-use_sf = False # size factorの使用
+use_sf = False # Use size factor
 
 use_upload = 'Yes'
 if 'df' in st.session_state:
@@ -235,11 +238,11 @@ if 'df' in st.session_state:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        # Homer対応
+        # Homer support
         if "Transcript/RepeatID" in df.columns[0]:
             df = df.iloc[:,8:]
             st.write(df.head())
-        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
+        if "Row_name" in df.columns.to_list(): # When Row_name is included
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -268,21 +271,21 @@ if use_upload == 'Yes':
 #                Gene_column = content[0]
 
                 if "Annotation/Divergence" in content:
-                     # colnamesの変換
+                     # Convert column names
                     search_word = '([^\ \(]*)\ \(.*'
 
                     for i in range(1, len(content)):
                         match = re.search(search_word, content[i])
                         if match:
                             content[i] = match.group(1).replace(' ', '_')
-                    df.columns = content # 一旦名前を変更
-                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel support
                     pattern = "([^|]*)"
                     repatter = re.compile(pattern)
                     f_annotation = lambda x: repatter.match(x).group(1)
                     df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
                   #  st.write(df.head())
-                    # annotation/divergence以前を除く
+                    # Remove columns before annotation/divergence
                     df = df.loc[:,'Annotation/Divergence':]
                   #  st.write(df.head())
                     st.write("Converted Annotation/Divergence to gene symbols.")
@@ -296,20 +299,20 @@ if use_upload == 'Yes':
                 df = read_excel(uploaded_file)
                 content = df.columns.tolist()
                 if "Annotation/Divergence" in content:
-                     # colnamesの変換
+                     # Convert column names
                     search_word = '([^\ \(]*)\ \(.*'
 
                     for i in range(1, len(content)):
                         match = re.search(search_word, content[i])
                         if match:
                             content[i] = match.group(1).replace(' ', '_')
-                    df.columns = content # 一旦名前を変更
-                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                    df.columns = content # Change names temporarily
+                    df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel support
                     pattern = "([^|]*)"
                     repatter = re.compile(pattern)
                     f_annotation = lambda x: repatter.match(x).group(1)
                     df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                    # annotation/divergence以前を除く
+                    # Remove columns before annotation/divergence
                     df = df.loc[:,'Annotation/Divergence':]
                     content = df.columns.tolist()
                     content[0] = 'Gene'
@@ -331,7 +334,7 @@ if use_upload == 'Yes':
                 df = df.iloc[:,7:]
                 colnames = df.columns.tolist()
                 colnames[0] = 'Gene'
-                # colnamesの変換
+                # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
                 for i in range(1, len(colnames)):
                     match = re.search(search_word, colnames[i])
@@ -354,20 +357,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesの変換
+                 # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # 一旦名前を変更
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
+                df.columns = content # Change names temporarily
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel support
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergence以前を除く
+                # Remove columns before annotation/divergence
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -388,18 +391,18 @@ if df is not None:
     st.write('Original gene number:  ' + str(len(df)))
     st.write(df.head())
 
-    # floatに変換 誤射悟入
+    # Convert to float - handling misentry
     df = df.astype(float)
 
-    if test_method == "DESeq2": # DESeq2のときだけ整数化
+    if test_method == "DESeq2": # Convert to integer only for DESeq2
         if not float.is_integer(df.iloc[:,0].sum()*1000):
             st.markdown("# It is likely that your data are normalized. Please upload unnormalized raw count data.")
 
         df = df.round(0)
 
-    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
+    df = df.loc[~(df==0).all(axis=1)] # Remove rows with all zeros
 
-########## excel対応?
+########## Excel support?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -420,10 +423,10 @@ if df is not None:
 #        lis = df.index.values
 #        df.index = [x + ['', '_2'][x in lis[0:i]] for i, x in enumerate(lis)]
         df = rename_duplicates(df)
-    # ここに新しい処理を追加
+    # Add new processing here
     df, column_name_mapping, original_column_names = clean_column_names_for_r(df)
 
-    # 変換があった場合は警告を表示
+    # Display warning if conversion occurred
     if column_name_mapping:
         st.warning("⚠️ Special characters in sample names have been converted for R compatibility:")
         for orig, clean in column_name_mapping.items():
@@ -451,15 +454,15 @@ if df is not None:
         st.pyplot(f2)
 
     with st.sidebar:
-        # DESeq2の既存のオプション
+        # Existing DESeq2 options
         if test_method == 'DESeq2':
             st.markdown("##### FC adjustment method:")
             type = st.radio("", ('ashr','apeglm', 'normal'), label_visibility="collapsed")
-            st.write('DESeq2のdefaultはapeglm。apeglmではreference groupを指定する必要がある。')
+            st.write('DESeq2 default is apeglm. For apeglm, reference group must be specified.')
 
             st.markdown("##### FDR cutoff for independent filtering:")
             results_alpha = st.number_input("alpha", value = 0.05, max_value=0.20, min_value=0.00, label_visibility = 'collapsed')
-            st.write("alpha in results func")  
+            st.write("alpha in results func")
 
             st.markdown("##### Batch correction:")
             sva = st.checkbox('SVA batch removal?')
@@ -475,7 +478,7 @@ if df is not None:
             else:
                 RUV_alpha = 0.2
 
-        # limma eBayesのオプション
+        # limma eBayes options
         elif test_method == 'limma eBayes':
             limma_data = st.radio("Data type:",
                 ["RNA-seq count", "Non-count data", "0-1 data (proportion, AUC etc) to logit transformation"],
@@ -484,118 +487,126 @@ if df is not None:
             if limma_data == "RNA-seq count":
                 apply_logit = False
                 limma_count = True
-                default_trend = True  # RNA-seq countの場合はtrendをデフォルトでTRUE
+                default_trend = True  # Default trend to TRUE for RNA-seq count
             elif limma_data == "Non-count data":
                 apply_logit = False
                 limma_count = False
-                default_trend = False  # Non-count dataの場合はtrendをデフォルトでFALSE
+                default_trend = False  # Default trend to FALSE for non-count data
             else:
                 apply_logit = True
                 limma_count = False
-                default_trend = False  # 0-1 dataの場合はtrendをデフォルトでFALSE
-            
+                default_trend = False  # Default trend to FALSE for 0-1 data
+
             # trend and robust options
             st.markdown("##### Advanced eBayes options:")
             limma_trend = st.checkbox("Use trend", value=default_trend)
             limma_robust = st.checkbox("Use robust", value=True)
-            
+
             with st.expander("ℹ️ About trend and robust options"):
                 st.markdown("""
                 **trend option:**
-                - 分散と平均発現量の関係をモデル化します
-                - 低発現遺伝子と高発現遺伝子で分散が異なる場合に有効
-                - RNA-seqデータで、voomやlog変換後のデータに推奨
-                - すべての遺伝子で一定の分散を仮定せず、より柔軟なモデルを適用
-                
+                - Models the relationship between variance and mean expression level
+                - Effective when variance differs between low and high expression genes
+                - Recommended for RNA-seq data after voom or log transformation
+                - Applies a more flexible model without assuming constant variance across all genes
+
                 **robust option:**
-                - 外れ値に対してロバストな推定を行います
-                - ベイズ推定で外れ値の影響を軽減
-                - データにアーティファクトや外れ値が含まれる可能性がある場合に推奨
-                - 計算時間は少し長くなりますが、より安定した結果を得られます
-                
-                **推奨される使用例:**
-                - RNA-seqカウントデータ: trend=TRUE, robust=TRUE
-                - 非カウントデータ（マイクロアレイ等）: trend=FALSE, robust=TRUE
-                - 0-1データ（比率データ）: trend=FALSE, robust=TRUE
-                - きれいな正規化済みデータ: 両方FALSE（デフォルト）
-                
-                **データタイプ別の推奨設定：**
-                - **"RNA-seq count"**: trend=TRUE, robust=TRUE (自動設定)
-                  - カウントデータは平均-分散関係があり、外れ値も存在する可能性が高い
-                - **"Non-count data"**: trend=FALSE, robust=TRUE (自動設定)
-                  - 正規化済みデータは平均-分散関係が安定化済み
-                  - 外れ値に対するロバスト性は依然として有用
-                - **"0-1 data"**: trend=FALSE, robust=TRUE (自動設定)
-                  - 比率データは変換済みで平均-分散関係は安定
-                  - ロバスト推定で外れ値の影響を軽減
-                
-                **注意：** 
-                - trendとrobustの初期値は、選択したデータタイプに基づいて自動設定されます
-                - robustオプションは常にTRUEがデフォルトです（より安定した結果）
-                - 必要に応じて手動で設定を変更できます
+                - Performs robust estimation against outliers
+                - Reduces the influence of outliers in Bayesian estimation
+                - Recommended when data may contain artifacts or outliers
+                - Takes slightly longer but provides more stable results
+
+                **Recommended usage:**
+                - RNA-seq count data: trend=TRUE, robust=TRUE
+                - Non-count data (microarray etc.): trend=FALSE, robust=TRUE
+                - 0-1 data (proportion data): trend=FALSE, robust=TRUE
+                - Clean normalized data: both FALSE (default)
+
+                **Recommended settings by data type:**
+                - **"RNA-seq count"**: trend=TRUE, robust=TRUE (automatically set)
+                  - Count data has mean-variance relationship and likely has outliers
+                - **"Non-count data"**: trend=FALSE, robust=TRUE (automatically set)
+                  - Normalized data has stabilized mean-variance relationship
+                  - Robust estimation against outliers is still useful
+                - **"0-1 data"**: trend=FALSE, robust=TRUE (automatically set)
+                  - Proportion data is transformed and has stable mean-variance relationship
+                  - Robust estimation reduces the impact of outliers
+
+                **Note:**
+                - Initial values for trend and robust are automatically set based on selected data type
+                - robust option defaults to TRUE (for more stable results)
+                - Settings can be manually changed if needed
                 """)
 
-        # Beta Regressionのオプション
+        # Beta Regression options
         elif test_method == 'Beta Regression':
             st.markdown("### Beta Regression Options:")
-            epsilon = st.number_input("Epsilon for boundary adjustment (0-1 data)", 
+            epsilon = st.number_input("Epsilon for boundary adjustment (0-1 data)",
                                     min_value=0.0000001, max_value=0.01, value=0.000001, format="%.7f")
             st.markdown("#### Batch correction:")
             use_batch = st.checkbox('Include batch effect?', value=False)
-            n_cores = st.slider("Parallel cores", min_value=1, 
-                               max_value=os.cpu_count()-1, 
+            n_cores = st.slider("Parallel cores", min_value=1,
+                               max_value=os.cpu_count()-1,
                                value=max(1, os.cpu_count()//2-4))
 
-        # GAMのオプション
+        # GLM options
         elif test_method == 'Generalized Linear Model (GLM)':
             st.markdown("### GLM Options:")
-            dist_family = st.radio("Probability distribution", 
-                                  ["Beta (0-1)", "Gaussian", "Poisson", "Negative Binomial"],
+            dist_family = st.radio("Probability distribution",
+                                  ["Beta (0-1)", "Gaussian", "Poisson", "Negative Binomial", "Binomial"],
                                   index=0)
 
 
             with st.expander("Explain models"):
                 st.markdown("""
-GLMをmgcvパッケージのgam()関数で実装
+GLM implemented using the gam() function from the mgcv package
 
-1. Beta分布 (Beta Distribution)
-適用データ：0と1の間の値（正規化発現量、比率データ）  
-リンク関数：通常ロジットリンク（logit）を使用  
-推定：最尤法でパラメータ推定（Beta分布の形状パラメータα、β）  
-検定：条件の係数についてのWald検定（係数/標準誤差）を実施  
-多重検定補正：Benjamini-Hochberg法でFDRを制御  
-Beta回帰とGAM-Beta実装は本質的に同じアルゴリズム  
-batchを含まない場合は本質的には「0-1データに適応したANOVA」
+1. Beta Distribution
+Applicable data: Values between 0 and 1 (normalized expression, proportion data)
+Link function: Typically uses logit link
+Estimation: Maximum likelihood estimation of parameters (Beta distribution shape parameters α, β)
+Test: Wald test on condition coefficients (coefficient/standard error)
+Multiple testing correction: FDR control using Benjamini-Hochberg method
+Beta regression and GAM-Beta implementation use essentially the same algorithm
+Without batch, it is essentially "ANOVA adapted for 0-1 data"
 
-2. ガウス分布 (Gaussian Distribution)  
-適用データ：連続値で正規分布に従うデータ（正規化済みのログカウントなど）  
-リンク関数：恒等リンク（identity）  
-推定：最小二乗法（または最尤法）でパラメータ推定  
-検定：t検定に基づいてグループ間の差を評価  
-多重検定補正：Benjamini-Hochberg法でFDR制御  
-標準的な線形モデル（ANOVA的アプローチ）  
-batchを含まない場合は標準的なANOVAと一致（F検定によるグループ間差異の評価）
+2. Gaussian Distribution
+Applicable data: Continuous data following normal distribution (normalized log counts etc.)
+Link function: Identity link
+Estimation: Least squares (or maximum likelihood) parameter estimation
+Test: Evaluate group differences based on t-test
+Multiple testing correction: FDR control using Benjamini-Hochberg method
+Standard linear model (ANOVA-like approach)
+Without batch, matches standard ANOVA (F-test for group differences)
 
-3. ポアソン分布 (Poisson Distribution)  
-適用データ：単純なカウントデータ（過分散がない場合）  
-リンク関数：対数リンク（log）  
-推定：最尤法でパラメータ推定（λ：平均=分散）  
-検定：尤度比検定または Wald検定  
-多重検定補正：Benjamini-Hochberg法でFDR制御  
+3. Poisson Distribution
+Applicable data: Simple count data (when there is no overdispersion)
+Link function: Log link
+Estimation: Maximum likelihood parameter estimation (λ: mean=variance)
+Test: Likelihood ratio test or Wald test
+Multiple testing correction: FDR control using Benjamini-Hochberg method
 
-4. 負の二項分布 (Negative Binomial Distribution)  
-適用データ：過分散のあるカウントデータ（RNA-seqデータなど）  
-リンク関数：対数リンク（log）  
-推定：最尤法でパラメータ推定（μ：平均、θ：過分散パラメータ）  
-過分散推定：遺伝子ごとの分散をモデル化（DESeq2と類似）  
-検定：尤度比検定または Wald検定  
-多重検定補正：Benjamini-Hochberg法でFDR制御  
-ポアソン分布の拡張で、variance > mean を許容
+4. Negative Binomial Distribution
+Applicable data: Count data with overdispersion (RNA-seq data etc.)
+Link function: Log link
+Estimation: Maximum likelihood parameter estimation (μ: mean, θ: overdispersion parameter)
+Overdispersion estimation: Models variance per gene (similar to DESeq2)
+Test: Likelihood ratio test or Wald test
+Multiple testing correction: FDR control using Benjamini-Hochberg method
+Extension of Poisson distribution, allows variance > mean
+
+5. Binomial Distribution
+Applicable data: Binary data (0/1), or number of successes k out of n trials
+Link function: Logit link (default), probit link, complementary log-log link (cloglog)
+Estimation: Maximum likelihood parameter estimation (p: success probability)
+Test: Wald test or score test
+Multiple testing correction: FDR control using Benjamini-Hochberg method
+Equivalent to logistic regression (for binary data)
                 """)
 
             if dist_family == "Beta (0-1)":
                 dist_short = "beta"
-                epsilon = st.number_input("Epsilon for boundary adjustment", 
+                epsilon = st.number_input("Epsilon for boundary adjustment",
                                        min_value=0.0000001, max_value=0.01, value=0.000001, format="%.7f")
             elif dist_family == "Gaussian":
                 dist_short = "gaussian"
@@ -603,26 +614,38 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
                 dist_short = "poisson"
             elif dist_family == "Negative Binomial":
                 dist_short = "nb"
-                nb_theta = st.number_input("過分散パラメータ (theta)", 
+                nb_theta = st.number_input("Overdispersion parameter (theta)",
                                          min_value=0.1, max_value=100.0, value=10.0)
+            elif dist_family == "Binomial":
+                dist_short = "binomial"
+                binomial_link = st.selectbox("Link function",
+                                           ["logit", "probit", "cloglog"],
+                                           index=0)
+                st.markdown("""
+                **Binomial distribution:**
+                - For binary data (0/1) or count data (number of successes out of n trials)
+                - Logit link (default): log(p/(1-p))
+                - Probit link: inverse normal CDF
+                - Complementary log-log: log(-log(1-p))
+                """)
 
             st.markdown("#### Batch correction:")
             use_batch = st.checkbox('Include batch effect?', value=False)
-            n_cores = st.slider("Parallel cores", min_value=1, 
-                               max_value=os.cpu_count()-1, 
+            n_cores = st.slider("Parallel cores", min_value=1,
+                               max_value=os.cpu_count()-1,
                                value=max(1, os.cpu_count()//2-4))
 
-        # 共通のオプション
-        independentFiltering = True  # デフォルト値を設定
+        # Common options
+        independentFiltering = True  # Set default value
         if test_method == 'DESeq2' or (test_method == 'limma eBayes' and limma_count):
-            st.markdown("#### Filter out weakly-expressed genes before multiple test correction:",help = "independentFiltering default:TRUE 平均正規化カウントに基づいて遺伝子をフィルタリングし、多重検定補正の負担を減らすことで統計的検出力を向上させる")
+            st.markdown("#### Filter out weakly-expressed genes before multiple test correction:",help = "independentFiltering default:TRUE Filter genes based on mean normalized counts to reduce multiple testing burden and improve statistical power")
             independentFiltering = st.checkbox('Yes', value=True)
 
         st.markdown("#### Additional filtering:")
         st.markdown("##### Filter the genes > counts in all samples:")
         min_threshold = st.number_input("count minimum", value=0, label_visibility='collapsed')
         min_threshold = int(min_threshold)
-        
+
         st.markdown("##### Filter the genes > counts in at least one sample:")
         max_threshold = st.number_input("count max", value=0, label_visibility='collapsed')
         max_threshold = int(max_threshold)
@@ -634,12 +657,12 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             st.markdown("##### Filter the samples <= counts:")
             sample_threshold = st.number_input("Minimum total cout", value = 0, label_visibility = 'collapsed')
 
-        # DESeq2以外の場合、ゼロカウントサンプル除去のオプションを表示
+        # For methods other than DESeq2, display option to remove zero-count samples
         if test_method != 'DESeq2':
             st.markdown("##### Remove samples with zero counts:")
             remove_zero_samples = st.checkbox("Remove samples with total count = 0", value=False)
         else:
-            # DESeq2の場合は常に除去
+            # For DESeq2, always remove
             remove_zero_samples = True
 
         st.markdown("##### Output style:")
@@ -649,9 +672,9 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
         else:
             deseq2 = False
 
-    # DESeq2の場合、または明示的に指定された場合にゼロカウントサンプルを除去
+    # Remove zero-count samples for DESeq2 or when explicitly specified
     if test_method == 'DESeq2' or remove_zero_samples:
-        if any(df.sum() <= sample_threshold): # count 0の列を除く
+        if any(df.sum() <= sample_threshold): # Remove columns with count 0
             st.markdown('#### There are the samples that have counts <= ' + str(sample_threshold))
             st.write(", ".join(df.columns[df.sum() <= sample_threshold].to_list()))
             st.markdown('##### They are removed. Now data are:')
@@ -665,11 +688,11 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
 
     st.markdown(f'#### Filtered gene number: {str(len(df))}')
 
-    condition = [str(i) for i in df.columns.tolist()] #error防止
-    group_condition = remove_common_suffix(condition) #末尾の共通要素を除く
-#    group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
-    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字と_を除く
-    group_condition = [x.rstrip('.') for x in group_condition] # .を除く
+    condition = [str(i) for i in df.columns.tolist()] # Prevent errors
+    group_condition = remove_common_suffix(condition) # Remove common suffix
+#    group_condition = [remove_after_space(x) for x in condition] # Remove text after space
+    group_condition = [remove_sample_num(x) for x in group_condition] # Remove trailing numbers and _
+    group_condition = [x.rstrip('.') for x in group_condition] # Remove .
 
 
     df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
@@ -682,7 +705,7 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
         edited_df_e = st.data_editor(df_e)
 
         condition = edited_df_e.iloc[:,0].tolist()
-        
+
         if batch_in:
             st.write('Set batch:')
     #        edited_df_b = st.experimental_data_editor(df_b)
@@ -692,7 +715,7 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             batch = edited_df_b.iloc[:,0].tolist()
             st.write('Batch: ' + '  '.join(batch))
         else:
-            batch = ["No batch"] #batchがないとき
+            batch = ["No batch"] # When there is no batch
 
         submitted = st.form_submit_button("Submit")
     st.write('Group: ' + ' '.join(condition))
@@ -718,11 +741,11 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             st.write("There is a non-nemeric value in ")
             st.write(a)
 
-#    df = excel_autoconversion(df) # 1-Marなどの誤変換への対応
+#    df = excel_autoconversion(df) # Handle 1-Mar etc. misconversion
 
 
     st.markdown("---")
-    # サイズファクターの設定と確認
+    # Size factor settings and confirmation
     if use_sf and uploaded_size_factors is not None:
         size_factors_df = pd.read_csv(uploaded_size_factors, sep='\t', index_col=0)
         st.write("Uploaded size factors file:")
@@ -739,7 +762,7 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
                 st.success(f"Size factors from column '{selected_column}' will be used in the analysis.")
                 st.session_state.use_custom_size_factors = True
 
-                # R変数の内容を確認
+                # Verify R variable contents
                 display_r_variable("use_custom_size_factors")
                 display_r_variable("custom_size_factors")
             else:
@@ -755,16 +778,16 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
 
 
 
-    # 「Run DESeq2」ボタンを「Run Analysis」に変更
+    # Change "Run DESeq2" button to "Run Analysis"
     if st.button('Run Analysis'):
-        # 共通のセットアップ
+        # Common setup
         try:
             r.assign('df', df)
             pyper_df_path = "saveRDS(df, '" + temp_dir + "/pyper_df.RDS')"
             r(pyper_df_path)
             read_pyper_df = "cts <- readRDS('" + temp_dir + "/pyper_df.RDS')"
             ro.r(read_pyper_df)
-            
+
             r_condition = ro.StrVector(condition)
             ro.r.assign('condition', r_condition)
             r_batch = ro.StrVector(batch)
@@ -775,17 +798,17 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             ro.r.assign('deseq2', deseq2)
             ro.r.assign('res_dir', res_dir)
             ro.r.assign('temp_dir', temp_dir)
-            
+
             ro.r("make_coldata()")
-            
+
         except Exception as e:
             st.markdown(f"## Error: {str(e)}")
             st.markdown("## rpy2 error. Reinstall: pip install rpy2==3.5.1")
             sys.exit(1)
 
-        # メソッド固有の実行ロジック
+        # Method-specific execution logic
         if test_method == 'DESeq2':
-            # 既存のDESeq2コード
+            # Existing DESeq2 code
             ro.r.assign('sva', sva)
             ro.r.assign('ruv', ruv)
             ro.r.assign('RUV.alpha', RUV_alpha)
@@ -793,27 +816,27 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             ro.r.assign('sva_calc', sva_calc)
             ro.r.assign('rld_calc', rld_calc)
             ro.r.assign('results_alpha', results_alpha)
-            
+
             with st.spinner('Calculating DESeq2...'):
                 if batch == ['No batch']:
                     ro.r('calc_dds_nobatch()')
                 else:
                     ro.r('calc_dds_batch()')
                 py_res = ro.r('calc_deseq()')
-            
+
             image = Image.open(res_dir + '/DispersionEstimates.png')
             st.image(image, caption='Despersion Estimates')
-            
+
             with open(res_dir + '/DESeq2_output.txt') as f:
                 out = f.readlines()
                 for i in out:
                     if ("NULL" not in i) and ("results" not in i):
                         st.write(i)
-            
+
             res_df = pd.read_csv(res_dir + '/DESeq2_res.tsv', sep='\t', index_col=0)
             res_df = res_df.fillna(1)
             st.dataframe(res_df)
-            
+
             if sva:
                 st.markdown("#### =======SVA=======")
                 try:
@@ -823,106 +846,106 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
                 except:
                     pass
 
-                                # 両方の方法で計算
+                                # Calculate using both methods
                 ro.r("sv_both <- calc_sva_n_both()")
-                
-                # 結果を取得
+
+                # Get results
                 sv_be = int(ro.r("svn_be")[0])
                 sv_leek_result = ro.r("svn_leek")
-                
-                # Leek法の結果確認（NAの可能性があるため）
+
+                # Check Leek method result (may be NA)
                 if sv_leek_result[0] != ro.NA_Logical:
                     sv_leek = int(sv_leek_result[0])
                 else:
                     sv_leek = None
-            
-                # 結果を表示
+
+                # Display results
                 col1, col2 = st.columns(2)
-                
+
                 with col1:
                     st.metric(
-                        "BE method (default)", 
+                        "BE method (default)",
                         sv_be,
                         help="Buja-Eyuboglu method - tends to estimate more factors"
                     )
-                    
+
                 with col2:
                     if sv_leek is not None:
                         st.metric(
-                            "Leek method", 
+                            "Leek method",
                             sv_leek,
                             help="More conservative estimation"
                         )
                     else:
                         st.metric("Leek method", "Failed")
-                        
 
-                # 警告やアドバイスを表示
+
+                # Display warnings or advice
                 if sv_leek is not None:
                     if sv_be > 10:
                         st.warning(f"""
                         ⚠️ **High number of surrogate variables detected**
-                        
+
                         - BE method suggests {sv_be} variables
                         - Leek method suggests {sv_leek} variables
-                        
+
                         This may indicate:
                         - Strong batch effects in your data
                         - Potential overfitting risk
                         - Need for alternative approaches
                         """)
-                        
+
                     if sv_be > sv_leek * 2:
                         st.info(f"""
                         💡 **Large discrepancy between methods**
-                        
+
                         The BE estimate ({sv_be}) is more than twice the Leek estimate ({sv_leek}).
                         Consider:
                         1. Using the more conservative Leek estimate
                         2. Starting with fewer SVs and checking DEG retention
                         3. Investigating sample outliers
                         """)
-                
+
                 with st.spinner('Calculating SVAseq...'):
                     ro.r("calc_svseq()")
-                
+
                 with open(res_dir + '/SVA_output.txt') as f:
                     out = f.readlines()
                     for i in out:
                         if ("NULL" not in i)  and ("results" not in i):
                             st.write(i)
-                
+
             if ruv:
                 st.markdown("#### =======RUV=======")
                 with st.spinner('Calculating RUVseq...'):
                     ro.r("calc_ruvseq()")
-                
+
                 with open(res_dir + '/RUVseq.txt') as f:
                     out = f.readlines()
                     for i in out:
                         if ("NULL" not in i)  and ("results" not in i):
                             st.write(i)
-            
-            # セッションにデータを残す
+
+            # Keep data in session
             if sva:
                 st.session_state.deseq2 = read_csv(res_dir + "/SVA_res.tsv", sep='\t', index_col=0)
             elif ruv:
                 st.session_state.deseq2 = read_csv(res_dir + "/RUV_res.tsv", sep='\t', index_col=0)
             else:
                 st.session_state.deseq2 = read_csv(res_dir + "/DESeq2_res.tsv", sep='\t', index_col=0)
-            
+
             file_name = file_name_head + "_DESeq2"
-        
+
         elif test_method == 'limma eBayes':
-            # limma eBayesの実行ロジック
+            # limma eBayes execution logic
             ro.r.assign('limma_count', limma_count)
             ro.r.assign('apply_logit', apply_logit)
             ro.r.assign('limma_trend', limma_trend)
             ro.r.assign('limma_robust', limma_robust)
-            
+
             with st.spinner('Calculating limma eBayes...'):
                 ro.r('calc_limma()')
-            
+
             if limma_count:
                 try:
                     image = Image.open(res_dir + '/voom_plot.png')
@@ -931,22 +954,22 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
                     st.write("Voom plot not available")
             res_df = pd.read_csv(res_dir + '/limma_res.tsv', sep='\t', index_col=0)
             res_df = res_df.fillna(1)
-            # adj.pvalueで終わる列を検索して各比較ごとに有意遺伝子数を表示
+            # Search for columns ending with adj.pvalue and display number of significant genes for each comparison
             adj_pvalue_columns = [col for col in res_df.columns if '.adj.pvalue' in col]
             st.markdown("### Significant genes (FDR < 0.05):")
             total_significant = 0
             for col in adj_pvalue_columns:
-                comparison = col.split('.adj.pvalue')[0]  # 比較名を取得
+                comparison = col.split('.adj.pvalue')[0]  # Get comparison name
                 sig_count = (res_df[col] < 0.05).sum()
                 total_significant += sig_count
                 st.write(f"- {comparison}: {sig_count}")
             st.write(f"Total significant genes: {total_significant}")
 
             st.dataframe(res_df)
-            
-            st.session_state.deseq2 = res_df  # 結果をセッションに保存
+
+            st.session_state.deseq2 = res_df  # Save results to session
             file_name = file_name_head + "_limma"
-        
+
         elif test_method == 'Beta Regression':
             ro.r.assign('epsilon', epsilon)
             ro.r.assign('n_cores', n_cores)
@@ -955,46 +978,48 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             with st.spinner('Calculating Beta Regression...'):
                 ro.r('calc_betareg()')
 
-            # 結果の読み込みと表示
+            # Load and display results
             try:
                 res_df = pd.read_csv(res_dir + '/betareg_res.tsv', sep='\t', index_col=0)
                 res_df = res_df.fillna(1)
-                
-                # adj.pvalueで終わる列を検索して各比較ごとに有意遺伝子数を表示
+
+                # Search for columns ending with adj.pvalue and display number of significant genes for each comparison
                 adj_pvalue_columns = [col for col in res_df.columns if '.adj.pvalue' in col]
                 st.markdown("### Significant genes (FDR < 0.05):")
                 total_significant = 0
                 for col in adj_pvalue_columns:
-                    comparison = col.split('.adj.pvalue')[0]  # 比較名を取得
+                    comparison = col.split('.adj.pvalue')[0]  # Get comparison name
                     sig_count = (res_df[col] < 0.05).sum()
                     total_significant += sig_count
                     st.write(f"- {comparison}: {sig_count}")
                 st.write(f"Total significant genes: {total_significant}")
-                
+
                 st.dataframe(res_df)
-                
+
                 st.session_state.deseq2 = res_df
             except Exception as e:
                 st.error(f"Error processing Beta Regression results: {str(e)}")
                 st.write("Check the R output for details.")
 
             file_name = file_name_head + "_betareg"
-        
+
         elif test_method == 'Generalized Linear Model (GLM)':
-            # GAMの実行ロジック
+            # GLM execution logic
             ro.r.assign('dist_short', dist_short)
             ro.r.assign('use_batch', use_batch)
             ro.r.assign('n_cores', n_cores)
-            
+
             if dist_short == "beta":
                 ro.r.assign('epsilon', epsilon)
             elif dist_short == "nb":
                 ro.r.assign('nb_theta', nb_theta)
-            
+            elif dist_short == "binomial":
+                ro.r.assign('binomial_link', binomial_link)
+
             with st.spinner('Calculating GLM...'):
                 ro.r('calc_gam()')
-            
-            # GAMの場合
+
+            # For GAM
             res_df = pd.read_csv(res_dir + f'/glm_{dist_short}_res.tsv', sep='\t', index_col=0)
             res_df = res_df.fillna(1)
 
@@ -1009,13 +1034,13 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
             st.write(f"Total significant genes: {total_significant}")
 
             st.dataframe(res_df)
-            
+
             st.session_state.deseq2 = res_df
             file_name = file_name_head + "_glm"
-        
-        # 結果のZIPアーカイブ作成とダウンロードボタン
+
+        # Create ZIP archive and download button for results
         shutil.make_archive(file_name, format='zip', root_dir=res_dir)
-        
+
         with open(file_name + ".zip", "rb") as fp:
             btn = st.download_button(
                 label="Download Results",
@@ -1023,7 +1048,7 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
                 file_name=file_name + ".zip",
                 mime="zip"
             )
-        
+
         try:
             os.remove(file_name + ".zip")
         except:
@@ -1031,7 +1056,7 @@ batchを含まない場合は標準的なANOVAと一致（F検定によるグル
 
 
 
-#　データを送る前にすべてゼロのデータは除くべき
+# Should remove all-zero data before sending
 
 
-# refが指定されているときはファイル名を調整する?
+# Adjust file name when ref is specified?

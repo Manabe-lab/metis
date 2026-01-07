@@ -40,22 +40,22 @@ if not PERTPY_AVAILABLE:
     st.stop()
 
 st.markdown("""
-scCODAを用いて、シングルセルデータにおける**セルタイプ構成比の変化**を統計的に検出します。
+Statistically detect **cell type composition changes** in single-cell data using scCODA.
 
-### scCODAの特徴
-- **合成データ (Compositional Data) に対応**: 比率データの合成制約を適切に処理
-- **階層的ベイズモデル**: グループ間のセルタイプ比率変化を推定
-- **スパース推定**: 実際に変化しているセルタイプのみを検出
-- **参照セルタイプ**: 変化していないと仮定するセルタイプを選択可能
-- **ベイズ統計**: p値やFDRではなく、Inclusion probabilityで有意性を判定
+### scCODA Features
+- **Compositional Data support**: Properly handles compositional constraints of ratio data
+- **Hierarchical Bayesian model**: Estimates cell type proportion changes between groups
+- **Sparse estimation**: Detects only cell types that actually change
+- **Reference cell type**: Can select cell type assumed to be unchanged
+- **Bayesian statistics**: Significance determined by Inclusion probability, not p-value or FDR
 
-### ワークフロー
-1. **h5adファイルアップロード**: セルタイプ・サンプル・条件情報を含むデータ
-2. **パラメータ設定**: セルタイプ列、サンプル列、条件列、参照セルタイプを選択
-3. **scCODA実行**: ベイズ推定による差次的構成比解析
-4. **結果表示**: 有意に変化したセルタイプの可視化とダウンロード
+### Workflow
+1. **h5ad file upload**: Data containing cell type, sample, and condition information
+2. **Parameter setting**: Select cell type column, sample column, condition column, reference cell type
+3. **Run scCODA**: Differential composition analysis by Bayesian estimation
+4. **Display results**: Visualization and download of significantly changed cell types
 
-### 参考文献
+### References
 - [Büttner et al. (2021) "scCODA is a Bayesian model for compositional single-cell data analysis" Nature Communications](https://www.nature.com/articles/s41467-021-27150-6)
 - [pertpy Documentation - scCODA tutorial](https://pertpy.readthedocs.io/en/latest/tutorials/notebooks/sccoda_extended.html)
 - [scCODA GitHub](https://github.com/theislab/scCODA)
@@ -80,8 +80,8 @@ if "sccoda_results" not in st.session_state:
 
 if "sccoda_plots" not in st.session_state:
     st.session_state.sccoda_plots = {
-        "step2": [],  # Step 2のプロット
-        "step3": []   # Step 3のプロット
+        "step2": [],  # Step 2 plots
+        "step3": []   # Step 3 plots
     }
 
 # ========================================
@@ -90,20 +90,20 @@ if "sccoda_plots" not in st.session_state:
 st.header("Step 1: Upload h5ad file")
 
 st.markdown("""
-### 必要な情報
-h5adファイル (`adata`) には以下の情報が必要です：
+### Required Information
+h5ad file (`adata`) requires the following information:
 
-- **セルタイプ情報**: `adata.obs` に列として含まれる（例: `'cell_type'`, `'clusters'`, `'leiden'`）
-- **サンプル情報**: `adata.obs` に列として含まれる（例: `'sample'`, `'batch'`, `'replicate'`）
-- **条件情報**: `adata.obs` に列として含まれる（例: `'condition'`, `'group'`, `'treatment'`）
+- **Cell type information**: Included as column in `adata.obs` (e.g., `'cell_type'`, `'clusters'`, `'leiden'`)
+- **Sample information**: Included as column in `adata.obs` (e.g., `'sample'`, `'batch'`, `'replicate'`)
+- **Condition information**: Included as column in `adata.obs` (e.g., `'condition'`, `'group'`, `'treatment'`)
 
-💡 **ヒント**: Seuratで解析したデータは、Pythonで`anndata`形式に変換してからアップロードしてください。
+💡 **Tip**: Data analyzed with Seurat should be converted to `anndata` format in Python before uploading.
 """)
 
 uploaded_h5ad = st.file_uploader(
-    "h5adファイルをアップロード",
+    "Upload h5ad file",
     type=["h5ad"],
-    help="セルタイプ、サンプル、条件情報を含むh5adファイル"
+    help="h5ad file containing cell type, sample, and condition information"
 )
 
 @st.cache_data(show_spinner=False)
@@ -135,7 +135,7 @@ if uploaded_h5ad is not None:
     file_hash = hashlib.md5(file_content).hexdigest()
 
     if "sccoda_file_hash" not in st.session_state or st.session_state.sccoda_file_hash != file_hash:
-        with st.spinner("h5adファイルを読み込み中..."):
+        with st.spinner("Loading h5ad file..."):
             try:
                 adata = load_h5ad_cached(file_content, uploaded_h5ad.name)
                 st.session_state.sccoda_adata = adata
@@ -146,39 +146,39 @@ if uploaded_h5ad is not None:
                 # Reset results
                 st.session_state.sccoda_results = None
 
-                st.success(f"✅ h5adファイルを読み込みました: {adata.shape[0]} cells × {adata.shape[1]} genes")
+                st.success(f"✅ h5ad file loaded: {adata.shape[0]} cells × {adata.shape[1]} genes")
             except Exception as e:
-                st.error(f"❌ h5adファイルの読み込みエラー: {str(e)}")
+                st.error(f"❌ h5ad file loading error: {str(e)}")
                 import traceback
                 st.code(traceback.format_exc())
                 st.stop()
     else:
         adata = st.session_state.sccoda_adata
-        st.success(f"✅ h5adファイル（キャッシュ済み）: {adata.shape[0]} cells × {adata.shape[1]} genes")
+        st.success(f"✅ h5ad file (cached): {adata.shape[0]} cells × {adata.shape[1]} genes")
 
     # Display data summary
     adata = st.session_state.sccoda_adata
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("総細胞数", f"{adata.shape[0]:,}")
+        st.metric("Total cells", f"{adata.shape[0]:,}")
     with col2:
-        st.metric("遺伝子数", f"{adata.shape[1]:,}")
+        st.metric("Genes", f"{adata.shape[1]:,}")
     with col3:
         if hasattr(adata, 'obs') and len(adata.obs.columns) > 0:
-            st.metric("メタデータ列数", len(adata.obs.columns))
+            st.metric("Metadata columns", len(adata.obs.columns))
 
     # Show available metadata columns
-    with st.expander("📋 利用可能なメタデータ列"):
-        st.write("**adata.obs に含まれる列:**")
+    with st.expander("📋 Available metadata columns"):
+        st.write("**Columns in adata.obs:**")
         st.dataframe(pd.DataFrame({
-            "列名": adata.obs.columns.tolist(),
-            "データ型": [str(dtype) for dtype in adata.obs.dtypes],
-            "ユニーク値数": [adata.obs[col].nunique() for col in adata.obs.columns]
+            "Column name": adata.obs.columns.tolist(),
+            "Data type": [str(dtype) for dtype in adata.obs.dtypes],
+            "Unique values": [adata.obs[col].nunique() for col in adata.obs.columns]
         }))
 
     # Preview data
-    with st.expander("🔍 データプレビュー (先頭10行)"):
+    with st.expander("🔍 Data preview (first 10 rows)"):
         st.dataframe(adata.obs.head(10))
 
 # ========================================
@@ -190,60 +190,60 @@ if st.session_state.sccoda_adata is not None:
     adata = st.session_state.sccoda_adata
     obs_columns = adata.obs.columns.tolist()
 
-    # フィルタリング: 要素数50未満の列のみを候補とする
+    # Filtering: Only columns with <50 unique values are candidates
     filtered_columns = [col for col in obs_columns if adata.obs[col].nunique() < 50]
 
     if len(filtered_columns) == 0:
-        st.error("❌ 要素数が50未満の列が見つかりません。メタデータの列を確認してください。")
+        st.error("❌ No columns with <50 unique values found. Please check metadata columns.")
         st.stop()
 
-    # デフォルト列の選択関数
+    # Default column selection function
     def find_default_celltype_col(columns, obs_df):
-        """セルタイプ列のdefaultを見つける"""
-        # 1. identを含む列（orig.identを除く）
+        """Find default cell type column"""
+        # 1. Columns containing ident (excluding orig.ident)
         ident_cols = [col for col in columns if 'ident' in col.lower() and col != 'orig.ident']
         if ident_cols:
             return ident_cols[0]
-        # 2. typeを含む列
+        # 2. Columns containing type
         type_cols = [col for col in columns if 'type' in col.lower()]
         if type_cols:
             return type_cols[0]
-        # 3. デフォルトは最初の列
+        # 3. Default is first column
         return columns[0]
 
     def find_default_sample_col(columns, obs_df):
-        """サンプル列のdefaultを見つける"""
-        # 1. orig.identを優先
+        """Find default sample column"""
+        # 1. Prioritize orig.ident
         if 'orig.ident' in columns:
             return 'orig.ident'
-        # 2. identを含む列（orig.ident以外）
+        # 2. Columns containing ident (other than orig.ident)
         ident_cols = [col for col in columns if 'ident' in col.lower() and col != 'orig.ident']
         if ident_cols:
             return ident_cols[0]
-        # 3. sampleを含む列
+        # 3. Columns containing sample
         sample_cols = [col for col in columns if 'sample' in col.lower()]
         if sample_cols:
             return sample_cols[0]
-        # 4. デフォルトは最初の列
+        # 4. Default is first column
         return columns[0]
 
     def find_default_condition_col(columns, obs_df):
-        """条件列のdefaultを見つける"""
-        # condition, stim, KOを含む列を探す
+        """Find default condition column"""
+        # Find columns containing condition, stim, KO
         keywords = ['condition', 'stim', 'ko']
         for keyword in keywords:
             matching_cols = [col for col in columns if keyword in col.lower()]
             if matching_cols:
                 return matching_cols[0]
-        # デフォルトは2番目の列（最初はサンプルとして使われる可能性が高い）
+        # Default is second column (first is likely used for sample)
         return columns[min(1, len(columns)-1)]
 
-    # デフォルト列を決定
+    # Determine default columns
     default_celltype = find_default_celltype_col(filtered_columns, adata.obs)
     default_sample = find_default_sample_col(filtered_columns, adata.obs)
     default_condition = find_default_condition_col(filtered_columns, adata.obs)
 
-    # インデックスを取得
+    # Get index
     celltype_idx = filtered_columns.index(default_celltype) if default_celltype in filtered_columns else 0
     sample_idx = filtered_columns.index(default_sample) if default_sample in filtered_columns else 0
     condition_idx = filtered_columns.index(default_condition) if default_condition in filtered_columns else min(1, len(filtered_columns)-1)
@@ -254,7 +254,7 @@ if st.session_state.sccoda_adata is not None:
             "celltype_col": default_celltype,
             "sample_col": default_sample,
             "condition_col": default_condition,
-            "reference_celltype": "自動選択",
+            "reference_celltype": "Auto select",
             "inclusion_threshold": 0.95
         }
 
@@ -262,7 +262,7 @@ if st.session_state.sccoda_adata is not None:
     current_celltype = st.session_state.sccoda_params.get("celltype_col", default_celltype)
     current_sample = st.session_state.sccoda_params.get("sample_col", default_sample)
     current_condition = st.session_state.sccoda_params.get("condition_col", default_condition)
-    current_reference = st.session_state.sccoda_params.get("reference_celltype", "自動選択")
+    current_reference = st.session_state.sccoda_params.get("reference_celltype", "Auto select")
     current_threshold = st.session_state.sccoda_params.get("inclusion_threshold", 0.95)
 
     # Calculate indices for selectboxes based on current values
@@ -271,64 +271,64 @@ if st.session_state.sccoda_adata is not None:
     form_condition_idx = filtered_columns.index(current_condition) if current_condition in filtered_columns else condition_idx
 
     # Form for parameter selection
-    st.info("💡 パラメータを選択後、「✅ パラメータを確定」ボタンをクリックしてください")
+    st.info("💡 After selecting parameters, click "✅ Confirm Parameters" button")
     with st.form("sccoda_params_form"):
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("データ列の選択")
+            st.subheader("Data Column Selection")
 
             # Cell type column
             celltype_col = st.selectbox(
-                "セルタイプ列",
+                "Cell type column",
                 filtered_columns,
                 index=form_celltype_idx,
-                help="セルタイプまたはクラスター情報を含む列"
+                help="Column containing cell type or cluster information"
             )
 
             # Sample column
             sample_col = st.selectbox(
-                "サンプル列",
+                "Sample column",
                 filtered_columns,
                 index=form_sample_idx,
-                help="生物学的レプリケート（サンプル）情報を含む列"
+                help="Column containing biological replicate (sample) information"
             )
 
             # Condition column
             condition_col = st.selectbox(
-                "条件列（比較するグループ）",
+                "Condition column (groups to compare)",
                 filtered_columns,
                 index=form_condition_idx,
-                help="比較したい条件（例: Control vs Treatment）"
+                help="Conditions to compare (e.g., Control vs Treatment)"
             )
 
         with col2:
-            st.subheader("モデルパラメータ")
+            st.subheader("Model Parameters")
 
             # Reference cell type - use celltypes from current celltype column
             current_celltype_for_ref = filtered_columns[form_celltype_idx]
             all_celltypes = adata.obs[current_celltype_for_ref].unique().tolist()
-            ref_options = ["自動選択"] + all_celltypes
+            ref_options = ["Auto select"] + all_celltypes
             ref_idx = ref_options.index(current_reference) if current_reference in ref_options else 0
             reference_celltype = st.selectbox(
-                "参照セルタイプ（変化しないと仮定）",
+                "Reference cell type (assumed unchanged)",
                 ref_options,
                 index=ref_idx,
-                help="変化していないと仮定するセルタイプ。自動選択の場合、最も安定したセルタイプが選ばれます。"
+                help="Cell type assumed unchanged. With Auto select, the most stable cell type is chosen."
             )
 
-            # Inclusion probability threshold (scCODAではFDRの代わりに使用)
+            # Inclusion probability threshold (used instead of FDR in scCODA)
             inclusion_threshold = st.slider(
-                "Inclusion probability閾値",
+                "Inclusion probability threshold",
                 min_value=0.5,
                 max_value=1.0,
                 value=current_threshold,
                 step=0.05,
-                help="効果が有意と判定されるための閾値。0.95はMCMCサンプルの95%でこの効果が0でないことを意味します"
+                help="Threshold for significant effect. 0.95 means effect is non-zero in 95% of MCMC samples"
             )
 
         # Submit button
-        params_submitted = st.form_submit_button("✅ パラメータを確定", type="primary")
+        params_submitted = st.form_submit_button("✅ Confirm Parameters", type="primary")
 
         if params_submitted:
             st.session_state.sccoda_params = {
@@ -338,61 +338,61 @@ if st.session_state.sccoda_adata is not None:
                 "reference_celltype": reference_celltype,
                 "inclusion_threshold": inclusion_threshold
             }
-            st.success("✅ パラメータを確定しました")
+            st.success("✅ Parameters confirmed")
 
     # Use confirmed parameters or defaults
     celltype_col = st.session_state.sccoda_params.get("celltype_col", default_celltype)
     sample_col = st.session_state.sccoda_params.get("sample_col", default_sample)
     condition_col = st.session_state.sccoda_params.get("condition_col", default_condition)
-    reference_celltype = st.session_state.sccoda_params.get("reference_celltype", "自動選択")
+    reference_celltype = st.session_state.sccoda_params.get("reference_celltype", "Auto select")
     inclusion_threshold = st.session_state.sccoda_params.get("inclusion_threshold", 0.95)
 
     # Formula input (outside form for flexibility)
     st.markdown("---")
     formula = st.text_input(
-        "モデル式（オプション）",
+        "Model formula (optional)",
         value=condition_col,
-        help="デフォルトは条件列のみ。追加の共変量を含める場合は 'condition + batch' のように指定"
+        help="Default is condition column only. Specify 'condition + batch' to include additional covariates"
     )
 
     # Display confirmed parameters
-    st.markdown("### 📌 確定済みパラメータ")
+    st.markdown("### 📌 Confirmed Parameters")
     param_col1, param_col2, param_col3 = st.columns(3)
     with param_col1:
-        st.info(f"**セルタイプ列:** `{celltype_col}`")
-        st.info(f"**サンプル列:** `{sample_col}`")
+        st.info(f"**Cell type column:** `{celltype_col}`")
+        st.info(f"**Sample column:** `{sample_col}`")
     with param_col2:
-        st.info(f"**条件列:** `{condition_col}`")
-        st.info(f"**参照セルタイプ:** `{reference_celltype}`")
+        st.info(f"**Condition column:** `{condition_col}`")
+        st.info(f"**Reference cell type:** `{reference_celltype}`")
     with param_col3:
-        st.info(f"**モデル式:** `{formula}`")
-        st.info(f"**Inclusion閾値:** `{inclusion_threshold}`")
+        st.info(f"**Model formula:** `{formula}`")
+        st.info(f"**Inclusion threshold:** `{inclusion_threshold}`")
 
     # Show data summary
-    with st.expander("📊 選択したデータの要約（確定済み）"):
+    with st.expander("📊 Summary of selected data (confirmed)"):
         st.markdown(f"""
-        **セルタイプ列:** `{celltype_col}`
-        - ユニークなセルタイプ数: {adata.obs[celltype_col].nunique()}
-        - セルタイプ: {', '.join(map(str, adata.obs[celltype_col].unique()[:10].tolist()))}{'...' if adata.obs[celltype_col].nunique() > 10 else ''}
+        **Cell type column:** `{celltype_col}`
+        - Unique cell types: {adata.obs[celltype_col].nunique()}
+        - Cell types: {', '.join(map(str, adata.obs[celltype_col].unique()[:10].tolist()))}{'...' if adata.obs[celltype_col].nunique() > 10 else ''}
 
-        **サンプル列:** `{sample_col}`
-        - サンプル数: {adata.obs[sample_col].nunique()}
-        - サンプル: {', '.join(map(str, adata.obs[sample_col].unique().tolist()))}
+        **Sample column:** `{sample_col}`
+        - Number of samples: {adata.obs[sample_col].nunique()}
+        - Samples: {', '.join(map(str, adata.obs[sample_col].unique().tolist()))}
 
-        **条件列:** `{condition_col}`
-        - 条件数: {adata.obs[condition_col].nunique()}
-        - 条件: {', '.join(map(str, adata.obs[condition_col].unique().tolist()))}
+        **Condition column:** `{condition_col}`
+        - Number of conditions: {adata.obs[condition_col].nunique()}
+        - Conditions: {', '.join(map(str, adata.obs[condition_col].unique().tolist()))}
         """)
 
         # Cross-tabulation
-        st.markdown("**サンプル×条件のクロス集計:**")
+        st.markdown("**Sample × Condition cross tabulation:**")
         crosstab = pd.crosstab(adata.obs[sample_col], adata.obs[condition_col])
         st.dataframe(crosstab)
 
     # Visualize cell type distributions
     st.markdown("---")
-    if st.button("📊 条件を設定してデータ分布を確認", type="secondary"):
-        with st.spinner("データ分布を可視化中..."):
+    if st.button("📊 Set conditions and check data distribution", type="secondary"):
+        with st.spinner("Visualizing data distribution..."):
             try:
                 # Prepare data for visualization
                 sccoda_vis = pt.tl.Sccoda()
@@ -404,7 +404,7 @@ if st.session_state.sccoda_adata is not None:
                     covariate_obs=[condition_col]
                 )
 
-                st.subheader("📈 細胞タイプの分布")
+                st.subheader("📈 Cell type distribution")
 
                 # Reset Step 2 plots
                 st.session_state.sccoda_plots["step2"] = []
@@ -412,7 +412,7 @@ if st.session_state.sccoda_adata is not None:
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    st.markdown("#### セルタイプ存在量（条件別）")
+                    st.markdown("#### Cell type abundance (by condition)")
                     try:
                         import matplotlib.pyplot as plt
                         fig = sccoda_vis.plot_boxplots(
@@ -425,12 +425,12 @@ if st.session_state.sccoda_adata is not None:
                             fig = plt.gcf()
                         st.pyplot(fig)
                         # Save figure for PDF
-                        st.session_state.sccoda_plots["step2"].append(("セルタイプ存在量（条件別）", fig))
+                        st.session_state.sccoda_plots["step2"].append(("Cell type abundance (by condition)", fig))
                     except Exception as e:
-                        st.warning(f"ボックスプロットの作成に失敗: {str(e)}")
+                        st.warning(f"Failed to create boxplot: {str(e)}")
 
                 with col2:
-                    st.markdown("#### セルタイプ構成比（サンプル別）")
+                    st.markdown("#### Cell type composition (by sample)")
                     try:
                         import matplotlib.pyplot as plt
                         fig = sccoda_vis.plot_stacked_barplot(
@@ -442,13 +442,13 @@ if st.session_state.sccoda_adata is not None:
                             fig = plt.gcf()
                         st.pyplot(fig)
                         # Save figure for PDF
-                        st.session_state.sccoda_plots["step2"].append(("セルタイプ構成比（サンプル別）", fig))
+                        st.session_state.sccoda_plots["step2"].append(("Cell type composition (by sample)", fig))
                     except Exception as e:
-                        st.warning(f"スタックバープロットの作成に失敗: {str(e)}")
+                        st.warning(f"Failed to create stacked bar plot: {str(e)}")
 
                 # Additional plot: composition by condition (cell-level calculation)
-                st.markdown("#### セルタイプ構成比（条件別・細胞レベル集計）")
-                st.caption("※ 全細胞をカウントして比率を計算（元のBarplotと同じ方法）")
+                st.markdown("#### Cell type composition (by condition, cell-level)")
+                st.caption("* Count all cells to calculate ratio (same method as original barplot)")
                 try:
                     import matplotlib.pyplot as plt
 
@@ -471,13 +471,13 @@ if st.session_state.sccoda_adata is not None:
 
                     st.pyplot(fig)
                     # Save figure for PDF
-                    st.session_state.sccoda_plots["step2"].append(("セルタイプ構成比（条件別・細胞レベル）", fig))
+                    st.session_state.sccoda_plots["step2"].append(("Cell type composition (by condition, cell-level)", fig))
                 except Exception as e:
-                    st.warning(f"細胞レベル構成比プロットの作成に失敗: {str(e)}")
+                    st.warning(f"Failed to create cell-level composition plot: {str(e)}")
 
                 # scCODA sample-level average plot (for comparison)
-                with st.expander("📊 サンプルレベル平均（scCODA方式）を表示"):
-                    st.caption("※ 各サンプルの比率を計算後、条件内で平均（統計解析で使用する方法）")
+                with st.expander("📊 Show sample-level mean (scCODA method)"):
+                    st.caption("* Calculate ratio for each sample, then average within condition (method used in statistical analysis)")
                     try:
                         import matplotlib.pyplot as plt
                         fig = sccoda_vis.plot_stacked_barplot(
@@ -489,14 +489,14 @@ if st.session_state.sccoda_adata is not None:
                             fig = plt.gcf()
                         st.pyplot(fig)
                         # Save figure for PDF
-                        st.session_state.sccoda_plots["step2"].append(("セルタイプ構成比（条件別・サンプル平均）", fig))
+                        st.session_state.sccoda_plots["step2"].append(("Cell type composition (by condition, sample mean)", fig))
                     except Exception as e:
-                        st.warning(f"サンプルレベルプロットの作成に失敗: {str(e)}")
+                        st.warning(f"Failed to create sample-level plot: {str(e)}")
 
                 # Download plots as PDF ZIP
                 if len(st.session_state.sccoda_plots["step2"]) > 0:
                     st.markdown("---")
-                    st.markdown("### 💾 プロットのダウンロード")
+                    st.markdown("### 💾 Download plots")
 
                     # Create PDF in memory
                     pdf_buffer = io.BytesIO()
@@ -507,14 +507,14 @@ if st.session_state.sccoda_adata is not None:
                     pdf_buffer.seek(0)
 
                     st.download_button(
-                        label="📥 データ分布プロットをPDFでダウンロード",
+                        label="📥 Download data distribution plots as PDF",
                         data=pdf_buffer,
                         file_name="sccoda_step2_plots.pdf",
                         mime="application/pdf"
                     )
 
             except Exception as e:
-                st.error(f"❌ 可視化エラー: {str(e)}")
+                st.error(f"❌ Visualization error: {str(e)}")
                 import traceback
                 st.code(traceback.format_exc())
 
@@ -535,11 +535,11 @@ if st.session_state.sccoda_adata is not None:
     if "sccoda_analysis_params" not in st.session_state:
         st.session_state.sccoda_analysis_params = None
 
-    if st.button("🚀 scCODA解析を実行", type="primary"):
-        with st.spinner("scCODAを実行中..."):
+    if st.button("🚀 Run scCODA analysis", type="primary"):
+        with st.spinner("Running scCODA..."):
             try:
                 # Prepare data for scCODA
-                st.info("📊 データを準備中...")
+                st.info("📊 Preparing data...")
 
                 # Create scCODA object
                 sccoda = pt.tl.Sccoda()
@@ -553,7 +553,7 @@ if st.session_state.sccoda_adata is not None:
                     covariate_obs=[condition_col]
                 )
 
-                st.success(f"✅ scCODAデータを作成: {adata_sccoda.shape}")
+                st.success(f"✅ Created scCODA data: {adata_sccoda.shape}")
 
                 # Fix: Copy condition column to coda modality if missing
                 if hasattr(adata_sccoda, 'mod') and 'coda' in adata_sccoda.mod:
@@ -563,18 +563,18 @@ if st.session_state.sccoda_adata is not None:
                         if condition_col in rna_mod.obs.columns and sample_col in rna_mod.obs.columns:
                             sample_condition = rna_mod.obs.groupby(sample_col)[condition_col].first()
                             coda_mod.obs[condition_col] = coda_mod.obs.index.map(sample_condition)
-                            st.info(f"📝 '{condition_col}' を coda modality にコピーしました")
+                            st.info(f"📝 Copied '{condition_col}' to coda modality")
 
                 # Set reference cell type
-                if reference_celltype != "自動選択":
-                    st.info(f"📌 参照セルタイプ: {reference_celltype}")
+                if reference_celltype != "Auto select":
+                    st.info(f"📌 Reference cell types: {reference_celltype}")
                     sccoda.prepare(
                         adata_sccoda,
                         formula=formula,
                         reference_cell_type=reference_celltype
                     )
                 else:
-                    st.info("🔄 参照セルタイプを自動選択中...")
+                    st.info("🔄 Auto-selecting reference cell type...")
                     sccoda.prepare(
                         adata_sccoda,
                         formula=formula,
@@ -582,14 +582,14 @@ if st.session_state.sccoda_adata is not None:
                     )
 
                 # Run scCODA
-                st.info("🔬 ベイズ推定を実行中（数分かかる場合があります）...")
+                st.info("🔬 Running Bayesian estimation (may take several minutes)...")
                 sccoda.run_nuts(
                     adata_sccoda,
                     num_warmup=1000,
                     num_samples=1000
                 )
 
-                st.success("✅ scCODA解析が完了しました！")
+                st.success("✅ scCODA analysis completed!")
 
                 # Store results in session state
                 st.session_state.sccoda_results = adata_sccoda
@@ -599,7 +599,7 @@ if st.session_state.sccoda_adata is not None:
                     effect_df = sccoda.get_effect_df(adata_sccoda)
                     st.session_state.sccoda_effect_df = effect_df
                 except Exception as e:
-                    st.warning(f"effect_dfの取得に失敗: {str(e)}")
+                    st.warning(f"Failed to get effect_df: {str(e)}")
                     st.session_state.sccoda_effect_df = None
 
                 # Get and store intercept_df
@@ -641,7 +641,7 @@ if st.session_state.sccoda_adata is not None:
                 st.rerun()
 
             except Exception as e:
-                st.error(f"❌ scCODA解析エラー: {str(e)}")
+                st.error(f"❌ scCODA analysis error: {str(e)}")
                 import traceback
                 st.code(traceback.format_exc())
 
@@ -652,17 +652,17 @@ if st.session_state.sccoda_adata is not None:
         effect_df = st.session_state.sccoda_effect_df
         params = st.session_state.sccoda_analysis_params or {}
 
-        st.subheader("📈 解析結果")
+        st.subheader("📈 Analysis Results")
 
         # Effect summary
-        st.markdown("### セルタイプごとの効果")
+        st.markdown("### Effects by cell type")
 
         st.info("""
-        **scCODA結果の解釈:**
-        - **Final Parameter**: 効果の事後平均推定値（0なら有意でない、非0なら有意）
-        - **Inclusion probability**: 効果が0でない確率（高いほど確実に変化している）
-        - **log2-fold change**: log2変換された倍率変化
-        - **HDI**: 高密度信用区間（ベイズ版の信頼区間）
+        **Interpreting scCODA results:**
+        - **Final Parameter**: Posterior mean estimate of effect (0 = not significant, non-zero = significant)
+        - **Inclusion probability**: Probability that effect is non-zero (higher = more certain change)
+        - **log2-fold change**: Log2-transformed fold change
+        - **HDI**: Highest Density Interval (Bayesian confidence interval)
         """)
 
         st.dataframe(effect_df, use_container_width=True)
@@ -676,41 +676,41 @@ if st.session_state.sccoda_adata is not None:
                 significant_high_prob = significant[significant['Inclusion probability'] >= thresh]
 
                 if len(significant_high_prob) > 0:
-                    st.success(f"✨ **{len(significant_high_prob)}個のセルタイプで有意な変化が検出されました** (Inclusion prob ≥ {thresh})")
-                    st.markdown("#### 有意な変化を示すセルタイプ")
+                    st.success(f"✨ **{len(significant_high_prob)}Significant changes detected in  cell types** (Inclusion prob ≥ {thresh})")
+                    st.markdown("#### Cell types with significant changes")
                     st.dataframe(significant_high_prob, use_container_width=True)
                 else:
-                    st.warning(f"Inclusion probability ≥ {thresh} を満たすセルタイプはありませんでした")
+                    st.warning(f"Inclusion probability ≥ {thresh}  - no cell types found")
                     if len(significant) > 0:
-                        st.info(f"ただし、{len(significant)}個のセルタイプで変化が検出されています（閾値以下）")
+                        st.info(f"However, {len(significant)} cell types with changes detected (below threshold)")
             else:
                 if len(significant) > 0:
-                    st.success(f"✨ **{len(significant)}個のセルタイプで有意な変化が検出されました**")
+                    st.success(f"✨ **{len(significant)}Significant changes detected in  cell types**")
                     st.dataframe(significant, use_container_width=True)
                 else:
-                    st.info("有意な変化が検出されたセルタイプはありませんでした")
+                    st.info("No cell types with significant changes detected")
 
         # Intercept parameters
         if st.session_state.sccoda_intercept_df is not None:
-            with st.expander("📊 切片パラメータ"):
+            with st.expander("📊 Intercept parameters"):
                 st.dataframe(st.session_state.sccoda_intercept_df, use_container_width=True)
 
         # Visualization
-        st.subheader("📊 可視化")
+        st.subheader("📊 Visualization")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("#### セルタイプ比率の変化")
+            st.markdown("#### Cell type proportion changes")
             if 'Final Parameter' in effect_df.columns and (effect_df['Final Parameter'] != 0).any():
-                st.info("有意な変化があるセルタイプの効果プロット")
+                st.info("Effect plot for cell types with significant changes")
                 # Note: Cannot regenerate pertpy plot without sccoda object
                 # Would need to store the figure in session_state during analysis
             else:
-                st.info("有意な変化がないため、効果プロットは表示されません")
+                st.info("No effect plot displayed because no significant changes")
 
         with col2:
-            st.markdown("#### セルタイプ構成比（条件別・細胞レベル）")
+            st.markdown("#### Cell type composition (by condition, cell-level)")
             if st.session_state.sccoda_cell_counts is not None:
                 try:
                     import matplotlib.pyplot as plt
@@ -730,16 +730,16 @@ if st.session_state.sccoda_adata is not None:
                     st.pyplot(fig)
                     plt.close(fig)
                 except Exception as e:
-                    st.warning(f"構成比プロットの作成に失敗: {str(e)}")
+                    st.warning(f"Failed to create composition plot: {str(e)}")
 
         # Download results
-        st.subheader("💾 結果のダウンロード")
+        st.subheader("💾 Download results")
 
         col1, col2, col3 = st.columns(3)
         with col1:
             csv = effect_df.to_csv(index=True)
             st.download_button(
-                label="📥 CSVでダウンロード",
+                label="📥 Download as CSV",
                 data=csv,
                 file_name="sccoda_results.csv",
                 mime="text/csv",
@@ -748,7 +748,7 @@ if st.session_state.sccoda_adata is not None:
         with col2:
             tsv = effect_df.to_csv(index=True, sep='\t')
             st.download_button(
-                label="📥 TSVでダウンロード",
+                label="📥 Download as TSV",
                 data=tsv,
                 file_name="sccoda_results.tsv",
                 mime="text/tab-separated-values",
@@ -758,7 +758,7 @@ if st.session_state.sccoda_adata is not None:
             if st.session_state.sccoda_result_path and os.path.exists(st.session_state.sccoda_result_path):
                 with open(st.session_state.sccoda_result_path, "rb") as f:
                     st.download_button(
-                        label="📥 h5adでダウンロード",
+                        label="📥 Download as h5ad",
                         data=f,
                         file_name="sccoda_results.h5ad",
                         mime="application/octet-stream",
@@ -766,7 +766,7 @@ if st.session_state.sccoda_adata is not None:
                     )
 
         # Clear results button
-        if st.button("🗑️ 結果をクリア", type="secondary"):
+        if st.button("🗑️ Clear results", type="secondary"):
             st.session_state.sccoda_effect_df = None
             st.session_state.sccoda_intercept_df = None
             st.session_state.sccoda_cell_counts = None
@@ -778,53 +778,53 @@ if st.session_state.sccoda_adata is not None:
 # ========================================
 # Additional information
 # ========================================
-with st.expander("ℹ️ scCODAについて"):
+with st.expander("ℹ️ About scCODA"):
     st.markdown("""
-    ## scCODAとは？
+    ## What is scCODA?
 
-    scCODA (single-cell Compositional Data Analysis) は、シングルセルデータにおける**セルタイプ構成比の変化**を
-    統計的に検出するための階層ベイズモデルです。
+    scCODA (single-cell Compositional Data Analysis) is a hierarchical Bayesian model for statistically detecting **cell type composition changes** in
+    single-cell data.
 
-    ### 主な特徴
+    ### Key Features
 
-    1. **合成データへの対応**
-       - セルタイプ比率は合成制約（総和=1）を持つ
-       - 通常の統計手法では不適切
-       - scCODAは合成データに特化した手法
+    1. **Compositional data support**
+       - Cell type proportions have compositional constraint (sum=1)
+       - Conventional statistical methods are inappropriate
+       - scCODA is specialized for compositional data
 
-    2. **スパース推定**
-       - 実際に変化しているセルタイプのみを検出
-       - 偽陽性を減らす
+    2. **Sparse estimation**
+       - Detects only cell types that actually change
+       - Reduces false positives
 
-    3. **階層モデル**
-       - サンプル間の変動を考慮
-       - 生物学的変動と技術的変動を区別
+    3. **Hierarchical model**
+       - Accounts for variation between samples
+       - Distinguishes biological and technical variation
 
-    4. **参照セルタイプ**
-       - 変化していないと仮定するセルタイプを選択
-       - 他のセルタイプの変化をこれを基準に評価
+    4. **Reference cell type**
+       - Select cell type assumed unchanged
+       - Evaluate changes in other cell types relative to this
 
-    5. **ベイズ統計による判定**
-       - p値やFDRではなく**Inclusion probability**を使用
-       - Inclusion probabilityはMCMCサンプルのうち効果が0でない割合
-       - 通常0.95以上を有意とする（95%の確率で変化している）
+    5. **Bayesian inference**
+       - Uses **Inclusion probability** instead of p-value or FDR
+       - Inclusion probability is proportion of MCMC samples where effect is non-zero
+       - Usually 0.95+ is significant (95% probability of change)
 
-    ### いつ使うべきか？
+    ### When to use?
 
-    - ✅ **2群以上の条件間でセルタイプ比率を比較したい**
-    - ✅ **複数の生物学的レプリケートがある**
-    - ✅ **合成データの特性を考慮した統計解析が必要**
+    - ✅ **Want to compare cell type proportions between 2+ conditions**
+    - ✅ **Have multiple biological replicates**
+    - ✅ **Need statistical analysis considering compositional data characteristics**
 
-    ### 他の手法との比較
+    ### Comparison with other methods
 
-    | 手法 | データ | サンプル間変動 | 合成制約 | スパース推定 | 統計手法 |
+    | Method | Data | Sample variation | Compositional | Sparse | Statistical method |
     |------|--------|--------------|---------|-------------|---------|
-    | **scCODA** | Count | ✅ | ✅ | ✅ | ベイズ (Inclusion prob) |
-    | **Propeller** | Count | ✅ | ❌ | ❌ | 頻度論 (p値) |
-    | **Beta-binomial** | Count | ✅ | ❌ | ❌ | 頻度論 (p値/LRT) |
-    | **χ² test** | Count | ❌ | ❌ | ❌ | 頻度論 (p値) |
+    | **scCODA** | Count | ✅ | ✅ | ✅ | Bayesian (Inclusion prob) |
+    | **Propeller** | Count | ✅ | ❌ | ❌ | Frequentist (p-value) |
+    | **Beta-binomial** | Count | ✅ | ❌ | ❌ | Frequentist (p-value/LRT) |
+    | **χ² test** | Count | ❌ | ❌ | ❌ | Frequentist (p-value) |
 
-    ### 参考文献
+    ### References
 
     - Büttner, M., Ostner, J., Müller, C.L. et al. (2021)
       "scCODA is a Bayesian model for compositional single-cell data analysis"

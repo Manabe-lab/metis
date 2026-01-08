@@ -10,23 +10,23 @@ from zipfile import ZipFile
 @st.cache_data
 def detect_bed_format(file_path):
     """
-    BEDFileoffuo-matothecheckoutdorelnum
+    BEDファイルのフォーマットを検出する関数
     """
     with open(file_path, 'r') as f:
-        # heda-thesukipu
+        # ヘッダーをスキップ
         line = f.readline()
         while line.startswith('#') or is_header_line(line):
             line = f.readline()
         
         fields = line.strip().split('\t')
         
-        # MACSfuo-matoofspecfeaturetheConfirm
+        # MACSフォーマットの特徴を確認
         if len(fields) >= 4:
             try:
-                # passnormalofBEDfuo-mato（chr, start, end）ofplacematch
+                # 通常のBEDフォーマット（chr, start, end）の場合
                 if fields[0].startswith('chr') and fields[1].isdigit() and fields[2].isdigit():
                     return 'standard'
-                # MACSfuo-matoofplacematch（name, chr, start, end）
+                # MACSフォーマットの場合（name, chr, start, end）
                 elif fields[1].startswith('chr') and fields[2].isdigit() and fields[3].isdigit():
                     return 'macs'
             except:
@@ -36,22 +36,22 @@ def detect_bed_format(file_path):
 @st.cache_data
 def convert_to_standard_bed(input_path, output_path, format_type):
     """
-    verschiedene BEDfuo-matothemarklevelalnaBEDfuo-matotochangechangedorelnum
+    verschiedene BEDフォーマットを標準的なBEDフォーマットに変換する関数
     """
     if format_type == 'macs':
-        # MACSfuo-matothemarklevelBEDfuo-matotochangechange
+        # MACSフォーマットを標準BEDフォーマットに変換
         with open(input_path, 'r') as fin, open(output_path, 'w') as fout:
             for line in fin:
                 if line.startswith('#') or is_header_line(line):
                     continue
                 fields = line.strip().split('\t')
                 if len(fields) >= 4:
-                    # chr, start, endofmitheextractoutshitewritekioutshi
+                    # chr, start, endのみを抽出して書き出し
                     bed_line = f"{fields[1]}\t{fields[2]}\t{fields[3]}\n"
                     fout.write(bed_line)
         return True
     elif format_type == 'standard':
-        # alreadytomarklevelfuo-matoofplacematchissoofmamakopi-
+        # 既に標準フォーマットの場合はそのままコピー
         shutil.copy(input_path, output_path)
         return True
     return False
@@ -59,7 +59,7 @@ def convert_to_standard_bed(input_path, output_path, format_type):
 @st.cache_data
 def is_header_line(line):
     """
-    rowisheda-（karamuname）whetherthejudgesetdorelnum
+    行がヘッダー（カラム名）かどうかを判定する関数
     """
     fields = line.strip().split('\t')
     if len(fields) >= 3:
@@ -71,25 +71,25 @@ def is_header_line(line):
 @st.cache_data
 def convert_bed_to_fasta(bed_file, genome, output_file):
     """
-    BEDFiletheFastaFiletochangechangedorelnum
+    BEDファイルをFastaファイルに変換する関数
     """
     bed = BedTool(bed_file)
     bed.sequence(fi=f'db/genome/{genome}.fa', fo=output_file)
 
 def show_file_preview(file_path, format_type=None):
     """
-    Fileofpurebiyu-theDisplaydorelnum
+    ファイルのプレビューを表示する関数
     """
     try:
         with open(file_path, 'r') as f:
-            lines = f.readlines()[:10]  # mostfirstof10rowofmiDisplay
+            lines = f.readlines()[:10]  # 最初の10行のみ表示
             
         st.write("File preview:")
         for i, line in enumerate(lines, 1):
             if i == 1 and is_header_line(line):
-                st.markdown(f"**📋 heda-row:** `{line.strip()}`")
+                st.markdown(f"**📋 ヘッダー行:** `{line.strip()}`")
             else:
-                st.text(f"row {i}: {line.strip()}")
+                st.text(f"行 {i}: {line.strip()}")
                 
         if format_type:
             st.info(f"Detected format: {format_type}")
@@ -97,18 +97,18 @@ def show_file_preview(file_path, format_type=None):
         if len(lines) == 10:
             st.text("...")
     except Exception as e:
-        st.error(f"purebiyu-ofDisplaymidtoErrorisoccurgenshimashita: {str(e)}")
+        st.error(f"プレビューの表示中にエラーが発生しました: {str(e)}")
 
 def main():
     st.title('BED to FASTA Converter')
 
-    # genomeofSelect
+    # genomeの選択
     genome = st.selectbox(
         'Genome:',
         ('mm10', 'mm39', 'hg38')
     )
 
-    # multinumFileUpload
+    # 複数ファイルアップロード
     uploaded_files = st.file_uploader(
         "Upload bed files", 
         type=['bed', 'broadPeak', 'narrowPeak'],
@@ -117,68 +117,68 @@ def main():
     st.write("can handle MACS outputs")
 
     if uploaded_files:
-        # progprogstatestatetheDisplaydopuroguresuba-
+        # 進捗状況を表示するプログレスバー
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # changechangedonemiFilethe格storedomemoriupofbafua
+        # 変換済みファイルを格納するメモリ上のバッファ
         zip_buffer = io.BytesIO()
         
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                # ZIPFileofmakebecome
+                # ZIPファイルの作成
                 with ZipFile(zip_buffer, 'w') as zip_file:
-                    # eachFileofprocproc
+                    # 各ファイルの処理
                     for i, uploaded_file in enumerate(uploaded_files):
                         status_text.text(f'Processing: {uploaded_file.name}')
                         
-                        # progprogstatestateoffurthernew
+                        # 進捗状況の更新
                         progress = (i + 1) / len(uploaded_files)
                         progress_bar.progress(progress)
 
-                        # InputFileofSave
+                        # 入力ファイルの保存
                         input_path = os.path.join(temp_dir, uploaded_file.name)
                         with open(input_path, 'wb') as f:
                             f.write(uploaded_file.getbuffer())
 
-                        # fuo-matoofcheckout
+                        # フォーマットの検出
                         format_type = detect_bed_format(input_path)
                         st.info(f"Format type of {uploaded_file.name}: {format_type}")
 
-                        # marklevelBEDfuo-matoheofchangechange
+                        # 標準BEDフォーマットへの変換
                         standard_bed_path = os.path.join(temp_dir, f"standard_{uploaded_file.name}")
                         if not convert_to_standard_bed(input_path, standard_bed_path, format_type):
-                            st.error(f"{uploaded_file.name}: sapo-tosareteinotfuo-matowithsu。")
+                            st.error(f"{uploaded_file.name}: サポートされていないフォーマットです。")
                             show_file_preview(input_path, format_type)
                             continue
 
-                        # OutputFilenameofSettings（.bedthe.fatochangefurther）
+                        # 出力ファイル名の設定（.bedを.faに変更）
                         output_filename = os.path.splitext(uploaded_file.name)[0] + '.fa'
                         output_path = os.path.join(temp_dir, output_filename)
 
                         try:
-                            # marklevelfuo-matoofBEDFiletheFastatochangechange
+                            # 標準フォーマットのBEDファイルをFastaに変換
                             convert_bed_to_fasta(standard_bed_path, genome, output_path)
                             
-                            # changechangeshitaFiletheZIPtoaddadd
+                            # 変換したファイルをZIPに追加
                             zip_file.write(output_path, output_filename)
                             
                         except Exception as e:
                             st.error(f"""
-                            Errorisoccurgenshimashita:
+                            エラーが発生しました:
                             
-                            File: {uploaded_file.name}
+                            ファイル: {uploaded_file.name}
                             {str(e)}
                             """)
                             
-                            # Filepurebiyu-theDisplay
+                            # ファイルプレビューを表示
                             show_file_preview(standard_bed_path, format_type)
                             continue
                 
-                # allteofprocprocisCompleteshitaraDisplay
+                # 全ての処理が完了したら表示
                 status_text.text('Done！')
                 
-                # ZIPFileofDownloadbotan
+                # ZIPファイルのダウンロードボタン
                 zip_buffer.seek(0)
                 st.download_button(
                     label="Download fasta files",
@@ -187,13 +187,13 @@ def main():
                     mime="application/zip"
                 )
 
-                # procprocResultofsamari-Display
+                # 処理結果のサマリー表示
                 st.write("### Results")
                 for file in uploaded_files:
                     st.write(f"- {file.name} → {os.path.splitext(file.name)[0]}.fa")
 
         except Exception as e:
-            st.error(f"advperiodsenuErrorisoccurgenshimashita: {str(e)}")
+            st.error(f"予期せぬエラーが発生しました: {str(e)}")
 
 if __name__ == '__main__':
     main()

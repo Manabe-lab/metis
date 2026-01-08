@@ -17,19 +17,19 @@ from streamlit_sortables import sort_items
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    Cellname/Clusterandcolorofonethroughshitamapinguthemakebecomedorelnum
+    細胞名/クラスターと色の一貫したマッピングを作成する関数
 
     Parameters
     ----------
     cell_list : list
-        Cellname/Clusternameofrisuto
+        細胞名/クラスター名のリスト
     palette_name : str
-        useusedosepscatterkara-paretoname
+        使用する離散カラーパレット名
 
     Returns
     -------
     dict
-        Cellname/Clusternametheki-、colorthebariyu-anddowordwrite
+        細胞名/クラスター名をキー、色をバリューとする辞書
     """
     n_cells = len(cell_list)
     base_palette = sns.color_palette(palette_name)
@@ -277,20 +277,20 @@ def save_lap_to_adata(adata, transition_graph, selected_cell_types, representati
     return adata
 
 def check_prerequisites(adata, basis):
-    """PreprocessingisCompleteshiteexistkachieku"""
+    """前処理が完了しているかチェック"""
     issues = []
 
-    # bekutoruplaceofchieku
+    # ベクトル場のチェック
     vecfld_keys = [k for k in adata.uns.keys() if k.startswith('VecFld')]
     if not vecfld_keys:
         issues.append("❌ Vector field not found (.uns['VecFld_*'])")
 
-    # transitmoverowcolofchieku
+    # 遷移行列のチェック
     transition_keys = [k for k in adata.obsp.keys() if 'transition_matrix' in k]
     if not transition_keys:
         issues.append("❌ No transition matrix found in .obsp")
 
-    # fillmeintomiofchieku
+    # 埋め込みのチェック
     if f'X_{basis}' not in adata.obsm:
         issues.append(f"❌ Embedding 'X_{basis}' not found")
 
@@ -329,7 +329,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload Dynamo result (h5ad)",
     type=['h5ad'],
     key="dynamo_lap_h5ad_upload",
-    help="Dynamo Analysis appwithgenbecomesaretah5adFile"
+    help="Dynamo Analysis appで生成されたh5adファイル"
 )
 
 if uploaded_h5ad is not None:
@@ -370,14 +370,14 @@ if uploaded_h5ad is not None:
         st.error("""
         ❌ **Cannot proceed with LAP analysis**
 
-        koofFiletoisDynamoAnalysisofmustmustDataisnotenoughshiteimasu。
+        このファイルにはDynamo解析の必須データが不足しています。
 
-        requirednaData:
+        必要なデータ:
         - ✅ Vector field
-        - ✅ Embedding (UMAPeq)
+        - ✅ Embedding (UMAP等)
         - ✅ Transition matrix
 
-        Dynamo Analysisapuriwithfirsttovector fieldCalculationtheRunshitekudasai。
+        Dynamo Analysisアプリで先にvector field計算を実行してください。
         """)
         st.stop()
 
@@ -388,19 +388,19 @@ if uploaded_h5ad is not None:
         st.markdown("### Visualization Options")
 
         colormap_discrete = st.selectbox(
-            "Colormap (sepscatterkara-mapu):",
+            "Colormap (離散カラーマップ):",
             ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
              "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
             index=0,
-            help="kategorikaruchangenumuseofkara-pareto"
+            help="カテゴリカル変数用のカラーパレット"
         )
 
         colormap_continuous = st.selectbox(
-            "Colormap (connectcontinuekara-mapu):",
+            "Colormap (連続カラーマップ):",
             ["viridis", "plasma", "inferno", "magma", "cividis",
              "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
             index=0,
-            help="connectcontinuechangenumuseofkara-pareto"
+            help="連続変数用のカラーパレット"
         )
 
     # ========================================
@@ -422,11 +422,11 @@ if uploaded_h5ad is not None:
         if not vf_bases_for_lap:
             st.error("❌ No high-dimensional Vector Field found")
             st.warning("""
-            **LAPCalculationtoishighnextsourceemptybetweenisrequiredwithsu:**
-            - ✅ PCA, MNNeq
-            - ❌ UMAP, tSNEeq（lownextsourcefillmeintomiisnotcan）
+            **LAP計算には高次元空間が必要です:**
+            - ✅ PCA, MNN等
+            - ❌ UMAP, tSNE等（低次元埋め込みは不可）
 
-            Dynamo AnalysiswithhighnextsourcebasiswithVector FieldtheCalculationshitekudasai。
+            Dynamo Analysisで高次元basisでVector Fieldを計算してください。
             """)
             st.stop()
 
@@ -435,14 +435,14 @@ if uploaded_h5ad is not None:
         {', '.join(vf_bases_for_lap)}
         """)
 
-        # BasisSelect（highnextsourceemptybetweenofmi）
+        # Basis選択（高次元空間のみ）
         lap_basis = st.selectbox(
             "Vector Field basis for LAP calculation:",
             vf_bases_for_lap,
-            help="highnextsourceemptybetween (PCA, MNNeq) withLAPCalculationtherowimasu"
+            help="高次元空間 (PCA, MNN等) でLAP計算を行います"
         )
 
-        # beforeprovideConditionofchieku
+        # 前提条件のチェック
         issues = check_prerequisites(adata, lap_basis)
 
         if issues:
@@ -450,30 +450,30 @@ if uploaded_h5ad is not None:
             for issue in issues:
                 st.markdown(issue)
             st.info("""
-            **Solution**: Dynamo AnalysisapuriwithorbelowtheRunshitekudasai:
-            1. Vector FieldCalculation
-            2. Cell velocitiesCalculation
-            3. Transition matrixCalculation
+            **Solution**: Dynamo Analysisアプリで以下を実行してください:
+            1. Vector Field計算
+            2. Cell velocities計算
+            3. Transition matrix計算
             """)
             st.stop()
         else:
             st.success("✅ Prerequisites met!")
 
     with col2:
-        # VisualizationuseofbasisSelect（UMAPeq）
+        # 可視化用のbasis選択（UMAP等）
         st.info("""
-        **Visualizationuseembedding:**
-        ResultofVisualizationtouseuse
+        **可視化用embedding:**
+        結果の可視化に使用
         """)
 
         vis_basis = st.selectbox(
             "Embedding basis for visualization:",
             available_bases,
             index=available_bases.index('umap') if 'umap' in available_bases else 0,
-            help="ResultofVisualizationtouseusedoembedding (UMAPinferrec)"
+            help="結果の可視化に使用するembedding (UMAP推奨)"
         )
 
-        # transitmoverowcolofki-Select
+        # 遷移行列のキー選択
         transition_keys = [k for k in adata.obsp.keys() if 'transition_matrix' in k]
 
         if not transition_keys:
@@ -483,7 +483,7 @@ if uploaded_h5ad is not None:
         adj_key = st.selectbox(
             "Transition matrix key:",
             transition_keys,
-            help="transitmoverowcolofki-"
+            help="遷移行列のキー"
         )
 
     # ========================================
@@ -491,7 +491,7 @@ if uploaded_h5ad is not None:
     # ========================================
     st.subheader("Cell Type Selection")
 
-    # Group keySelect
+    # Group key選択
     group_options = [c for c in adata.obs.columns
                 if adata.obs[c].dtype.name in ['category', 'object']]
 
@@ -540,38 +540,38 @@ if uploaded_h5ad is not None:
         "Choose at least 2 cell types:",
         cell_types,
         default=cell_types[:min(3, len(cell_types))],
-        help="LAPisallteofCell typepeabetweenwithCalculationsaremasu"
+        help="LAPは全ての細胞型ペア間で計算されます"
     )
 
     if len(selected_cell_types) < 2:
         st.warning("⚠️ Please select at least 2 cell types")
         st.stop()
 
-    # subtableCellofSelectwaymethod
+    # 代表細胞の選択方法
     st.subheader("Representative Cell Selection")
 
     selection_method = st.radio(
         "Method:",
         ["Centroid-nearest", "First cell", "Random sample"],
         help="""
-        - Centroid-nearest: weightcentertomostmoneariCell (inferrec)
-        - First cell: GroupofmostfirstofCell
-        - Random sample: randamusanpuringu
+        - Centroid-nearest: 重心に最も近い細胞 (推奨)
+        - First cell: グループの最初の細胞
+        - Random sample: ランダムサンプリング
         """
     )
 
-    # LAPSettings
+    # LAP設定
     st.subheader("LAP Parameters")
 
     col_p1, col_p2 = st.columns(2)
 
     with col_p1:
         em_steps = st.number_input("EM steps:", 1, 10, 2,
-                                  help="EMoputeimaize-shiyonofsutepunum")
+                                  help="EMオプティマイゼーションのステップ数")
 
     with col_p2:
         min_lap_t = st.checkbox("Minimize initial T", value=False,
-                               help="minimumtransitmovetimebetweenfromstart")
+                               help="最小遷移時間から開始")
 
     # ========================================
     # Step 3: Run LAP
@@ -580,8 +580,8 @@ if uploaded_h5ad is not None:
 
     st.markdown(f"""
     **Configuration Summary:**
-    - LAP calculation basis: `{lap_basis}` (highnextsourceemptybetween)
-    - Visualization basis: `{vis_basis}` (Visualizationuse)
+    - LAP calculation basis: `{lap_basis}` (高次元空間)
+    - Visualization basis: `{vis_basis}` (可視化用)
     - Adjacency key: `{adj_key}`
     - Cell types: {len(selected_cell_types)}
     - Total transitions: {len(selected_cell_types) * (len(selected_cell_types) - 1)}
@@ -592,13 +592,13 @@ if uploaded_h5ad is not None:
     if st.button("🚀 Compute LAP", type="primary"):
         with st.spinner("Computing LAP... This may take several minutes..."):
             try:
-                # subtableCellofSelect
+                # 代表細胞の選択
                 representative_cells = {}
 
                 progress_bar = st.progress(0)
                 status_text = st.empty()
 
-                # Step 1: eachCell typeofsubtableCelltheSelect
+                # Step 1: 各細胞型の代表細胞を選択
                 status_text.text("Selecting representative cells...")
 
                 for ct in selected_cell_types:
@@ -606,7 +606,7 @@ if uploaded_h5ad is not None:
                     ct_cells = adata.obs_names[ct_mask]
 
                     if selection_method == "Centroid-nearest":
-                        # weightcentertomostmoneariCelltheSelect（highnextsourceemptybetweenwithCalculation）
+                        # 重心に最も近い細胞を選択（高次元空間で計算）
                         ct_coords = adata.obsm[f'X_{lap_basis}'][ct_mask]
                         centroid = ct_coords.mean(axis=0)
                         distances = np.linalg.norm(ct_coords - centroid, axis=1)
@@ -639,7 +639,7 @@ if uploaded_h5ad is not None:
                         # IMPORTANT: Use [:] to modify array in-place, not replace with scalar
                         adata.var['use_for_pca'][:] = True
 
-                # Step 2: LAPCalculation
+                # Step 2: LAP計算
                 transition_graph_dict = {}
                 n_transitions = len(selected_cell_types) * (len(selected_cell_types) - 1)
                 current = 0
@@ -651,8 +651,8 @@ if uploaded_h5ad is not None:
                                 status_text.text(f"Computing {start_ct} → {end_ct}")
 
                                 try:
-                                    # Step 1: VisualizationusebasiswithLAPCalculation（UMAPetc）- opushiyonaru
-                                    # koreisVisualizationpaththeSavedoforofmi
+                                    # Step 1: 可視化用basisでLAP計算（UMAPなど）- オプショナル
+                                    # これは可視化pathを保存するためのみ
                                     vis_lap_success = False
                                     try:
                                         # Check if Vector Field exists for vis_basis
@@ -687,8 +687,8 @@ if uploaded_h5ad is not None:
                                     except Exception as e_vis:
                                         st.caption(f"  ⚠️ Skipping {vis_basis} LAP (visualization only): {str(e_vis)[:50]}")
 
-                                    # Step 2: highnextsourceemptybetweenwithLAPCalculation（PCAetc）- mustmust
-                                    # koreismaincomeofLAPCalculation
+                                    # Step 2: 高次元空間でLAP計算（PCAなど）- 必須
+                                    # これが本来のLAP計算
                                     st.caption(f"  Computing LAP on {lap_basis} for analysis...")
                                     lap_result = dyn.pd.least_action(
                                         adata,
@@ -720,7 +720,7 @@ if uploaded_h5ad is not None:
                                     else:
                                         st.caption(f"  ⚠️ No LAP_{lap_basis} data found in adata.uns")
 
-                                    # Gene trajectory and ranking（highnextsourceemptybetweenofLAPfromCalculation）
+                                    # Gene trajectory and ranking（高次元空間のLAPから計算）
                                     from dynamo.prediction import GeneTrajectory
 
                                     # Gene trajectory calculation
@@ -815,8 +815,8 @@ if uploaded_h5ad is not None:
 
         st.info(f"""
         **Computed LAP paths:**
-        - Calculation basis: `{lap_basis_display}` (highnextsourceemptybetween)
-        - Visualization basis: `{vis_basis_display}` (Visualizationuse)
+        - Calculation basis: `{lap_basis_display}` (高次元空間)
+        - Visualization basis: `{vis_basis_display}` (可視化用)
         """)
 
         # Action/Time matrices
@@ -879,7 +879,7 @@ if uploaded_h5ad is not None:
                             key="pdf_action"
                         )
                 except Exception as e:
-                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}")
+                    st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}")
 
             plt.close(fig_action)
 
@@ -919,7 +919,7 @@ if uploaded_h5ad is not None:
                             key="pdf_time"
                         )
                 except Exception as e:
-                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}")
+                    st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}")
 
             plt.close(fig_time)
 
@@ -956,7 +956,7 @@ if uploaded_h5ad is not None:
             # Tab 1: LAP Path Visualization
             # ========================================
             with tab1:
-                st.info(f"LAP pathsthe{vis_basis_display}uptoDisplayshimasu")
+                st.info(f"LAP pathsを{vis_basis_display}上に表示します")
 
                 # Transition selection
                 n_paths = st.slider(
@@ -964,7 +964,7 @@ if uploaded_h5ad is not None:
                     min_value=1,
                     max_value=min(len(transition_keys_list), 10),
                     value=min(3, len(transition_keys_list)),
-                    help="multinumofLAP paththesametimetoDisplay"
+                    help="複数のLAP pathを同時に表示"
                 )
 
                 selected_paths = []
@@ -1047,7 +1047,7 @@ if uploaded_h5ad is not None:
                                             key="pdf_lap_paths"
                                         )
                                 except Exception as e:
-                                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}")
+                                    st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}")
 
                             plt.close(fig)
 
@@ -1126,7 +1126,7 @@ if uploaded_h5ad is not None:
                                                     key="pdf_gene_rank"
                                                 )
                                         except Exception as e:
-                                            st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}")
+                                            st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}")
 
                                     plt.close(fig)
 
@@ -1148,7 +1148,7 @@ if uploaded_h5ad is not None:
                 st.subheader("Kinetic Heatmap")
 
                 st.markdown("""
-                LAP pathtoalongtaGeneExpressiondainamikusuofhi-tomapu
+                LAP pathに沿った遺伝子発現ダイナミクスのヒートマップ
                 """)
 
                 # Heatmap options in a form
@@ -1168,14 +1168,14 @@ if uploaded_h5ad is not None:
                         genes_to_use = st.radio(
                             "Gene selection:",
                             ["Top ranked genes", "Use for transition (if available)", "Custom gene list"],
-                            help="GeneofSelectwaymethod"
+                            help="遺伝子の選択方法"
                         )
 
                     with col_h3:
                         filter_tfs = st.checkbox(
                             "Filter for TFs only",
                             value=False,
-                            help="Shiny appandsame: use_for_transitionofGenefromTFsofmithefuiruta"
+                            help="Shiny appと同じ: use_for_transitionの遺伝子からTFsのみをフィルタ"
                         )
 
                     # Custom gene list input (always shown, used only when "Custom gene list" is selected)
@@ -1183,7 +1183,7 @@ if uploaded_h5ad is not None:
                         "Custom gene list (if using 'Custom gene list' option above):",
                         height=100,
                         placeholder="e.g., Gene1 Gene2, Gene3\tGene4\nGene5",
-                        help="Genenameisspace/comma/tab/reformrowwithareacutru。case insensitivewithComparisonsaremasu。"
+                        help="遺伝子名はspace/comma/tab/改行で区切る。case insensitiveで比較されます。"
                     )
 
                     # Additional heatmap options
@@ -1194,14 +1194,14 @@ if uploaded_h5ad is not None:
                         gene_order_method = st.selectbox(
                             "Gene ordering:",
                             ["Peak time", "Hierarchical clustering", "As selected"],
-                            help="Peak time: GeneofExpressionpi-kutimebetweenorder\nHierarchical: tierlayeralkurasutaringu\nAs selected: rankinguorder"
+                            help="Peak time: 遺伝子の発現ピーク時間順\nHierarchical: 階層的クラスタリング\nAs selected: ランキング順"
                         )
 
                     with col_opt2:
                         heatmap_cmap = st.selectbox(
                             "Colormap:",
                             ["bwr", "RdBu_r", "coolwarm", "viridis", "plasma"],
-                            help="hi-tomapuofdistcolor"
+                            help="ヒートマップの配色"
                         )
 
                     with col_opt3:
@@ -1209,14 +1209,14 @@ if uploaded_h5ad is not None:
                             "Normalization:",
                             ["Z-score", "Standard scale (Min-Max)"],
                             index=0,
-                            help="Z-score: flatavg0、marklevelbiasdiff1toNormalization\nStandard scale: Dynamodefuoruto、0-1tosuke-ringu"
+                            help="Z-score: 平均0、標準偏差1に正規化\nStandard scale: Dynamoデフォルト、0-1にスケーリング"
                         )
 
                     with col_opt4:
                         show_gene_labels = st.checkbox(
                             "Show gene names",
                             value=True,
-                            help="YaxistoGenenametheDisplay"
+                            help="Y軸に遺伝子名を表示"
                         )
 
                     # Figure size options
@@ -1230,7 +1230,7 @@ if uploaded_h5ad is not None:
                             max_value=24,
                             value=12,
                             step=1,
-                            help="hi-tomapuofwidth（inchi）"
+                            help="ヒートマップの幅（インチ）"
                         )
 
                     with col_size2:
@@ -1240,7 +1240,7 @@ if uploaded_h5ad is not None:
                             max_value=30,
                             value=10,
                             step=1,
-                            help="hi-tomapuofhighsa（inchi）。Genenumismanyiplacematchisbigkikushitekudasai"
+                            help="ヒートマップの高さ（インチ）。遺伝子数が多い場合は大きくしてください"
                         )
 
                     # Submit button
@@ -1647,7 +1647,7 @@ if uploaded_h5ad is not None:
                                                             key="pdf_heatmap"
                                                         )
                                                 except Exception as e:
-                                                    st.warning(f"⚠️ PDFSavetofailfailshimashita: {str(e)}")
+                                                    st.warning(f"⚠️ PDF保存に失敗しました: {str(e)}")
 
                                             plt.close(fig)
 
@@ -1665,14 +1665,14 @@ if uploaded_h5ad is not None:
         st.subheader("📥 Export Results")
 
         st.markdown("""
-        LAPAnalysisResulttheTSVFile（tabuareacutri）andshiteekusupo-towithkimasu。
+        LAP解析結果をTSVファイル（タブ区切り）としてエクスポートできます。
 
-        **SavesareruFile（ZIPtomaandmeteSave）:**
-        - ✅ `action_matrix.tsv` - Actionrowcol
-        - ✅ `time_matrix.tsv` - Timerowcol
-        - ✅ `gene_rankings/` - eachtransitionofGenerankingu
-        - ✅ `representative_cells.tsv` - subtableCellinfoinfo
-        - ✅ `metadata.tsv` - LAPAnalysisofmetaData
+        **保存されるファイル（ZIPにまとめて保存）:**
+        - ✅ `action_matrix.tsv` - Action行列
+        - ✅ `time_matrix.tsv` - Time行列
+        - ✅ `gene_rankings/` - 各transitionの遺伝子ランキング
+        - ✅ `representative_cells.tsv` - 代表細胞情報
+        - ✅ `metadata.tsv` - LAP解析のメタデータ
         """)
 
         # Show what's in the AnnData object
@@ -1701,7 +1701,7 @@ if uploaded_h5ad is not None:
             export_filename = st.text_input(
                 "Output filename:",
                 value="dynamo_lap_results.zip",
-                help="TSVFiletheZIPtomaandmeteSaveshimasu"
+                help="TSVファイルをZIPにまとめて保存します"
             )
 
         with col_exp2:
@@ -1808,4 +1808,4 @@ if uploaded_h5ad is not None:
                         st.exception(e)
 
 else:
-    st.info("👆 DynamoAnalysisdonemih5adFiletheUploadshitestartshitekudasai。")
+    st.info("👆 Dynamo解析済みh5adファイルをアップロードして開始してください。")

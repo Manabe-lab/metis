@@ -27,12 +27,12 @@ def extend_network_with_ppi(
     added_edges = []
     ppi_tfs = []
 
-    # Step 1: Networkofalreadyexistno-dothegetget
+    # Step 1: ネットワークの既存ノードを取得
     existing_nodes = set(extended_network.nodes())
   #  st.write(f"\n### Step 1: Current network nodes")
   #  st.write(f"Number of nodes in network: {len(existing_nodes)}")
     
-    # Step 2: target geneofdirect targetofuchi、turncopycausechildofmithespecset
+    # Step 2: target geneのdirect targetのうち、転写因子のみを特定
     target_direct_tfs = set()
     if target_gene in regulon_data:
         target_regulon = regulon_data[target_gene]
@@ -43,20 +43,20 @@ def extend_network_with_ppi(
   #  st.write(f"Number of direct target TFs: {len(target_direct_tfs)}")
   #  st.write("Direct target TFs:", sorted(list(target_direct_tfs)))
     
-    # Step 3: SelectbaseleveltobaseduitePPIpa-tona-theSelect
+    # Step 3: 選択基準に基づいてPPIパートナーを選択
     ppi_candidates = []
-    for tf in regulon_data.keys():  # allturncopycausechildthechieku
-        # baselevel1: alreadyexistNetworktoincludemareteinot
+    for tf in regulon_data.keys():  # 全転写因子をチェック
+        # 基準1: 既存ネットワークに含まれていない
         if tf in existing_nodes:
             continue
         
-        # baselevel2: target geneandPPIInteractionisexist
+        # 基準2: target geneとPPI相互作用がある
         if (tf not in string_data or 
             target_gene not in string_data[tf] or 
             string_data[tf][target_gene] < ppi_score_threshold):
             continue
         
-        # baselevel3: target geneofdirect target TFthecontrolctrlshiteexist
+        # 基準3: target geneのdirect target TFを制御している
         tf_targets = regulon_data[tf]
         shared_tf_targets = target_direct_tfs & tf_targets
         
@@ -68,17 +68,17 @@ def extend_network_with_ppi(
             })
 
     
-    # Step 4: Networkofexpandextend
+    # Step 4: ネットワークの拡張
     for candidate in ppi_candidates:
         ppi_tf = candidate['tf']
         ppi_score = candidate['ppi_score']
         controlled_tfs = candidate['controlled_tfs']
         
-        # PPIno-dotheaddadd
+        # PPIノードを追加
         extended_network.add_node(ppi_tf)
         ppi_tfs.append(ppi_tf)
         
-        # 1. target_geneandofPPIInteraction（nodireji）
+        # 1. target_geneとのPPI相互作用（無向エッジ）
         extended_network.add_edge(target_gene, ppi_tf, weight=ppi_score, type='ppi')
         added_edges.append((target_gene, ppi_tf))
 
@@ -88,7 +88,7 @@ def extend_network_with_ppi(
                 added_edges.append((ppi_tf, target_tf))
     st.markdown("---")
     st.write("### Network Extension Summary")
-    # ResultofDisplay
+    # 結果の表示
     if ppi_tfs:
         st.write(f"Added {len(ppi_tfs)} PPI transcription factors")
         st.write(f"Added {len(added_edges)} new edges")
@@ -107,40 +107,40 @@ def extend_network_with_ppi(
 
 def cleanup_network_multi(network: nx.DiGraph, target_genes: List[str]) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
     """
-    multinumofta-getoGenetopairshiteNetworkthekuri-ningu
-    eachta-getoGenetopairshitesoloestabshitepasuofConfirmtherowu
+    複数のターゲット遺伝子に対してネットワークをクリーニング
+    各ターゲット遺伝子に対して独立してパスの確認を行う
     
-    pasuofCondition:
-    1. izurekaofta-getoGenehearrivereachdopasuupofno-do（upflow）
-    2. izurekaofta-getoGenefromofarrivereachpossiblenapasuupofno-do（belowflow）
+    パスの条件:
+    1. いずれかのターゲット遺伝子へ到達するパス上のノード（上流）
+    2. いずれかのターゲット遺伝子からの到達可能なパス上のノード（下流）
     """
     cleaned_network = network.copy()
-    nodes_to_keep = set(target_genes)  # allta-getoGeneiskeephold
+    nodes_to_keep = set(target_genes)  # 全ターゲット遺伝子は保持
     
-    # 1. eachta-getoGenetotsuitepieceseptopasutheConfirm
+    # 1. 各ターゲット遺伝子について個別にパスを確認
     for target_gene in target_genes:
         if target_gene not in network.nodes():
             continue
-        # upflowofpasutheConfirm
+        # 上流のパスを確認
         for node in network.nodes():
             if node != target_gene:
                 try:
-                    # no-dofromta-getoheofpasuisexistatdokaConfirm
+                    # ノードからターゲットへのパスが存在するか確認
                     if nx.has_path(network, node, target_gene):
                         path = nx.shortest_path(network, node, target_gene)
                         nodes_to_keep.update(path)
                 except nx.NetworkXError:
-                    # Errorisoccurgenshitaplacematchissukipu
+                    # エラーが発生した場合はスキップ
                     continue
-        # belowflowofpasutheConfirm
-        # target_genefromofarrivereachpossiblenano-dotheallteaddadd
+        # 下流のパスを確認
+        # target_geneからの到達可能なノードを全て追加
         try:
             descendants = nx.descendants(network, target_gene)
             nodes_to_keep.update(descendants)
         except nx.NetworkXError:
             continue
     
-    # 2. keepholddono-dofromofbelowflowno-domoaddadd
+    # 2. 保持するノードからの下流ノードも追加
     current_nodes = nodes_to_keep.copy()
     for node in current_nodes:
         try:
@@ -149,19 +149,19 @@ def cleanup_network_multi(network: nx.DiGraph, target_genes: List[str]) -> Tuple
         except nx.NetworkXError:
             continue
     
-    # 3. deleteremovedono-dothespecset
+    # 3. 削除するノードを特定
     nodes_to_remove = set(network.nodes()) - nodes_to_keep
     
-    # 4. removeoutsareruejitherecrec
+    # 4. 除外されるエッジを記録
     removed_edges = []
     for u, v in network.edges():
         if u in nodes_to_remove or v in nodes_to_remove:
             removed_edges.append((u, v))
     
-    # 5. no-dothedeleteremove
+    # 5. ノードを削除
     cleaned_network.remove_nodes_from(nodes_to_remove)
     
-    # 6. ResulttheDisplay
+    # 6. 結果を表示
     if removed_edges:
         st.markdown("### Removing disconnected subnetworks:")
         st.write(f"Nodes removed: {len(nodes_to_remove)}")
@@ -204,10 +204,10 @@ def create_interactive_multi_target_network(
     net = Network(height=height_px, width="100%", bgcolor="#ffffff", 
                  font_color="black", directed=True)
                  
-    # ppi_tfsisNoneofplacematchofprocproc
+    # ppi_tfsがNoneの場合の処理
     ppi_tfs = ppi_tfs or []
 
-    # kara-mapuofsetdef
+    # カラーマップの定義
     target_colors = [
         '#ff0000',  # Red
         '#ff6b6b',  # Light red
@@ -228,12 +228,12 @@ def create_interactive_multi_target_network(
         'regular_edge': '#add8e6'  # Light blue
     }
 
-    # ta-getoGeneofcolortheaddadd
+    # ターゲット遺伝子の色を追加
     for i, target in enumerate(target_genes):
         color_idx = min(i, len(target_colors) - 1)
         color_map[f'target_{target}'] = target_colors[color_idx]
     
-    # reiautoOptionofsetdef
+    # レイアウトオプションの定義
     layout_options = {
         "static_spring": {"physics": {"enabled": False}},
         "barnes_hut": {
@@ -322,26 +322,26 @@ def create_interactive_multi_target_network(
         }
     }
 
-    # Hub-centricreiautoofCalculation
+    # Hub-centricレイアウトの計算
     if hub_centric and hubs:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # habuGeneandta-getoGenethemidcentertodistplace
+        # ハブ遺伝子とターゲット遺伝子を中央に配置
         hub_nodes = set(hubs) | set(target_genes)
         n_hubs = len(hub_nodes)
         
-        # midcenterattachneartocircleshapetodistplace
+        # 中央付近に円形に配置
         for i, hub in enumerate(hub_nodes):
             angle = 2 * np.pi * i / n_hubs
-            r = 0.3  # midcenterfromofdistsep
+            r = 0.3  # 中心からの距離
             pos[hub] = np.array([
                 center_x + r * np.cos(angle),
                 center_y + r * np.sin(angle)
             ])
         
-        # otherofno-doisoutsidetodistplace
+        # 他のノードは外側に配置
         for node in tf_network.nodes():
             if node not in hub_nodes:
                 current_pos = pos[node]
@@ -352,11 +352,11 @@ def create_interactive_multi_target_network(
     else:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
 
-    # reiautoofSelectandfituse
+    # レイアウトの選択と適用
     if layout_type in layout_options:
         net.options = layout_options[layout_type]
 
-    # no-doofaddadd
+    # ノードの追加
     for node in tf_network.nodes():
         size = 20 * node_size_factor
         color = color_map['target_genes']
@@ -391,7 +391,7 @@ def create_interactive_multi_target_network(
             net.add_node(node, label=node, color=color, size=size,
                         font={'size': font_size})
 
-    # ejiofdivtype
+    # エッジの分類
     regular_edges = []
     ppi_edges = []
     regulation_edges = []
@@ -405,7 +405,7 @@ def create_interactive_multi_target_network(
         else:
             regular_edges.append((u, v))
 
-    # ejiofaddadd
+    # エッジの追加
     for u, v in regular_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.0 * weight * edge_width_factor)
@@ -427,7 +427,7 @@ def create_interactive_multi_target_network(
         net.add_edge(u, v, width=width, color=edge_color,
                     arrows={'to': {'enabled': True, 'scaleFactor': 1}})
 
-    # JavaScriptofcontrolctrlko-do
+    # JavaScriptの制御コード
     stabilization_script = '''
     <script>
     window.addEventListener('load', function() {
@@ -480,7 +480,7 @@ def create_interactive_multi_target_network(
     </script>
     '''
 
-    # NetworkofSaveandDisplay
+    # ネットワークの保存と表示
     with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
         net.save_graph(f.name)
         content = open(f.name, 'r', encoding='utf-8').read()
@@ -500,7 +500,7 @@ def build_multi_target_network(
     csi_threshold: float = None,
     max_tfs_per_level: int = None
 ) -> Tuple[nx.DiGraph, Dict[str, Set[str]]]:
-    """multinumofta-getoGenetopairshiteNetworkthestructbuild"""
+    """複数のターゲット遺伝子に対してネットワークを構築"""
     combined_network = nx.DiGraph()
     combined_regulators = {
         'target_genes': set(target_genes),
@@ -525,21 +525,21 @@ def build_multi_target_network(
             max_tfs_per_level=max_tfs_per_level
         )
         
-        # Networkofunifymatch
+        # ネットワークの統合
         combined_network.add_nodes_from(network.nodes())
         for u, v, data in network.edges(data=True):
             if combined_network.has_edge(u, v):
-                # ejiisalreadytoexistatdoplacematchisweightmithemaximumvalwithfurthernew
+                # エッジが既に存在する場合は重みを最大値で更新
                 existing_weight = combined_network[u][v]['weight']
                 new_weight = data['weight']
                 combined_network[u][v]['weight'] = max(existing_weight, new_weight)
             else:
-                # newshiiejitheaddadd
+                # 新しいエッジを追加
                 combined_network.add_edge(u, v, **data)
         
-        # regulatorofunifymatch
+        # regulatorの統合
         for level, tfs in regulators.items():
-            if level != 'target_genes':  # target_genes isalreadytoSettingsdonemi
+            if level != 'target_genes':  # target_genes は既に設定済み
                 combined_regulators[level].update(tfs)
     
     return combined_network, combined_regulators
@@ -556,7 +556,7 @@ def build_expanded_tf_network(
     csi_threshold: float = None,
     max_tfs_per_level: int = None
 ) -> Tuple[nx.DiGraph, Dict[str, Set[str]]]:
-    """simpleoneta-getoGeneofNetworkstructbuild（alreadyexistofrelnumthemodcorrect）"""
+    """単一ターゲット遺伝子のネットワーク構築（既存の関数を修正）"""
     tf_network = nx.DiGraph()
     regulators_by_level = {
         'target_genes': {target_gene},
@@ -589,7 +589,7 @@ def build_expanded_tf_network(
         
         return connected_tfs
 
-    # upflowofsearchsearch
+    # 上流の探索
     current_level_tfs = {target_gene}
     for level in range(1, max_upstream + 1):
         next_level_tfs = set()
@@ -614,7 +614,7 @@ def build_expanded_tf_network(
         
         current_level_tfs = next_level_tfs
 
-    # belowflowofsearchsearch
+    # 下流の探索
     if target_gene in regulon_data and max_downstream > 0:
         current_level_tfs = {target_gene}
         for level in range(1, max_downstream + 1):
@@ -653,23 +653,23 @@ def get_network_layout_multi(
     min_dist: float = 0.2,
     iterations: int = 100
 ) -> Dict[str, np.ndarray]:
-    """multinumofta-getoGenetopairrespondshitareiautoofgenbecome
+    """複数のターゲット遺伝子に対応したレイアウトの生成
     
     Args:
-        tf_network: Networkgurafu
-        target_genes: ta-getoGeneofrisuto
-        layout_type: reiautotaipu
-        hub_centric: habuno-dothemidcentertodistplacedowhether
-        hubs: habuno-doofseto
-        scale: reiautoofsuke-ru
-        k: no-dobetweenofdistseprelatenum
-        min_dist: minimumno-dobetweendistsep
-        iterations: reiautoAlgorithmofanti復timenum
+        tf_network: ネットワークグラフ
+        target_genes: ターゲット遺伝子のリスト
+        layout_type: レイアウトタイプ
+        hub_centric: ハブノードを中心に配置するかどうか
+        hubs: ハブノードのセット
+        scale: レイアウトのスケール
+        k: ノード間の距離係数
+        min_dist: 最小ノード間距離
+        iterations: レイアウトアルゴリズムの反復回数
         
     Returns:
-        Dict[str, np.ndarray]: no-doofrankplaceinfoinfo
+        Dict[str, np.ndarray]: ノードの位置情報
     """
-    # basemainreiautoofgenbecome
+    # 基本レイアウトの生成
     if layout_type == "spring":
         pos = nx.spring_layout(tf_network, k=k, scale=scale, iterations=iterations)
     elif layout_type == "kamada_kawai":
@@ -692,27 +692,27 @@ def get_network_layout_multi(
     else:
         pos = nx.spring_layout(tf_network, k=k, scale=scale)
 
-    # Hub-centricreiautooffituse
+    # Hub-centricレイアウトの適用
     if hub_centric and (hubs or target_genes):
-        # midcenterpointofCalculation
+        # 中心点の計算
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # habuno-doandta-getoGenethemidcentertodistplace
+        # ハブノードとターゲット遺伝子を中心に配置
         central_nodes = set(hubs or set()) | set(target_genes)
         n_central = len(central_nodes)
         
         if n_central > 0:
-            # midcenterattachneartocircleshapetodistplace
+            # 中央付近に円形に配置
             for i, node in enumerate(central_nodes):
                 angle = 2 * np.pi * i / n_central
-                r = 0.3 * scale  # suke-rutorespondjitahalf径
+                r = 0.3 * scale  # スケールに応じた半径
                 pos[node] = np.array([
                     center_x + r * np.cos(angle),
                     center_y + r * np.sin(angle)
                 ])
             
-            # otherofno-dotheoutsidetodistplace
+            # 他のノードを外側に配置
             for node in tf_network.nodes():
                 if node not in central_nodes:
                     current_pos = pos[node]
@@ -721,7 +721,7 @@ def get_network_layout_multi(
                         direction = direction / np.linalg.norm(direction)
                         pos[node] = np.array([center_x, center_y]) + direction * scale
             
-            # finalalnarankplaceadjustarrange
+            # 最終的な位置調整
             pos = adjust_node_positions(pos, min_dist=min_dist)
     
     return pos
@@ -733,7 +733,7 @@ def extend_multi_target_network_with_ppi(
     string_data: Dict[str, Dict[str, float]],
     ppi_score_threshold: float = 0.4
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]], List[str]]:
-    """multinumofta-getoGenetopairshitePPINetworktheexpandextend"""
+    """複数のターゲット遺伝子に対してPPIネットワークを拡張"""
     extended_network = tf_network.copy()
     added_edges = []
     ppi_tfs = []
@@ -751,7 +751,7 @@ def extend_multi_target_network_with_ppi(
         added_edges.extend(edges)
         ppi_tfs.extend(tfs)
     
-    # weightmultitheremoverm
+    # 重複を除去
     ppi_tfs = list(set(ppi_tfs))
     
     return extended_network, added_edges, ppi_tfs
@@ -776,7 +776,7 @@ def visualize_multi_target_network(
    min_node_dist: float = 0.2,
    height: int=800
 ) -> None:
-   # ta-getoGeneuseofcolor
+   # ターゲット遺伝子用の色
    target_colors = [
        '#ff0000',  # Red
        '#ff6b6b',  # Light red
@@ -785,7 +785,7 @@ def visualize_multi_target_network(
        '#ffcc00',  # Yellow
    ]
    
-   # basemainalnacolormapu
+   # 基本的な色マップ
    color_map = {
        'upstream_1': '#add8e6',  # Light blue
        'upstream_2': '#90ee90',  # Light green
@@ -798,15 +798,15 @@ def visualize_multi_target_network(
        'regular_edge': '#add8e6'  # Light blue
    }
    
-   # ta-getoGeneofcolortheaddadd
+   # ターゲット遺伝子の色を追加
    for i, target in enumerate(target_genes):
        color_idx = min(i, len(target_colors) - 1)
        color_map[f'target_{target}'] = target_colors[color_idx]
 
    plt.clf()
  #  fig = plt.figure(figsize=(15, 12))
-   width = height * (15/12)  # 16:9ofasupekutoratio
-   fig = plt.figure(figsize=(width/96, height/96))  # matplotlibusetoinchitochangechange  
+   width = height * (15/12)  # 16:9のアスペクト比
+   fig = plt.figure(figsize=(width/96, height/96))  # matplotlib用にインチに変換  
    pos = get_network_layout_multi(
        tf_network=tf_network,
        layout_type=layout_type,
@@ -817,7 +817,7 @@ def visualize_multi_target_network(
        min_dist=min_node_dist
    )
    
-   # no-doofcolorandsaizuofSettings
+   # ノードの色とサイズの設定
    node_colors = []
    node_sizes = []
    
@@ -848,13 +848,13 @@ def visualize_multi_target_network(
        node_colors.append(color)
        node_sizes.append(size)
     
-   # no-doofplotdraw
+   # ノードの描画
    nx.draw_networkx_nodes(tf_network, pos, 
                          node_color=node_colors,
                          node_size=node_sizes,
                          alpha=node_alpha)
    
-   # ejiofdivtype
+   # エッジの分類
    regular_edges = []
    ppi_edges = []
    regulation_edges = []
@@ -868,7 +868,7 @@ def visualize_multi_target_network(
        else:
            regular_edges.append((u, v))
 
-   # ejigoandtopieceseptoplotdraw
+   # エッジごとに個別に描画
    if regular_edges:
        for u, v in regular_edges:
            edge_color = get_edge_color(u, regulators_by_level, color_map, target_genes, ppi_tfs, hubs)
@@ -907,14 +907,14 @@ def visualize_multi_target_network(
                                 min_source_margin=15,
                                 min_target_margin=20)
    
-   # raberuofplotdraw
+   # ラベルの描画
    nx.draw_networkx_labels(tf_network, pos, font_size=font_size, 
                          font_weight='bold')
    
-   # legendExampleofmakebecome
+   # 凡例の作成
    legend_elements = []
    
-   # ta-getoGeneoflegendExample
+   # ターゲット遺伝子の凡例
    for i, target_gene in enumerate(target_genes):
        color_idx = min(i, len(target_colors) - 1)
        legend_elements.append(
@@ -973,27 +973,27 @@ def get_string_interactions(
     species: Optional[str] = None,
     score_threshold: float = 0.4
 ) -> Dict[str, Dict[str, float]]:
-    """STRING-dbfromPPIDatathegetgetdo（bigtextcharsmalltextcharthenoviewshitacompallonecause）"""
-    # kindofjudgeset（transfersareteinotplacematchisbigtextchar/smalltextcharpata-nfromjudgeset）
+    """STRING-dbからPPIデータを取得する（大文字小文字を無視した完全一致）"""
+    # 種の判定（渡されていない場合は大文字/小文字パターンから判定）
     if not species:
         is_mostly_uppercase = all(p.isupper() for p in proteins)
-        species = "9606" if is_mostly_uppercase else "10090"  # hito/mausu
+        species = "9606" if is_mostly_uppercase else "10090"  # ヒト/マウス
     
-    # kindnameofchangechange
+    # 種名の変換
     species_map = {
         "human": "9606", 
         "mouse": "10090",
         "9606": "9606", 
         "10090": "10090"
     }
-    species_id = species_map.get(species, "9606")  # defuorutoishito
+    species_id = species_map.get(species, "9606")  # デフォルトはヒト
     
-    # kindofinfoinfotheDisplay
+    # 種の情報を表示
     st.markdown("#### Searching TFs that interacts with the target gene and controls the targets of the target gene.")
     species_name = "Human" if species_id == "9606" else "Mouse"
     st.write(f"Fetching {species_name} protein interaction data from STRING-db")
     
-    # shinboruthebigtextcharsmalltextcharthenoviewshiteno-maraizu
+    # シンボルを大文字小文字を無視してノーマライズ
     normalized_proteins = [p.strip().upper() for p in proteins]
  #   st.write(f"Protein names: {normalized_proteins}")
     
@@ -1015,12 +1015,12 @@ def get_string_interactions(
         response = requests.post(api_url, data=params)
         response.raise_for_status()
         
-        # resuponsuofAnalysis
+        # レスポンスの解析
         interactions = defaultdict(dict)
         processed_lines = 0
         found_interactions = 0
         
-        # allteofInteractiontherecrec
+        # 全ての相互作用を記録
         all_interactions = []
         
         for line in response.text.strip().split("\n"):
@@ -1035,24 +1035,24 @@ def get_string_interactions(
                     except (ValueError, IndexError):
                         continue
         
-        # debaguinfoinfo
+        # デバッグ情報
     #    st.write(f"Processed {processed_lines} interactions from STRING-db")
     #    st.write("Raw interactions:")
-    #    for interaction in all_interactions[:10]:  # mostfirstof10piecetheDisplay
+    #    for interaction in all_interactions[:10]:  # 最初の10個を表示
     #        st.write(f"{interaction[0]} - {interaction[1]}: {interaction[2]}")
         
-        # Interactionofaddadd
+        # 相互作用の追加
         for protein1, protein2, score in all_interactions:
-            # Inputtanpakuqualityrisutoandofbigtextcharsmalltextcharthenoviewshitacompallonecausechieku
+            # 入力タンパク質リストとの大文字小文字を無視した完全一致チェック
             if (protein1.upper() in normalized_proteins and 
                 protein2.upper() in normalized_proteins):
                 
-                # orijinaruofbigtextcharsmalltextcharthekeephold
+                # オリジナルの大文字小文字を保持
                 orig_p1 = next(p for p in proteins if p.upper() == protein1.upper())
                 orig_p2 = next(p for p in proteins if p.upper() == protein2.upper())
                 
                 interactions[orig_p1][orig_p2] = score
-                interactions[orig_p2][orig_p1] = score  # dualwaydirofInteractiontheaddadd
+                interactions[orig_p2][orig_p1] = score  # 双方向の相互作用を追加
                 found_interactions += 1
         
         st.write(f"Found {found_interactions} relevant interactions between input proteins")
@@ -1060,7 +1060,7 @@ def get_string_interactions(
         if not interactions:
             st.warning(f"No {species_name} protein interactions found in STRING-db for the input proteins.")
         else:
-            # viewtsukataInteractionofExampletheDisplay
+            # 見つかった相互作用の例を表示
             st.write("Example interactions:")
             example_interactions = list(interactions.items())[:3]
             for protein1, partners in example_interactions:
@@ -1078,30 +1078,30 @@ def get_string_interactions(
 
 def convert_to_string_symbols(proteins: List[str], species: str = "9606") -> Dict[str, str]:
     """
-    GeneshinborutheSTRING-dbshapeformattochangechange
+    遺伝子シンボルをSTRING-db形式に変換
     """
-    # shinboruofNormalization
+    # シンボルの正規化
     symbol_map = {}
     for protein in proteins:
-        # basemainalnakuri-ningu（bigtextcharchangechangeisrequiredtorespondjite）
+        # 基本的なクリーニング（大文字変換は必要に応じて）
         cleaned = protein.strip()
         symbol_map[protein] = cleaned
     
     return symbol_map
 
 def add_string_db_options(st, species: str) -> Dict:
-    """STRING-dbrelconnectofOptiontheUItoaddadd"""
+    """STRING-db関連のオプションをUIに追加"""
     st.subheader("STRING-db Integration")
     
     with st.expander("STRING-db Settings", expanded=False):
-        # STRING-dbFilteringofvalidize
+        # STRING-dbフィルタリングの有効化
         enable_string = st.checkbox(
             "Enable STRING-db Filtering",
             help="Filter network edges based on STRING protein-protein interactions"
         )
         
         if enable_string:
-            # sukoaThresholdofSettings
+            # スコア閾値の設定
             score_threshold = st.slider(
                 "Minimum STRING interaction score",
                 min_value=0.0,
@@ -1111,7 +1111,7 @@ def add_string_db_options(st, species: str) -> Dict:
                 help="Filter interactions based on STRING combined score"
             )
             
-            # genthingkindofDisplay
+            # 生物種の表示
             species_id = "9606" if species == "human" else "10090"
             st.info(f"Using STRING-db data for {species.capitalize()} (Taxonomy ID: {species_id})")
             
@@ -1133,28 +1133,28 @@ def filter_network_by_string(
     string_data: Dict[str, Dict[str, float]],
     score_threshold: float = 0.0
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
-    """STRING-dbDatatobaseduiteNetworktheFiltering (PPIejitheremoveku)"""
+    """STRING-dbデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
     filtered_network = nx.DiGraph()
     filtered_network.add_nodes_from(tf_network.nodes())
     
-    # Networkinfoinfo
+    # ネットワーク情報
     st.write(f"Original network:")
     st.write(f"Nodes: {tf_network.number_of_nodes()}")
     st.write(f"Edges: {tf_network.number_of_edges()}")
     
-    # sourceofejiandInteractioninfoinfotheDisplay
+    # 元のエッジと相互作用情報を表示
     original_edges = list(tf_network.edges(data=True))
     kept_edges = []
     removed_edges = []
     
     for source, target, data in original_edges:
-        # PPIejiissukipushitesoofmamakeephold
+        # PPIエッジはスキップしてそのまま保持
         if data.get('type') == 'ppi':
             filtered_network.add_edge(source, target, **data)
             kept_edges.append((source, target))
             continue
             
-        # STRING-dbwithofInteractiontheConfirm
+        # STRING-dbでの相互作用を確認
         score = None
         if source in string_data and target in string_data[source]:
             score = string_data[source][target]
@@ -1167,11 +1167,11 @@ def filter_network_by_string(
         else:
             removed_edges.append((source, target))
     
-    # loneestabshitano-dothedeleteremove
+    # 孤立したノードを削除
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
-    # Resultofneedabout
+    # 結果の要約
     st.write("\nFiltering Results:")
     st.write(f"Edges in filtered network: {filtered_network.number_of_edges()}")
     st.write(f"Edges removed: {len(removed_edges)}")
@@ -1182,14 +1182,14 @@ def filter_network_by_string(
 
 def show_string_db_stats(st, original_network, filtered_network, removed_edges, string_data):
     """
-    STRING-dbFilteringofStatisticalinfoinfotheDisplay
+    STRING-dbフィルタリングの統計情報を表示
     
     Args:
-        st: Streamlitinsutansu
-        original_network: sourceofNetwork
-        filtered_network: FilteringafterofNetwork
-        removed_edges: removermsaretaejiofrisuto
-        string_data: STRING-dbofInteractionData
+        st: Streamlitインスタンス
+        original_network: 元のネットワーク
+        filtered_network: フィルタリング後のネットワーク
+        removed_edges: 除去されたエッジのリスト
+        string_data: STRING-dbの相互作用データ
     """
     st.subheader("STRING-db Filtering Results")
     
@@ -1209,7 +1209,7 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVDownloadbotanofaddadd
+            # CSVダウンロードボタンの追加
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -1219,11 +1219,11 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
                 key='download-string-removed-edges'
             )
 
-    # STRING-dbInteractionofStatistical
+    # STRING-db相互作用の統計
     if string_data:
         st.subheader("STRING-db Interaction Statistics")
         
-        # Interactionsukoaofcollgather
+        # 相互作用スコアの収集
         scores = []
         for protein1, interactions in string_data.items():
             scores.extend(interactions.values())
@@ -1239,12 +1239,12 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
             
             col1, col2 = st.columns(2)
             
-            # StatisticalinfoinfoofDisplay
+            # 統計情報の表示
             with col1:
                 for key, value in stats_dict.items():
                     st.metric(key, f"{value:.3f}")
             
-            # sukoadivdistofhisutoguramu
+            # スコア分布のヒストグラム
             with col2:
                 fig, ax = plt.subplots()
                 ax.hist(scores, bins=20, edgecolor='black')
@@ -1258,18 +1258,18 @@ def show_string_db_stats(st, original_network, filtered_network, removed_edges, 
 
 @st.cache_data
 def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
-    """TRRUSTDataofLoading
+    """TRRUSTデータの読み込み
     
     Args:
-        species: 'mouse' alsois 'human'
+        species: 'mouse' または 'human'
     
     Returns:
-        Dict[str, List[Tuple[str, str, str]]]: turncopycausechildtheki-andshi、
-        (ta-getoGene, Interactiontaipu, PMID)ofrisutothevalanddowordwrite
+        Dict[str, List[Tuple[str, str, str]]]: 転写因子をキーとし、
+        (ターゲット遺伝子, 相互作用タイプ, PMID)のリストを値とする辞書
     """
     trrust_data = defaultdict(list)
     
-    # Filepasuofdetset
+    # ファイルパスの決定
     if species == 'mouse':
         filepath = 'db/TRRUST/trrust_rawdata.mouse.tsv'
     elif species == 'human':
@@ -1281,19 +1281,19 @@ def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
     try:
         with open(filepath, 'r') as f:
             for line in f:
-                # reformrowtextcharya余divnaemptywhitetheremoverm
+                # 改行文字や余分な空白を除去
                 line = line.strip()
-                if not line:  # emptyrowthesukipu
+                if not line:  # 空行をスキップ
                     continue
                 
                 parts = line.split('\t')
-                if len(parts) < 4:  # notcompallnarowthesukipu
+                if len(parts) < 4:  # 不完全な行をスキップ
                     continue
                 
                 tf, target, interaction_type, pmid = parts
                 trrust_data[tf].append((target, interaction_type, pmid))
         
-        # debaguOutput
+        # デバッグ出力
         st.write(f"TRRUST data loaded. Total TFs: {len(trrust_data)}")
     except FileNotFoundError:
         st.error(f"TRRUST data file not found: {filepath}")
@@ -1303,11 +1303,11 @@ def load_trrust_data(species: str) -> Dict[str, List[Tuple[str, str, str]]]:
     return trrust_data
 
 def add_trrust_options(st, species="human"):
-    """TRRUSTrelconnectofOptiontheUItoaddadd"""
+    """TRRUST関連のオプションをUIに追加"""
     st.subheader("TRRUST Database Integration")
     
     with st.expander("TRRUST Settings", expanded=False):
-        # TRRUSTFilteringofvalidize
+        # TRRUSTフィルタリングの有効化
         enable_trrust = st.checkbox(
             "Enable TRRUST Filtering", 
             help="Filter network edges based on TRRUST interaction data"
@@ -1316,7 +1316,7 @@ def add_trrust_options(st, species="human"):
         col1, col2 = st.columns(2)
         
         with col1:
-            # InteractiontaipuofSelect
+            # 相互作用タイプの選択
             interaction_types = st.multiselect(
                 "Select Interaction Types",
                 options=["Activation", "Repression", "Unknown"],
@@ -1325,7 +1325,7 @@ def add_trrust_options(st, species="human"):
             )
         
         with col2:
-            # minimumPMIDnumofSettings
+            # 最小PMID数の設定
             min_pmid_count = st.slider(
                 "Minimum PMID Count",
                 min_value=1,
@@ -1334,7 +1334,7 @@ def add_trrust_options(st, species="human"):
                 help="Minimum number of unique publications supporting the interaction"
             )
         
-            # genthingkindofDisplay
+            # 生物種の表示
             st.info(f"Using {species.capitalize()} TRRUST data")
             
             return {
@@ -1357,23 +1357,23 @@ def filter_network_by_trrust(
     interaction_types: List[str],
     min_pmid_count: int
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]], List[Dict]]:
-    """TRRUSTDatatobaseduiteNetworktheFiltering (PPIejitheremoveku)"""
+    """TRRUSTデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
     filtered_network = tf_network.copy()
     removed_edges = []
-    trrust_edge_details = []  # TRRUSTDataofejidetailfinetheSavedorisuto
+    trrust_edge_details = []  # TRRUSTデータのエッジ詳細を保存するリスト
     
     for source, target in list(tf_network.edges()):
-        # PPIejiissukipu
+        # PPIエッジはスキップ
         if tf_network[source][target].get('type') == 'ppi':
             continue
             
-        # bigtextcharsmalltextcharofdiffithethinkconsiderdofor、bigtextchar,smalltextcharbothwaywithchieku
+        # 大文字小文字の違いを考慮するため、大文字・小文字両方でチェック
         source_variations = [source, source.lower(), source.upper(), 
                              source.capitalize(), source.title()]
         target_variations = [target, target.lower(), target.upper(), 
                              target.capitalize(), target.title()]
         
-        # izurekaofbigtextcharsmalltextcharofbarie-shiyonwithInteractionthesearchsearch
+        # いずれかの大文字小文字のバリエーションで相互作用を探索
         trrust_interactions = []
         for src_var in source_variations:
             if src_var in trrust_data:
@@ -1383,22 +1383,22 @@ def filter_network_by_trrust(
                 ])
         
         if trrust_interactions:
-            # SelectsaretaInteractiontaipuandminimumPMIDnumthefulltasukaConfirm
+            # 選択された相互作用タイプと最小PMID数を満たすか確認
             valid_interactions = [
                 (t, it, pmid) for (t, it, pmid) in trrust_interactions
                 if it in interaction_types
             ]
             
             if valid_interactions:
-                # weightmultitheremoveitaPMIDofnumtheCalculation
+                # 重複を除いたPMIDの数を計算
                 unique_pmids = set()
                 for _, _, pmid_str in valid_interactions:
                     pmids = pmid_str.split(';')
                     unique_pmids.update(pmids)
                 
-                # PMIDofnumisminimumneeditemthefulltasuplacematch
+                # PMIDの数が最小要件を満たす場合
                 if len(unique_pmids) >= min_pmid_count:
-                    # ejiofdetailfineinfoinfotheSave
+                    # エッジの詳細情報を保存
                     edge_detail = {
                         'source': source,
                         'target': target,
@@ -1417,14 +1417,14 @@ def filter_network_by_trrust(
             filtered_network.remove_edge(source, target)
             removed_edges.append((source, target))
     
-    # loneestabshitano-dothedeleteremove
+    # 孤立したノードを削除
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
     return filtered_network, removed_edges
 
 def show_trrust_stats(st, original_network, filtered_network, removed_edges, trrust_data):
-    """TRRUSTFilteringofStatisticalinfoinfotheDisplay"""
+    """TRRUSTフィルタリングの統計情報を表示"""
     st.subheader("TRRUST Filtering Results")
     
     col1, col2, col3 = st.columns(3)
@@ -1443,7 +1443,7 @@ def show_trrust_stats(st, original_network, filtered_network, removed_edges, trr
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVDownloadbotanofaddadd
+            # CSVダウンロードボタンの追加
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -1453,44 +1453,44 @@ def show_trrust_stats(st, original_network, filtered_network, removed_edges, trr
                 key='download-trrust-removed-edges'
             )
 def format_tf_name_for_chip_atlas(tf_name: str, species: str) -> str:
-    """ChIP-AtlasusetoTFnamethefuo-mato
+    """ChIP-Atlas用にTF名をフォーマット
     
     Args:
-        tf_name: orijinaruofTFname
-        species: genthingkind ("human" or "mouse")
+        tf_name: オリジナルのTF名
+        species: 生物種 ("human" or "mouse")
         
     Returns:
-        str: fuo-matosaretaTFname
+        str: フォーマットされたTF名
     """
-    # mausuofplacematch、mostfirstoftextcharthebigtextcharto、remainrithesmalltextcharto
+    # マウスの場合、最初の文字を大文字に、残りを小文字に
     if species == "mouse":
         if tf_name.startswith("Zfp") or tf_name.startswith("ZFP"):
-            # Zfpofplacematchisspecsepprocproc
+            # Zfpの場合は特別処理
             return f"{tf_name[0].upper()}{tf_name[1:].lower()}"
         return f"{tf_name[0].upper()}{tf_name[1:].lower()}"
     
-    # hitoofplacematch、allbigtextcharto
+    # ヒトの場合、すべて大文字に
     return tf_name.upper()
 
 
 def get_chip_atlas_data(tf: str, species: str = "mouse", distance: int = 1000) -> pd.DataFrame:
-    """ChIP-Atlas Datathegetget。ro-karuFilethepriorfirstshi、nakerebaAPIfromDownload"""
+    """ChIP-Atlas データを取得。ローカルファイルを優先し、なければAPIからダウンロード"""
     
     genome = "hg38" if species == "human" else "mm10"
     distance_kb = distance // 1000
     
-    # ro-karuFileofpasuthestructbuild
+    # ローカルファイルのパスを構築
     local_dir = f"db/ChIP-Atlas/{genome}/{distance_kb}kb"
     local_file = f"{local_dir}/{tf}.{distance_kb}.tsv"
     
     try:
-        # mazuro-karuFiletheConfirm
+        # まずローカルファイルを確認
         if os.path.exists(local_file):
             try:
                 df = pd.read_csv(local_file, sep='\t')
                # st.write(f"Using local ChIP-Atlas data for {tf}")
                 
-                # karamunamethemarklevelize
+                # カラム名を標準化
                 column_mapping = {
                     'Gene ID': 'gene_id',
                     'Gene Symbol': 'target_gene',
@@ -1506,23 +1506,23 @@ def get_chip_atlas_data(tf: str, species: str = "mouse", distance: int = 1000) -
             except Exception as e:
                 st.warning(f"Error reading local file for {tf}: {str(e)}, trying ChIP-Atlas API")
         
-        # ro-karuFileisnotplacematchisAPIfromgetget
+        # ローカルファイルがない場合はAPIから取得
         url = f"https://chip-atlas.dbcls.jp/data/{genome}/target/{tf}.{distance_kb}.tsv"
         response = requests.get(url)
         response.raise_for_status()
         
         if response.text:
-            # deirekutoriisexistatshinotplacematchismakebecome
+            # ディレクトリが存在しない場合は作成
             os.makedirs(local_dir, exist_ok=True)
             
-            # DatatheSave
+            # データを保存
             with open(local_file, 'w', encoding='utf-8') as f:
                 f.write(response.text)
                 
-            # DatatheDataFrametochangechange
+            # データをDataFrameに変換
             df = pd.read_csv(StringIO(response.text), sep='\t')
             
-            # karamunamethemarklevelize
+            # カラム名を標準化
             column_mapping = {
                 'Gene ID': 'gene_id',
                 'Gene Symbol': 'target_gene',
@@ -1553,19 +1553,19 @@ def filter_network_by_chip_atlas(
     chip_data: Dict[str, pd.DataFrame], 
     min_score: float = 0
 ) -> Tuple[nx.DiGraph, List[Tuple[str, str]]]:
-    """ChIP-AtlasDatatobaseduiteNetworktheFiltering (PPIejitheremoveku)"""
+    """ChIP-Atlasデータに基づいてネットワークをフィルタリング (PPIエッジを除く)"""
     filtered_network = tf_network.copy()
     removed_edges = []
     
     for source, target in list(tf_network.edges()):
-        # PPIejiissukipu
+        # PPIエッジはスキップ
         if tf_network[source][target].get('type') == 'ppi':
             continue
             
         if source in chip_data:
             df = chip_data[source]
             if not df.empty:
-                # karamunameofexistatConfirm
+                # カラム名の存在確認
                 if 'Target_genes' not in df.columns:
                     st.warning(f"Missing 'Target_genes' column in data for {source}")
                     st.write("Available columns:", df.columns.tolist())
@@ -1580,7 +1580,7 @@ def filter_network_by_chip_atlas(
                     filtered_network.remove_edge(source, target)
                     removed_edges.append((source, target))
     
-    # loneestabshitano-dothedeleteremove
+    # 孤立したノードを削除
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
@@ -1588,7 +1588,7 @@ def filter_network_by_chip_atlas(
 
 def get_network_chip_data(network_tfs: List[str], species: str = "mouse", 
                          distance: int = 1000) -> Dict[str, pd.DataFrame]:
-    """NetworkinofallTFofChIP-AtlasDatathegetget"""
+    """ネットワーク内の全TFのChIP-Atlasデータを取得"""
     chip_data = {}
     
     progress_text = st.empty()
@@ -1607,7 +1607,7 @@ def get_network_chip_data(network_tfs: List[str], species: str = "mouse",
                 chip_data[tf] = df
             
         progress_bar.progress((i + 1) / len(network_tfs))
-        time.sleep(1)  # APIofneg荷thethinkconsider
+        time.sleep(1)  # APIの負荷を考慮
     
     progress_text.empty()
     progress_bar.empty()
@@ -1619,7 +1619,7 @@ def get_network_chip_data(network_tfs: List[str], species: str = "mouse",
 
 def get_edge_chip_scores(tf_network: nx.DiGraph, 
                         chip_data: Dict[str, pd.DataFrame]) -> Dict[Tuple[str, str], float]:
-    """NetworkofeachejiofChIP-Atlassukoathegetget"""
+    """ネットワークの各エッジのChIP-Atlasスコアを取得"""
     edge_scores = {}
     
     for source, target in tf_network.edges():
@@ -1634,7 +1634,7 @@ def get_edge_chip_scores(tf_network: nx.DiGraph,
     return edge_scores
 
 def determine_species(regulon_file) -> str:
-    """regulonFileofincontentfromgenthingkindthejudgeset"""
+    """regulonファイルの内容から生物種を判定"""
     content = regulon_file.getvalue().decode('utf-8').splitlines()
     
     is_mostly_uppercase = all(
@@ -1647,11 +1647,11 @@ def determine_species(regulon_file) -> str:
 
 
 def add_chip_atlas_options(st, species="human"):
-    """ChIP-AtlasrelconnectofOptiontheUItoaddadd"""
+    """ChIP-Atlas関連のオプションをUIに追加"""
     st.subheader("ChIP-Atlas Integration")
     
     with st.expander("ChIP-Atlas Settings", expanded=False):
-        # ChIP-AtlasFilteringofvalidize
+        # ChIP-Atlasフィルタリングの有効化
         enable_chip_atlas = st.checkbox(
             "Enable ChIP-Atlas Filtering", 
             help="Filter network edges based on ChIP-Atlas binding data"
@@ -1661,7 +1661,7 @@ def add_chip_atlas_options(st, species="human"):
         col1, col2 = st.columns(2)
         
         with col1:
-            # TSSfromofdistsepofSelect
+            # TSSからの距離の選択
             tss_distance = st.selectbox(
                 "Distance from TSS",
                 options=[1000, 5000, 10000],
@@ -1671,7 +1671,7 @@ def add_chip_atlas_options(st, species="human"):
             )
             
         with col2:
-            # minimumbaindeingusukoaofSettings
+            # 最小バインディングスコアの設定
             min_binding_score = st.slider(
                 "Minimum Average Binding Score",
                 min_value=0,
@@ -1681,7 +1681,7 @@ def add_chip_atlas_options(st, species="human"):
                 help="Filter edges based on ChIP-Atlas binding score. -10*Log10[MACS2 Q-value]. -10*log10(0.05) ≈ 13, q=0.01 -> 20)."
             )
             
-            # genthingkindofDisplay
+            # 生物種の表示
             st.info(f"Using {species.capitalize()} genome ({('hg38' if species == 'human' else 'mm10')})")
             
             return {
@@ -1697,7 +1697,7 @@ def add_chip_atlas_options(st, species="human"):
     }
 
 def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges, chip_data):
-    """ChIP-AtlasFilteringofStatisticalinfoinfotheDisplay"""
+    """ChIP-Atlasフィルタリングの統計情報を表示"""
     st.subheader("ChIP-Atlas Filtering Results")
     
     col1, col2, col3 = st.columns(3)
@@ -1716,7 +1716,7 @@ def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges,
             removed_df = pd.DataFrame(removed_edges, columns=['Source', 'Target'])
             st.dataframe(removed_df)
             
-            # CSVDownloadbotanofaddadd
+            # CSVダウンロードボタンの追加
             csv = removed_df.to_csv(index=False)
             st.download_button(
                 "Download removed edges as CSV",
@@ -1730,49 +1730,49 @@ def show_chip_atlas_stats(st, original_network, filtered_network, removed_edges,
 @st.cache_data
 def load_tfs_list(file) -> Set[str]:
     """
-    RegulonDataofbigtextchar/smalltextcharofstatestatetobaseduitefitcutnaTFrisutothereadmiintomu
+    Regulonデータの大文字/小文字の状況に基づいて適切なTFリストを読み込む
     
     Args:
-        file: UploadsaretaregulonFile
+        file: アップロードされたregulonファイル
     
     Returns:
-        Set[str]: TFofrisuto
+        Set[str]: TFのリスト
     """
-    # FileofincontenttheLoading
+    # ファイルの内容を読み込み
     content = file.getvalue().decode('utf-8').splitlines()
     
-    # mostfirstofrowthesukipushiteDatatheprocproc
-    # Genenameofbigtextchar/smalltextcharpata-ntheConfirm
+    # 最初の行をスキップしてデータを処理
+    # 遺伝子名の大文字/小文字パターンを確認
     is_mostly_uppercase = all(
         len(line.split('\t')[0].split('(')[0].strip()) > 0 and 
         line.split('\t')[0].split('(')[0].strip().isupper() 
         for line in content[1:] if len(line.split('\t')) >= 2
     )
     
-    # TFrisutothereadmiintomu
+    # TFリストを読み込む
     try:
         if is_mostly_uppercase:
-            # hito(hg38)ofTFrisutothereadmiintomu
+            # ヒト(hg38)のTFリストを読み込む
             filepath = 'db/SCENIC/allTFs_hg38.txt'
         else:
-            # mausu(mm)ofTFrisutothereadmiintomu
+            # マウス(mm)のTFリストを読み込む
             filepath = 'db/SCENIC/allTFs_mm.txt'
         
         with open(filepath, 'r') as f:
             return {line.strip() for line in f if line.strip()}
     
     except FileNotFoundError:
-        st.warning(f"TFrisutoFile {filepath} isviewtsukarimasenwithshita。")
+        st.warning(f"TFリストファイル {filepath} が見つかりませんでした。")
         return set()
 
 @st.cache_data
 def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
     """
-    regulonDataofLoading
+    regulonデータの読み込み
     Returns:
         Tuple[Dict[str, Set[str]], Set[str]]: (regulon_data, all_genes)
-        - regulon_data: TFandsoofcontrolctrlGeneofwordwrite
-        - all_genes: allteofGene（TFandmarkalGene）ofseto
+        - regulon_data: TFとその制御遺伝子の辞書
+        - all_genes: 全ての遺伝子（TFと標的遺伝子）のセット
     """
     regulon_data = defaultdict(set)
     all_genes = set()
@@ -1791,13 +1791,13 @@ def load_regulon_data(file) -> Tuple[Dict[str, Set[str]], Set[str]]:
 
 @st.cache_data
 def load_csi_data(file) -> Dict[str, Dict[str, float]]:
-    """CSIDataofLoading"""
+    """CSIデータの読み込み"""
     csi_data = defaultdict(dict)
     content = file.getvalue().decode('utf-8').splitlines()
     for line in content[1:]:  # Skip header
         row = line.split(',')
         if len(row) >= 3:
-            # 1colidxand2colidxfromturncopycausechildnametheextractout (numcharordesctheremoverm)
+            # 1列目と2列目から転写因子名を抽出 (数字以降を除去)
             tf1 = row[0].split('(')[0].split()[0].strip()
             tf2 = row[1].split('(')[0].split()[0].strip()
             try:
@@ -1814,33 +1814,33 @@ def get_connected_tfs(regulon_data: Dict[str, Set[str]],
                      network_mode: bool,
                      csi_threshold: float = None,
                      max_tfs: int = None) -> List[Tuple[str, float, str]]:
-    """TFtoconnectcontinuedoallteofTFandsoofCSIvalthegetget"""
+    """TFに接続する全てのTFとそのCSI値を取得"""
     connected_tfs = []
     
-    # addaddofdebaguOutput
+    # 追加のデバッグ出力
     print(f"\nget_connected_tfs for {source_tf}")
     print(f"network_mode: {network_mode}")
     print(f"csi_threshold: {csi_threshold}")
     print(f"source_tf in regulon_data: {source_tf in regulon_data}")
     print(f"Source TF downstream genes: {regulon_data.get(source_tf, 'No data')}")
     
-    # upflowTFofgetget
+    # 上流TFの取得
     for tf, genes in regulon_data.items():
         if source_tf in genes:
             weight = csi_data[tf].get(source_tf, 0.0)
             if csi_threshold is None or weight >= csi_threshold:
                 connected_tfs.append((tf, weight, 'upstream'))
     
-    # network_modeofplacematchisbelowflowmogetget
+    # network_modeの場合は下流も取得
     if network_mode and source_tf in regulon_data:
         for target in regulon_data[source_tf]:
-            if target in regulon_data:  # TFofplacematchofmi
+            if target in regulon_data:  # TFの場合のみ
                 weight = csi_data[source_tf].get(target, 0.0)
                 print(f"Potential downstream TF: {target}, CSI: {weight}")
                 if csi_threshold is None or weight >= csi_threshold:
                     connected_tfs.append((target, weight, 'downstream'))
     
-    # CSIofvalwithso-toshiteupranktheSelect
+    # CSIの値でソートして上位を選択
     connected_tfs.sort(key=lambda x: x[1], reverse=True)
     if max_tfs is not None:
         connected_tfs = connected_tfs[:max_tfs]
@@ -1854,28 +1854,28 @@ def get_connected_tfs(regulon_data: Dict[str, Set[str]],
 
 def calculate_weighted_centrality(tf_network: nx.DiGraph, 
                                   use_equal_weights: bool = False) -> Tuple[Dict, Dict, Dict, Dict]:
-    """weightmiattachkiNetworkofeachkindmidcenternaturepointmarktheCalculation"""
+    """重み付きネットワークの各種中心性指標を計算"""
     try:
-        # Networkintoejiofweightmiisnotplacematchis1.0toSettings
+        # ネットワーク内にエッジの重みがない場合は1.0に設定
         if use_equal_weights:
             for u, v, data in tf_network.edges(data=True):
                 if 'weight' not in data:
                     data['weight'] = 1.0
         
-        # koreordescisalreadyexistofko-doandsame
+        # これ以降は既存のコードと同じ
         weighted_degree = {}
         for node in tf_network.nodes():
             in_weight = sum(d['weight'] for u, v, d in tf_network.in_edges(node, data=True))
             out_weight = sum(d['weight'] for u, v, d in tf_network.out_edges(node, data=True))
             weighted_degree[node] = (in_weight + out_weight) / (2 * tf_network.number_of_nodes() - 2)
         
-        # otherofmidcenternatureCalculationmosamemannertomodcorrectpossible
+        # 他の中心性計算も同様に修正可能
         betweenness_centrality = nx.betweenness_centrality(tf_network, weight='weight')
         pagerank = nx.pagerank(tf_network, weight='weight')
         eigenvector_centrality = nx.eigenvector_centrality(tf_network, weight='weight')
         
     except Exception as e:
-        # fuo-rubaku
+        # フォールバック
         weighted_degree = nx.degree_centrality(tf_network)
         betweenness_centrality = nx.betweenness_centrality(tf_network)
         pagerank = nx.pagerank(tf_network)
@@ -1884,8 +1884,8 @@ def calculate_weighted_centrality(tf_network: nx.DiGraph,
     return weighted_degree, betweenness_centrality, pagerank, eigenvector_centrality
 
 def identify_hubs_weighted(tf_network: nx.DiGraph, weight_threshold: float = 0.9) -> Set[str]:
-    """weightmiattachkiNetworkwithofhabuofsameset"""
-    # weightmiattachkinextnumofCalculation
+    """重み付きネットワークでのハブの同定"""
+    # 重み付き次数の計算
     weighted_degrees = {}
     for node in tf_network.nodes():
         in_weight = sum(d['weight'] for u, v, d in tf_network.in_edges(node, data=True))
@@ -1898,7 +1898,7 @@ def identify_hubs_weighted(tf_network: nx.DiGraph, weight_threshold: float = 0.9
 
 
 def identify_bottlenecks_weighted(tf_network: nx.DiGraph, betweenness_threshold: float = 0.9) -> Set[str]:
-    """weightmiattachkiNetworkwithofbotorunekuofsameset"""
+    """重み付きネットワークでのボトルネックの同定"""
     betweenness = nx.betweenness_centrality(tf_network, weight='weight')
     threshold = np.percentile(list(betweenness.values()), betweenness_threshold*100)
     bottlenecks = {node for node, bc in betweenness.items() if bc >= threshold}
@@ -1906,14 +1906,14 @@ def identify_bottlenecks_weighted(tf_network: nx.DiGraph, betweenness_threshold:
 
 
 def filter_network_by_csi(tf_network: nx.DiGraph, csi_threshold: float = 0.0) -> nx.DiGraph:
-    """CSIofThresholdtobaseduiteNetworktheFiltering"""
+    """CSIの閾値に基づいてネットワークをフィルタリング"""
     filtered_network = nx.DiGraph()
     
     for u, v, data in tf_network.edges(data=True):
         if data['weight'] >= csi_threshold:
             filtered_network.add_edge(u, v, **data)
     
-    # loneestabshitano-dothedeleteremove
+    # 孤立したノードを削除
     isolated_nodes = list(nx.isolates(filtered_network))
     filtered_network.remove_nodes_from(isolated_nodes)
     
@@ -1921,12 +1921,12 @@ def filter_network_by_csi(tf_network: nx.DiGraph, csi_threshold: float = 0.0) ->
 
 
 def analyze_csi_distribution(tf_network: nx.DiGraph):
-    """CSIofdivdistthedivanalyze"""
+    """CSIの分布を分析"""
     edge_weights = [d['weight'] for (u, v, d) in tf_network.edges(data=True)]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
     
-    # CSIofdivdist
+    # CSIの分布
     ax1.hist(edge_weights, bins=30, alpha=0.7)
     ax1.set_title('CSI Distribution')
     ax1.set_xlabel('CSI')
@@ -1940,7 +1940,7 @@ def analyze_csi_distribution(tf_network: nx.DiGraph):
     plt.tight_layout()
     st.pyplot(fig)
     
-    # basemainStatisticalamountthereturnsu
+    # 基本統計量を返す
     stats_dict = {
         "Mean": np.mean(edge_weights),
         "Median": np.median(edge_weights),
@@ -1954,34 +1954,34 @@ def analyze_csi_distribution(tf_network: nx.DiGraph):
     return stats_dict
 
 def get_edge_color(source_node, node_categories, color_scheme, target_genes, ppi_tfs=None, hubs=None):
-    """ejiofcolorthegetgetdorelnum
+    """エッジの色を取得する関数
     
     Args:
-        source_node (str): ejioftriggerpointandbecomeno-do
-        node_categories (dict): kategori-goandofno-doofseto
-        color_scheme (dict): kategori-goandofcolorofwordwrite
-        target_genes (list): ta-getoGeneofrisuto
-        ppi_tfs (list, optional): PPItoransukuripushiyoncausechildofrisuto
-        hubs (set, optional): hubno-doofseto
+        source_node (str): エッジの起点となるノード
+        node_categories (dict): カテゴリーごとのノードのセット
+        color_scheme (dict): カテゴリーごとの色の辞書
+        target_genes (list): ターゲット遺伝子のリスト
+        ppi_tfs (list, optional): PPIトランスクリプション因子のリスト
+        hubs (set, optional): hubノードのセット
     """
     
-    # ppi_tfsisNoneofplacematchisemptyofrisutoto
+    # ppi_tfsがNoneの場合は空のリストに
     ppi_tfs = ppi_tfs or []
     
-    # PPItoransukuripushiyoncausechildofspecsepnaprocproc
+    # PPIトランスクリプション因子の特別な処理
     if source_node in ppi_tfs:
         return color_scheme['ppi_edge']
     
-    # ta-getoGenefromofejiispriorfirst
+    # ターゲット遺伝子からのエッジは優先
     if source_node in target_genes:
         color_idx = f'target_{source_node}'
-        return color_scheme.get(color_idx, color_scheme['target_genes'])  # 'target' the 'target_genes' tochangefurther
+        return color_scheme.get(color_idx, color_scheme['target_genes'])  # 'target' を 'target_genes' に変更
     
-    # hub nodeofchieku（ta-getoGeneorout）
+    # hub nodeのチェック（ターゲット遺伝子以外）
     if hubs and source_node in hubs and source_node not in target_genes:
         return color_scheme['hub_node']
     
-    # otherofno-dokategori-ofchieku
+    # 他のノードカテゴリーのチェック
     if source_node in node_categories['upstream_1']:
         return color_scheme['upstream_1']
     elif source_node in node_categories['upstream_2']:
@@ -1991,33 +1991,33 @@ def get_edge_color(source_node, node_categories, color_scheme, target_genes, ppi
     elif source_node in node_categories['downstream_2']:
         return color_scheme['downstream_2']
     
-    return color_scheme['target_genes']  # defuorutocolor
+    return color_scheme['target_genes']  # デフォルト色
 
 def adjust_node_positions(pos: Dict[str, np.ndarray], min_dist: float = 0.2) -> Dict[str, np.ndarray]:
     """
-    no-doofrankplacetheadjustarrangeshiteweightnarithepreventgu
+    ノードの位置を調整して重なりを防ぐ
     
     Args:
-        pos: sourceofno-dorankplaceofwordwrite
-        min_dist: no-dobetweenofminimumdistsep
+        pos: 元のノード位置の辞書
+        min_dist: ノード間の最小距離
     
     Returns:
-        Dict[str, np.ndarray]: adjustarrangeafterofno-dorankplace
+        Dict[str, np.ndarray]: 調整後のノード位置
     """
     adjusted_pos = pos.copy()
     nodes = list(pos.keys())
     
-    # allteofno-dopeatotsuite
+    # 全てのノードペアについて
     for i, node1 in enumerate(nodes):
         for node2 in nodes[i+1:]:
             pos1 = adjusted_pos[node1]
             pos2 = adjusted_pos[node2]
             
-            # no-dobetweenofdistseptheCalculation
+            # ノード間の距離を計算
             dist = np.linalg.norm(pos1 - pos2)
             
             if dist < min_dist:
-                # distsepisminimumdistsepnot yetfullofplacematch、no-dotheantioccursaseru
+                # 距離が最小距離未満の場合、ノードを反発させる
                 direction = (pos1 - pos2) / dist
                 adjustment = direction * (min_dist - dist) / 2
                 
@@ -2086,7 +2086,7 @@ def add_visualization_settings(st):
             help="If enabled, hub nodes will be colored differently regardless of layout"
         )
 
-    # Cleanup network Optiontheaddadd
+    # Cleanup network オプションを追加
     with st.expander("Network Cleanup Options", expanded=False):
         enable_cleanup = st.checkbox(
             "Enable network cleanup",
@@ -2111,11 +2111,11 @@ def save_static_network(tf_network: nx.DiGraph,
                        node_alpha: float = 0.7,
                        edge_alpha: float = 0.6,
                        layout_type: str = "spring",
-                       layout_scale: float = 3.0,  # addadd
-                       min_node_dist: float = 0.2,  # addadd
+                       layout_scale: float = 3.0,  # 追加
+                       min_node_dist: float = 0.2,  # 追加
                        height: int = 800) -> None:
     
-    # orbelowisbeforeofko-doandsame
+    # 以下は以前のコードと同じ
     if format.lower() not in ['png', 'pdf']:
         raise ValueError("Format must be either 'png' or 'pdf'")
     
@@ -2124,8 +2124,8 @@ def save_static_network(tf_network: nx.DiGraph,
     
     plt.clf()
     #fig = plt.figure(figsize=(15, 12))
-    width = height * (15/12)  # 16:9ofasupekutoratio
-    fig = plt.figure(figsize=(width/96, height/96))  # matplotlibusetoinchitochangechange  
+    width = height * (15/12)  # 16:9のアスペクト比
+    fig = plt.figure(figsize=(width/96, height/96))  # matplotlib用にインチに変換  
 
     
     visualize_multi_target_network(
@@ -2171,10 +2171,10 @@ def save_interactive_network(tf_network: nx.DiGraph,
     net = Network(height=height_px, width="100%", bgcolor="#ffffff", 
                  font_color="black", directed=True)
                  
-    # ppi_tfsisNoneofplacematchofprocproc
+    # ppi_tfsがNoneの場合の処理
     ppi_tfs = ppi_tfs or []
 
-    # kara-mapuofsetdef
+    # カラーマップの定義
     target_colors = [
         '#ff0000',  # Red
         '#ff6b6b',  # Light red
@@ -2195,12 +2195,12 @@ def save_interactive_network(tf_network: nx.DiGraph,
         'regular_edge': '#add8e6'  # Light blue
     }
 
-    # ta-getoGeneofcolortheaddadd
+    # ターゲット遺伝子の色を追加
     for i, target in enumerate(target_genes):
         color_idx = min(i, len(target_colors) - 1)
         color_map[f'target_{target}'] = target_colors[color_idx]
     
-    # reiautoOptionofsetdef
+    # レイアウトオプションの定義
     layout_options = {
         "static_spring": {"physics": {"enabled": False}},
         "barnes_hut": {
@@ -2289,26 +2289,26 @@ def save_interactive_network(tf_network: nx.DiGraph,
         }
     }
 
-    # Hub-centricreiautoofCalculation
+    # Hub-centricレイアウトの計算
     if hub_centric and hubs:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
         center_x = sum(pos[node][0] for node in tf_network.nodes()) / len(tf_network.nodes())
         center_y = sum(pos[node][1] for node in tf_network.nodes()) / len(tf_network.nodes())
         
-        # habuGeneandta-getoGenethemidcentertodistplace
+        # ハブ遺伝子とターゲット遺伝子を中央に配置
         hub_nodes = set(hubs) | set(target_genes)
         n_hubs = len(hub_nodes)
         
-        # midcenterattachneartocircleshapetodistplace
+        # 中央付近に円形に配置
         for i, hub in enumerate(hub_nodes):
             angle = 2 * np.pi * i / n_hubs
-            r = 0.3  # midcenterfromofdistsep
+            r = 0.3  # 中心からの距離
             pos[hub] = np.array([
                 center_x + r * np.cos(angle),
                 center_y + r * np.sin(angle)
             ])
         
-        # otherofno-doisoutsidetodistplace
+        # 他のノードは外側に配置
         for node in tf_network.nodes():
             if node not in hub_nodes:
                 current_pos = pos[node]
@@ -2319,11 +2319,11 @@ def save_interactive_network(tf_network: nx.DiGraph,
     else:
         pos = nx.spring_layout(tf_network, k=2, iterations=50)
 
-    # reiautoofSelectandfituse
+    # レイアウトの選択と適用
     if layout_type in layout_options:
         net.options = layout_options[layout_type]
 
-    # no-doofaddadd
+    # ノードの追加
     for node in tf_network.nodes():
         size = 20 * node_size_factor
         color = color_map['target_genes']
@@ -2358,7 +2358,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
             net.add_node(node, label=node, color=color, size=size,
                         font={'size': font_size})
 
-    # ejiofdivtype
+    # エッジの分類
     regular_edges = []
     ppi_edges = []
     regulation_edges = []
@@ -2372,7 +2372,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
         else:
             regular_edges.append((u, v))
 
-    # ejiofaddadd
+    # エッジの追加
     for u, v in regular_edges:
         weight = tf_network[u][v].get('weight', 1.0)
         width = (2.0 * weight * edge_width_factor)
@@ -2394,7 +2394,7 @@ def save_interactive_network(tf_network: nx.DiGraph,
         net.add_edge(u, v, width=width, color=edge_color,
                     arrows={'to': {'enabled': True, 'scaleFactor': 1}})
 
-    # JavaScriptofcontrolctrlko-do
+    # JavaScriptの制御コード
     stabilization_script = '''
     <script>
     window.addEventListener('load', function() {
@@ -2460,8 +2460,8 @@ def add_save_buttons_to_main(st, filtered_network, regulators_by_level, target_g
                              interactive_layout, static_layout, static_format, 
                              ppi_tfs=None, hub_centric=False, color_hubs=True, hubs=None, 
                              node_alpha=0.7, edge_alpha=0.6,
-                             layout_scale=3.0,  # addadd
-                             min_node_dist=0.2):  # addadd
+                             layout_scale=3.0,  # 追加
+                             min_node_dist=0.2):  # 追加
 
     """Save buttons for network visualizations"""
     import tempfile
@@ -2492,7 +2492,7 @@ def add_save_buttons_to_main(st, filtered_network, regulators_by_level, target_g
                     node_alpha=node_alpha,
                     edge_alpha=edge_alpha,
                     layout_type=static_layout,
-                    layout_scale=layout_scale,  # addadd
+                    layout_scale=layout_scale,  # 追加
                     min_node_dist=min_node_dist,
                     height=viz_height
                 )
@@ -2501,7 +2501,7 @@ def add_save_buttons_to_main(st, filtered_network, regulators_by_level, target_g
             with open(tmp_file_path, "rb") as file:
                 base64_file = base64.b64encode(file.read()).decode('utf-8')
             
-            # Filenametheallta-getoGenetheincludemumooftochangefurther
+            # ファイル名を全ターゲット遺伝子を含むものに変更
             target_names = '_'.join(target_genes)
             href = f'<a href="data:application/octet-stream;base64,{base64_file}" download="network_{target_names}.{static_format}">Download Static Network ({static_format.upper()})</a>'
             st.markdown(href, unsafe_allow_html=True)
@@ -2519,7 +2519,7 @@ def add_save_buttons_to_main(st, filtered_network, regulators_by_level, target_g
                 save_interactive_network(
                     tf_network=filtered_network,
                     regulators_by_level=regulators_by_level,
-                    target_genes=target_genes,  # modcorrect: target_gene -> target_genes
+                    target_genes=target_genes,  # 修正: target_gene -> target_genes
                     output_path=tmp_file.name,
                     ppi_tfs=ppi_tfs,
                     font_size=font_size,
@@ -2536,7 +2536,7 @@ def add_save_buttons_to_main(st, filtered_network, regulators_by_level, target_g
             with open(tmp_file_path, "rb") as file:
                 base64_file = base64.b64encode(file.read()).decode('utf-8')
             
-            # Filenametheallta-getoGenetheincludemumooftochangefurther
+            # ファイル名を全ターゲット遺伝子を含むものに変更
             target_names = '_'.join(target_genes)
             href = f'<a href="data:text/html;base64,{base64_file}" download="network_{target_names}.html">Download Interactive Network (HTML)</a>'
             st.markdown(href, unsafe_allow_html=True)
@@ -2552,15 +2552,15 @@ def get_hub_nodes(method: str, network: nx.DiGraph,
                   centrality_data: Dict[str, Dict], 
                   n: int = 5, percentile: float = 0.9) -> Set[str]:
     """
-    pointsetsaretahandmethodwithhabuno-dothespecset
+    指定された手法でハブノードを特定
 
     Args:
-        method: habuspecsethandmethod
-        network: Network
-        centrality_data: midcenternaturepointmarkofData
+        method: ハブ特定手法
+        network: ネットワーク
+        centrality_data: 中心性指標のデータ
             (weighted_degree, weighted_between, weighted_pagerank, weighted_eigenvector)
-        n: topuN（midcenternaturebe-suofplacematch）
-        percentile: pa-sentairuThreshold（従comeofhabuhandmethodofplacematch）
+        n: トップN（中心性ベースの場合）
+        percentile: パーセンタイル閾値（従来のハブ手法の場合）
     """
     weighted_degree, weighted_between, weighted_pagerank, weighted_eigenvector = centrality_data
     
@@ -2599,7 +2599,7 @@ def main():
     
     st.header("Data Upload")
 
-    # FilteringSettings
+    # フィルタリング設定
     use_equal_weights = st.checkbox(
         "Do not use CSI file", 
         value=False, 
@@ -2620,22 +2620,22 @@ def main():
         st.write("CSI: connection specificity index")
     
     if regulon_file and (csi_file or use_equal_weights):
-        # DataofLoading
+        # データの読み込み
         regulon_data, all_genes = load_regulon_data(regulon_file)
         if not use_equal_weights:
             csi_data = load_csi_data(csi_file)
         else:
             csi_data = defaultdict(dict)
         
-        # TFrisutotheselfmovealtoLoading
+        # TFリストを自動的に読み込み
         all_tfs = load_tfs_list(regulon_file)
-        # genthingkindofjudgeset
+        # 生物種の判定
         species = determine_species(regulon_file)
 
         # Get visualization settings
         static_layout, interactive_layout, layout_scale, min_node_dist, hub_centric, color_hubs, enable_cleanup = add_visualization_settings(st)
 
-        # VisualizationParameter
+        # 可視化パラメータ
         with st.expander("Visualization Parameters", expanded=False):
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -2664,7 +2664,7 @@ def main():
                 sorted(list(all_genes)),
                 default=[sorted(list(all_genes))[0]],
                 help="Select one or more target genes (max 5)",
-                max_selections=5  # maximum5tsumawithSelectpossible
+                max_selections=5  # 最大5つまで選択可能
             )
             
             col1, col2 = st.columns(2)
@@ -2683,14 +2683,14 @@ def main():
                     value=2
                 )
             
-            # Networkmo-do
+            # ネットワークモード
             network_mode = st.checkbox(
                 "Enable Network Mode", 
                 value=False,
                 help="If enabled, search both upstream and downstream connections for each TF"
             )
             
-            # FilteringSettings
+            # フィルタリング設定
             st.subheader("Filtering Settings")
             with st.expander("CSI Filtering", expanded=True):
                 filtering_method = st.radio(
@@ -2706,7 +2706,7 @@ def main():
                     max_tfs = st.slider("Max TFs per level", 1, 50, 20)
                     csi_threshold = None
 
-            # soofotherofOption
+            # その他のオプション
             trrust_options = add_trrust_options(st, species)
             chip_atlas_options = add_chip_atlas_options(st, species)
             string_db_options = add_string_db_options(st, species)
@@ -2882,7 +2882,7 @@ def main():
                                                     reverse=True)[:5]:
                                 st.write(f"{node}: {value:.4f}")
                         
-                        # koofpartdivtheaddadd
+                        # この部分を追加
                         hub_methods = {
                             "Top Weighted Degree Centrality": "top_degree",
                             "Top Weighted PageRank": "top_pagerank",
@@ -3000,7 +3000,7 @@ def main():
                     hubs=st.session_state.hub_nodes_for_viz,
                     node_alpha=node_alpha,
                     edge_alpha=edge_alpha,
-                    layout_scale=layout_scale,  # addadd
+                    layout_scale=layout_scale,  # 追加
                     min_node_dist=min_node_dist,
                 )
             else:

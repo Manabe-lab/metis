@@ -168,15 +168,15 @@ st.set_page_config(page_title="VeloViz", page_icon="🌀", layout="wide")
 
 st.title("🌀 VeloViz: RNA Velocity-Informed Embedding")
 st.markdown("""
-RNA velocitythethinkconsidershita2Dfillmeintomithemakebecomeshimasu。VeloVizis、currentofExpressionstatestateandadvmeassareru将comeofExpressionstatestateofbothwaytheuseuseshite、
-CelltracktracetheVisualizationdoforoffillmeintomiemptybetweenthestructbuildshimasu。
+RNA velocityを考慮した2D埋め込みを作成します。VeloVizは、現在の発現状態と予測される将来の発現状態の両方を使用して、
+細胞軌跡を可視化するための埋め込み空間を構築します。
 
-### specfeature
-- 従comeofUMAP/tSNEandisdiffnari、velocityinfoinfothefillmeintomitoantimap
-- CellofdivizewaydiristhanclearcertaintoVisualizationsareru
-- scVeloAnalysisResultfromdirectconnectCalculationpossible
+### 特徴
+- 従来のUMAP/tSNEとは異なり、velocity情報を埋め込みに反映
+- 細胞の分化方向がより明確に可視化される
+- scVelo解析結果から直接計算可能
 
-### refthinktextdedic
+### 参考文献
 - [Atta et al. (2021) "VeloViz: RNA-velocity informed embeddings for visualizing cellular trajectories" Bioinformatics](https://doi.org/10.1093/bioinformatics/btab653)
 - [VeloViz GitHub](https://github.com/JEFworks-Lab/veloviz)
 """)
@@ -192,15 +192,15 @@ if not veloviz_available:
 
     Error: {veloviz_message}
 
-    ### insuto-ruwaymethod
-    RwithorbelowtheRunshitekudasai:
+    ### インストール方法
+    Rで以下を実行してください:
     ```r
     if (!requireNamespace("BiocManager", quietly = TRUE))
         install.packages("BiocManager")
     BiocManager::install("veloviz")
     ```
 
-    also、Pythonwithrpy2isrequiredwithsu:
+    また、Pythonでrpy2が必要です:
     ```bash
     pip install rpy2
     ```
@@ -238,7 +238,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file with velocity data",
     type=['h5ad'],
     key="veloviz_h5ad_upload",
-    help="scVeloAnalysisdonemiofh5adFile（velocity layermustmust）"
+    help="scVelo解析済みのh5adファイル（velocity layer必須）"
 )
 
 if uploaded_h5ad is not None:
@@ -299,8 +299,8 @@ if uploaded_h5ad is not None:
         st.error("""
         ❌ **Required data missing**
 
-        VeloViztoisvelocityandspliced (alsoisMs) layerisrequiredwithsu。
-        scVelo analysisapuriwithAnalysisshitah5adFiletheUploadshitekudasai。
+        VeloVizにはvelocityとspliced (またはMs) layerが必要です。
+        scVelo analysisアプリで解析したh5adファイルをアップロードしてください。
         """)
         st.stop()
 
@@ -359,44 +359,44 @@ if uploaded_h5ad is not None:
             n_pcs = st.slider(
                 "Number of PCs (nPCs):",
                 min_value=5, max_value=100, value=20, step=5,
-                help="mainbecomedivofnum。highihododetailfinedaisCalculationkosutoincrease"
+                help="主成分の数。高いほど詳細だが計算コスト増"
             )
 
             k_neighbors = st.slider(
                 "Number of neighbors (k):",
                 min_value=5, max_value=100, value=30, step=5,
-                help="eachCellofnearsidenum。bigkiihodosmoothrakanafillmeintomi"
+                help="各細胞の近傍数。大きいほど滑らかな埋め込み"
             )
 
             similarity_threshold = st.slider(
                 "Similarity threshold:",
                 min_value=0.0, max_value=1.0, value=0.2, step=0.05,
-                help="velocitywaydirandoftypelikedegreeThreshold。highihodostrict格"
+                help="velocity方向との類似度閾値。高いほど厳格"
             )
 
         with col2:
             distance_weight = st.slider(
                 "Distance weight:",
                 min_value=0.0, max_value=2.0, value=1.0, step=0.1,
-                help="distsepbecomedivofweightmi"
+                help="距離成分の重み"
             )
 
             normalize_depth = st.checkbox(
                 "Normalize depth",
                 value=True,
-                help="深degreewithNormalizationdoka"
+                help="深度で正規化するか"
             )
 
             use_ods_genes = st.checkbox(
                 "Use overdispersed genes",
                 value=True,
-                help="highdivscatterGenetheuseusedoka"
+                help="高分散遺伝子を使用するか"
             )
 
             seed = st.number_input(
                 "Random seed:",
                 min_value=0, max_value=99999, value=42,
-                help="representnatureofforofrandnumshi-do"
+                help="再現性のための乱数シード"
             )
 
     # ========================================
@@ -474,9 +474,9 @@ if uploaded_h5ad is not None:
                 Error: {str(e)}
 
                 **Troubleshooting:**
-                1. DatatomanykuofNaNvalisnotkaConfirm
-                2. CellnumisfewnasuginotkaConfirm (inferrec: >500 cells)
-                3. velocityCalculationiscorrectshikurowwaretakaConfirm
+                1. データに多くのNaN値がないか確認
+                2. 細胞数が少なすぎないか確認 (推奨: >500 cells)
+                3. velocity計算が正しく行われたか確認
                 """)
                 import traceback
                 st.code(traceback.format_exc())

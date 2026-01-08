@@ -18,7 +18,7 @@ import matplotlib.colors as mcolors
 
 import pymupdf
 from PIL import Image
-import traceback  # ko-dooffirstheadtoaddadd
+import traceback  # コードの先頭に追加
 
 import subprocess
 from typing import Dict, Any
@@ -167,10 +167,10 @@ def run_r_script(df, temp_dir, MEDissThres, deepSplit, soft_power, min_module_si
             text=True
         )
         
-        # gene-color.tsvfrommojiyu-ruinfoinfothegetget
+        # gene-color.tsvからモジュール情報を取得
         gene_colors = pd.read_csv(f"{temp_dir}/module_colors.csv")
         
-        # TOMtheLoading、numpy arrayandshitegetget
+        # TOMを読み込み、numpy arrayとして取得
         tom = pd.read_csv(f"{temp_dir}/TOM.csv", index_col=0)
         tom_array = tom.values
         
@@ -184,10 +184,10 @@ def run_r_script(df, temp_dir, MEDissThres, deepSplit, soft_power, min_module_si
             MEDissThres=MEDissThres
         )
 
-        # TOMtheSettings
+        # TOMを設定
         pyWGCNA_df.TOM = tom_array
         
-        # mojiyu-ruofcolorinfoinfotheSettings
+        # モジュールの色情報を設定
         pyWGCNA_df.datExpr.var['moduleColors'] = gene_colors['color'].values
 
         return pyWGCNA_df
@@ -197,7 +197,7 @@ def run_r_script(df, temp_dir, MEDissThres, deepSplit, soft_power, min_module_si
         print("R output:", e.output)
         raise
     finally:
-        # endafter、remainteexistRpurosesutheConfirmshiteend
+        # 終了後、残っているRプロセスを確認して終了
         import psutil
         for proc in psutil.process_iter(['pid', 'name']):
             try:
@@ -208,13 +208,13 @@ def run_r_script(df, temp_dir, MEDissThres, deepSplit, soft_power, min_module_si
 
 
 def check_and_kill_r_processes():
-    """alreadyexistofRpurosesuthechiekushite停stopdo"""
+    """既存のRプロセスをチェックして停止する"""
     import psutil
     
     r_processes = []
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
-            # Rtorelconnectdopurosesuthechecksearch
+            # Rに関連するプロセスを検索
             if proc.info['name'] in ['R', 'Rscript'] or \
                (proc.info['cmdline'] and any('rpy2' in cmd.lower() for cmd in proc.info['cmdline'])):
                 r_processes.append(proc)
@@ -226,29 +226,29 @@ def check_and_kill_r_processes():
         for proc in r_processes:
             try:
                 proc.terminate()
-                proc.wait(timeout=3)  # 3secwait機
+                proc.wait(timeout=3)  # 3秒待機
             except psutil.TimeoutExpired:
-                proc.kill()  # forcecontrolend
+                proc.kill()  # 強制終了
             except Exception as e:
                 st.error(f"Error killing process {proc.pid}: {e}")
         return True
     return False
 
 def remove_files_in_directory(directory):
-    # deirekutoriisexistatdokaConfirm
+    # ディレクトリが存在するか確認
     if not os.path.exists(directory):
         print(f"Directory {directory} does not exist.")
         return
 
-    # deirekutoriinofallofitemidxtopairshiteru-pu
+    # ディレクトリ内のすべての項目に対してループ
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
-                # Filealsoisshinborikurinkuofplacematchisdeleteremove
+                # ファイルまたはシンボリックリンクの場合は削除
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
-                # deirekutoriofplacematchisrereturnaltodeleteremove
+                # ディレクトリの場合は再帰的に削除
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f'Failed to delete {file_path}. Reason: {e}')
@@ -257,24 +257,24 @@ def validate_metadata(df_e):
     problems = []
     for col in df_e.columns:
         if df_e[col].isnull().any():
-            problems.append(f"col '{col}' tomisslossvalisarimasu。")
+            problems.append(f"列 '{col}' に欠損値があります。")
         if len(df_e[col].unique()) == 1:
-            problems.append(f"col '{col}' toissimpleoneofvalshikaarimasen。")
+            problems.append(f"列 '{col}' には単一の値しかありません。")
         if len(df_e[col].unique()) == len(df_e):
-            problems.append(f"col '{col}' ofallofvalisdiffnarimasu。Groupizeofquesttopicisexistpossiblenatureisarimasu。")
+            problems.append(f"列 '{col}' のすべての値が異なります。グループ化の問題がある可能性があります。")
     return problems
 
 def preprocess_metadata(df_e):
-    # eachcoloflongsatheConfirm
+    # 各列の長さを確認
     column_lengths = df_e.apply(len)
     
     if column_lengths.nunique() != 1:
-        st.warning("metaDataofcoloflongsaisonecauseshiteimasen。Datatheadjustarrangeshimasu。")
-        # mostmolongicoloflongsatomatchwaseteotherofcoltheadjustarrange
+        st.warning("メタデータの列の長さが一致していません。データを調整します。")
+        # 最も長い列の長さに合わせて他の列を調整
         max_length = column_lengths.max()
         for col in df_e.columns:
             if len(df_e[col]) < max_length:
-                # notenoughshiteexistrownumdiv、'_dummy'valtheaddadd
+                # 不足している行数分、'_dummy'値を追加
                 df_e[col] = df_e[col].append(pd.Series(['_dummy'] * (max_length - len(df_e[col]))))
         st.write("Metadata are modified.")
         st.write(df_e)
@@ -283,7 +283,7 @@ def preprocess_metadata(df_e):
 
 def convert_pdf_to_images(pdf_path):
     pdf = pymupdf.open(pdf_path)
-    page = pdf[0]  # mostfirstofpe-jithegetget
+    page = pdf[0]  # 最初のページを取得
     pix = page.get_pixmap()
     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
     return img
@@ -293,19 +293,19 @@ def auto_color_assignment(df, column_name):
     unique_values = df[column_name].unique()
     n_unique = len(unique_values)
     
-    # kategorinumis2ofplacematch（2valData）
+    # カテゴリ数が2の場合（二値データ）
     if n_unique == 2:
         return dict(zip(unique_values, ['blue', 'red']))
     
-    # kategorinumis3from10ofplacematch
+    # カテゴリ数が3から10の場合
     elif 3 <= n_unique <= 10:
         palette = sns.color_palette("husl", n_unique).as_hex()
         return dict(zip(unique_values, palette))
     
-    # kategorinumis10thesupereruplacematch
+    # カテゴリ数が10を超える場合
     else:
-        # kategoriismanyiplacematchis、循ringformatofkara-maputheuseuse
-        cmap = plt.cm.get_cmap("tab20")  # 20colorofkara-mapu
+        # カテゴリが多い場合は、循環式のカラーマップを使用
+        cmap = plt.cm.get_cmap("tab20")  # 20色のカラーマップ
         colors = [mcolors.rgb2hex(cmap(i % 20)) for i in range(n_unique)]
         return dict(zip(unique_values, colors))
 
@@ -369,11 +369,11 @@ def remove_after_space(i):
     else:
         return i
 
-# tempintoSavedo
+# temp内に保存する
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
-    #oldidirecotryandFilethedeleteremovedo
+    #古いdirecotryとファイルを削除する
     temp_dir = "temp/" + str(round(time.time()))
     if not os.path.exists('temp'):
         os.mkdir('temp')
@@ -416,16 +416,16 @@ with st.sidebar:
         max_threshold = st.number_input("count max", value = 0.0, label_visibility = 'collapsed')
         max_threshold = float(max_threshold)
     MEDissThres = st.number_input("##### MEDissThres:", value = 0.20, min_value=0.05, max_value=1.00, label_visibility="visible",
-        help='''mojiyu-rubetweenofnontypelikedegree（dissimilarity） thetableshimasu：mojiyu-rubetweenofnontypelikedegree = 1 - mojiyu-rufixhaveGene（ME: Module Eigengene）betweenofmutualrelrelatenum
-Example：MEDissThres = 0.2 ismutualrelrelatenum 0.8 tomutualcurrent
-unifymatchofjudgecut：
-2tsuofmojiyu-rubetweenofnontypelikedegreeiskoofThresholdthansmallsaiplacematch、soreraofmojiyu-ruisunifymatchsaremasu
-Thresholdthebelowgeruand（Example：0.15）、thantypelikedegreeofhighimojiyu-ruofmiisunifymatchsareru
-Thresholdtheupgeruand（Example：0.25）、thanmanykuofmojiyu-ruisunifymatchsareru
+        help='''モジュール間の非類似度（dissimilarity） を表します：モジュール間の非類似度 = 1 - モジュール固有遺伝子（ME: Module Eigengene）間の相関係数
+例：MEDissThres = 0.2 は相関係数 0.8 に相当
+統合の判断：
+2つのモジュール間の非類似度がこの閾値より小さい場合、それらのモジュールは統合されます
+閾値を下げると（例：0.15）、より類似度の高いモジュールのみが統合される
+閾値を上げると（例：0.25）、より多くのモジュールが統合される
 ''')
     st.write("Module Eigengene Dissimilarity Threshold. Lower values produce more modules.")
 
-    # R WGCNAofOptiontheaddadd
+    # R WGCNAのオプションを追加
     use_R = st.checkbox("Use R WGCNA", value=True, 
         help="Use original R implementation of WGCNA via rpy2. This may provide more stable results.")
     if use_R:
@@ -465,7 +465,7 @@ if 'df' in st.session_state or st.session_state.skip_first:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        if "Row_name" in df.columns.to_list(): # Row_nametheincludemuandki
+        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -496,7 +496,7 @@ if use_upload == 'Yes':
                 df = df.iloc[:,7:]
                 colnames = df.columns.tolist()
                 colnames[0] = 'Gene'
-                # colnamesofchangechange
+                # colnamesの変換
                 search_word = '([^\ \(]*)\ \(.*'
                 for i in range(1, len(colnames)):
                     match = re.search(search_word, colnames[i])
@@ -519,20 +519,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file, index_col = 0)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesofchangechange
+                 # colnamesの変換
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # oneoncenamebeforethechangefurther
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
+                df.columns = content # 一旦名前を変更
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel 対応
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergencebeforetheremoveku
+                # annotation/divergence以前を除く
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -557,9 +557,9 @@ if use_upload == 'Yes':
         st.write(pyWGCNA_df.datExpr.obs)
         pyWGCNA_df.outputPath=temp_dir + "/"
         file_name_head = os.path.splitext(uploaded_file.name)[0]
-        condition = [str(i) for i in pyWGCNA_df.datExpr.obs.index.tolist()[:]] #errorpreventstop
-        group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
-        group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
+        condition = [str(i) for i in pyWGCNA_df.datExpr.obs.index.tolist()[:]] #error防止
+        group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
+        group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
 
     else:
         sys.exit(1)
@@ -567,15 +567,15 @@ if use_upload == 'Yes':
 
 if df is not None and not st.session_state.skip_first:
 
-############ samplenameto-isexistplacematchisunderscorehe RwithErrortobecome
+############ sample名に-がある場合はunderscoreへ Rでエラーになる
     if "-" in "".join(df.columns.values):
         st.write("Minus in sample name will be converted to _.")
         new_columns = [x.replace('-','_') for x in df.columns.values]
         df.columns = new_columns
 ############
 
-    # firstheadisnumcharofplacematchofpairrespond
-    #firstheadtextcharofchangefurther
+    # 先頭が数字の場合の対応
+    #先頭文字の変更
     numericstart = False
     colnames = df.columns.to_list()
     for i in range(len(colnames)):
@@ -586,18 +586,18 @@ if df is not None and not st.session_state.skip_first:
         df.columns = colnames
         st.write("Some sample names start with numbers. They will be converted to X...")
 
-    condition = [str(i) for i in df.columns.tolist()[:]] #errorpreventstop
-    group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
-    group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
+    condition = [str(i) for i in df.columns.tolist()[:]] #error防止
+    group_condition = [remove_after_space(x) for x in condition] #スペース以降を除く
+    group_condition = [remove_sample_num(x) for x in group_condition] #末尾の数字を除く
 
     st.write('Original gene number:  ' + str(len(df)))
 
-    # floattochangechange errcast悟in
+    # floatに変換 誤射悟入
     df = df.astype(float)
 
-    df = df.loc[~(df==0).all(axis=1)] #all0ofrowtheremoveku
+    df = df.loc[~(df==0).all(axis=1)] #すべて0のrowを除く
 
-########## excelpairrespond?
+########## excel対応?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -608,7 +608,7 @@ if df is not None and not st.session_state.skip_first:
             df = df.fillna(0)
         else:
             df = df.dropna(how='any')
-############ samplenameto-isexistplacematchisunderscorehe RwithErrortobecome
+############ sample名に-がある場合はunderscoreへ Rでエラーになる
     if "-" in "".join(df.columns.values):
         st.write("Minus in sample name will be converted to _.")
         new_columns = [x.replace('-','_') for x in df.columns.values]
@@ -634,15 +634,15 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
         genes = st.text_input("genes",label_visibility = 'collapsed')
         gene_list = []
         if len(genes) > 0:
-            gene_list = genes.split(' ') #mazuemptywhitewithdivsep
-            gene_list = list(filter(lambda a: a != '', gene_list)) #emptywhiteofmitheremoveku
+            gene_list = genes.split(' ') #まず空白で分離
+            gene_list = list(filter(lambda a: a != '', gene_list)) #空白のみを除く
             if ',' in genes:
-                gene_list = sum([x.split(',') for x in gene_list],[]) #sumwithflatflatize sum(x, [])
+                gene_list = sum([x.split(',') for x in gene_list],[]) #sumで平坦化 sum(x, [])
             if '\t' in genes:
                 gene_list = sum([x.split('\t') for x in gene_list],[])
             if '\n' in genes:
                 gene_list = sum([x.split('\n') for x in gene_list],[])
-            gene_list = [a for a in gene_list if a != ''] #emptytheremoveku
+            gene_list = [a for a in gene_list if a != ''] #空を除く
         condition_col = sum([gene_list], [] )
         st.session_state.condition_col = condition_col
         submitted_group = st.form_submit_button("Submit")
@@ -669,7 +669,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
         #    df_condition = pd.DataFrame(condition)
         #    df_batch = pd.DataFrame(batch)
 
-        # 1-Maretcoferrchangechangeheofpairrespond
+        # 1-Marなどの誤変換への対応
             check_excel_autoconversion(df)
 
             if len(df.index.values) != len(set(df.index.values)):
@@ -685,7 +685,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
 
 
         if st.button('Run WGCNA'):
-            # metaDataofPreprocessing（alreadyexistofko-do）
+            # メタデータの前処理（既存のコード）
             for col in df_e.select_dtypes(include=['object']).columns:
                 df_e[col] = df_e[col].str.replace('_', '.')
             st.write('Using this metadata:')
@@ -693,12 +693,12 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
             df_e = preprocess_metadata(df_e)
             metadata_problems = validate_metadata(df_e)
             if metadata_problems:
-                st.warning("metaDatatoorbelowofquesttopicisviewtsukarimashita:")
+                st.warning("メタデータに以下の問題が見つかりました:")
                 for problem in metadata_problems:
                     st.write(f"- {problem}")
-                st.warning("koreraofquesttopictothan、WGCNAAnalysistoshadoweffectisoutrupossiblenatureisarimasu。")
+                st.warning("これらの問題により、WGCNA解析に影響が出る可能性があります。")
 
-            # deirekutorioflevelprep（alreadyexistofko-do）
+            # ディレクトリの準備（既存のコード）
             remove_files_in_directory(res_dir)
             if PPI:
                 if not os.path.exists(res_dir + "/PPI"):
@@ -723,7 +723,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
                             min_module_size=min_module_size
                         )
 
-                        # R WGCNAwithgenbecomesaretaPDFFiletheres_dirtokopi-
+                        # R WGCNAで生成されたPDFファイルをres_dirにコピー
                         pdf_files = ['topology_analysis.pdf', 'dendrogram.pdf']
                         for pdf_file in pdf_files:
                             src = os.path.join(temp_dir, pdf_file)
@@ -776,7 +776,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
                         st.stop()
 
                 else:
-                    # alreadyexistofPyWGCNArealinstall
+                    # 既存のPyWGCNA実装
                     pyWGCNA_df = PyWGCNA.WGCNA(name=file_name_head, 
                                           species=species, 
                                           geneExp=df.T, 
@@ -787,26 +787,26 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
 
                     
                     try:
-                        # PDFthedrawimgtochangechange（alreadyexistofko-do）
+                        # PDFを画像に変換（既存のコード）
                         st.write(res_dir + "/sample_clustering_cleaning.pdf")
                         img = convert_pdf_to_images(res_dir + "/sample_clustering_cleaning.pdf")
                         st.image(img, use_container_width=True)
                     except Exception as e:
-                        st.error(f"Errorisoccurgenshimashita: {str(e)}")
+                        st.error(f"エラーが発生しました: {str(e)}")
 
                     pyWGCNA_df.findModules()
                     st.write("Done finding modules")
 
-            # ordesciscopassofprocproc（alreadyexistofko-do）
+            # 以降は共通の処理（既存のコード）
             pyWGCNA_df.updateSampleInfo(df_e.astype('object'))
 
 
-            # metaDataofeachkaramutopairshitecolortheratioricurrentteru
+            # メタデータの各カラムに対して色を割り当てる
             for column in pyWGCNA_df.datExpr.obs.columns:
                 color_dict = auto_color_assignment(pyWGCNA_df.datExpr.obs, column)
                 pyWGCNA_df.setMetadataColor(column, color_dict)
 
-            # colorSettingsofConfirm
+            # 色設定の確認
             for col in pyWGCNA_df.datExpr.obs.columns:
                 print(f"Color mapping for {col}:")
                 for category, color in pyWGCNA_df.metadataColors[col].items():
@@ -821,12 +821,12 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
             pyWGCNA_df.datExpr.var.to_csv(res_dir + '/' + file_name_head +'_gene-color.tsv', sep = '\t')
 
             try:
-                # PDFthedrawimgtochangechange
+                # PDFを画像に変換
                 img = convert_pdf_to_images(res_dir + "/module-traitRelationships.pdf")
-                # drawimgtheDisplay
+                # 画像を表示
                 st.image(img, use_container_width=True)
             except Exception as e:
-                st.error(f"Errorisoccurgenshimashita: {str(e)}")
+                st.error(f"エラーが発生しました: {str(e)}")
 
        #     module_names = pyWGCNA_df.moduleTraitCor.index.tolist()
        #     module_names = [name[2:] for name in module_names]
@@ -834,16 +834,16 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
             for i in module_names:
                 st.markdown(f'#### Module: {i}')
                 try:
-                    # PDFthedrawimgtochangechange
+                    # PDFを画像に変換
                     img = convert_pdf_to_images(res_dir + "/module_heatmap_eigengene_" + i + ".pdf")
-                    # drawimgtheDisplay
+                    # 画像を表示
                     st.image(img, use_container_width=True)
                     img = convert_pdf_to_images(res_dir + "/module_barplot_eigengene_" + i + ".pdf")
-                    # drawimgtheDisplay
+                    # 画像を表示
                     st.image(img, use_container_width=True)
 
                 except Exception as e:
-                    st.error(f"Errorisoccurgenshimashita: {str(e)}")
+                    st.error(f"エラーが発生しました: {str(e)}")
 
                 if vis_net:
                     try:
@@ -870,7 +870,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
                     st.write("Continuing with the rest of the analysis...")
 
 
-            # heatmapuseofDatathemakeru
+            # heatmap用のデータを作る
             file_list = os.listdir(res_dir)
             top_file = [x for x in file_list if 'rss_Top' in x]
             if len(top_file) > 0:
@@ -889,7 +889,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
                 zscore_df.to_csv(f'{res_dir}/{file_name_head}.Top.Z.heatmap.tsv', sep = '\t')
                 rss_df.to_csv(f'{res_dir}/{file_name_head}.Top.rss.heatmap.tsv', sep = '\t')
 
-            shutil.move(temp_dir + '/' + file_name_head + '.p', res_dir + "/" + file_name_head + '.p') #objectthefigureshemovemove
+            shutil.move(temp_dir + '/' + file_name_head + '.p', res_dir + "/" + file_name_head + '.p') #objectをfiguresへ移動
 
             shutil.make_archive("res", format='zip',root_dir= res_dir)
 
@@ -909,7 +909,7 @@ if df is not None or (st.session_state.skip_first and pyWGCNA_df):
                     pass
 
 
-#　DatathesendrubeforetoallzeroofDataisremovekubeki
+#　データを送る前にすべてゼロのデータは除くべき
 
 
-# refispointsetsareteexistandkiisFilenametheadjustarrangedo?
+# refが指定されているときはファイル名を調整する?

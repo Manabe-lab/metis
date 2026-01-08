@@ -13,7 +13,7 @@ def parse_group_data(file_path, direction='row'):
     
     result = {}
 
-        # Fileofincontenttherowgoandtodivratio
+        # ファイルの内容を行ごとに分割
     lines = file_content.decode('utf-8').splitlines()
     
     lines = [line.strip().split() for line in lines if line.strip()]
@@ -169,7 +169,7 @@ if 'previous_num_groups' not in st.session_state:
 
 st.markdown('## Upset plot and Venn diagram generator')
 
-# saidoba-ofSettings
+# サイドバーの設定
 with st.sidebar:
     st.markdown("#### Plot Settings")
     plot_title = st.text_input("Plot Title", "Set Intersection")
@@ -190,10 +190,10 @@ with st.sidebar:
     if st.button('Clear cache data and renew'):
       #  st.cache_data.clear()
         st.session_state.clear()
-        st.success('kiyashiyuiskuriasaremashita')
+        st.success('キャッシュがクリアされました')
         st.rerun()
 
-# InputwaymethodofSelect
+# 入力方法の選択
 st.session_state.input_method = st.radio("Choose input method:", ("Upload CSV", "Direct Input"))
 
 if st.session_state.input_method == "Upload CSV":
@@ -213,18 +213,18 @@ if st.session_state.input_method == "Upload CSV":
     st.write("Either tab or comma separated.")
     uploaded_file = st.file_uploader("Choose a CSV file", type=["csv",'tsv','txt'])
     if uploaded_file is not None:
-        # Fileofincontentthereadmiintomu
+        # ファイルの内容を読み込む
         file_content = uploaded_file.read()
         st.session_state.data = parse_group_data(uploaded_file, direction=direct)
 else:
     new_num_groups = st.number_input("Number of groups", min_value=2, max_value=20, value=st.session_state.num_groups, step=1)
     
-    # Groupnumischangefurthersaretaplacematch、Datatheriseto
+    # グループ数が変更された場合、データをリセット
     if new_num_groups != st.session_state.previous_num_groups:
         st.session_state.data = {}
         st.session_state.num_groups = new_num_groups
         st.session_state.previous_num_groups = new_num_groups
-        st.rerun()  # changefurthertheantimapdofortope-jithereLoading
+        st.rerun()  # 変更を反映するためにページを再読み込み
 
     with st.form(key='input_form'):
         new_data = {}
@@ -250,7 +250,7 @@ else:
         st.session_state.data = new_data
         st.success("Data updated successfully!")
 
-# Datapurebiyu-ofDisplay
+# データプレビューの表示
 st.write("Current Data:")
 for group, elements in st.session_state.data.items():
     st.write(f"{group}: {', '.join(elements)}")
@@ -258,7 +258,7 @@ for group, elements in st.session_state.data.items():
 
 
 
-# purotogenbecomebotan
+# プロット生成ボタン
 if st.button("Generate Plot"):
 
     if st.session_state.data:
@@ -270,10 +270,10 @@ if st.button("Generate Plot"):
                 fig, element_info = create_venn_diagram(st.session_state.data, plot_title, font_size, colors, plot_width, plot_height)
                 st.pyplot(fig)
                 
-                # needeleminfoinfoofDisplay
+                # 要素情報の表示
                 st.write("Set Elements:")
                 for set_name, elements in element_info.items():
-                    if elements:  # emptywithnotplacematchofmiDisplay
+                    if elements:  # 空でない場合のみ表示
                         st.write(f"{set_name}: {', '.join(sorted(elements))}")
             except Exception as e:
                 st.error(f"Error generating Venn diagram: {str(e)}")
@@ -286,7 +286,7 @@ if st.button("Generate Plot"):
                 st.pyplot(fig, use_container_width=True)
 
         if fig:
-            # purotoofDownloadbotantheaddadd
+            # プロットのダウンロードボタンを追加
             buf = io.BytesIO()
             if output_format == "PNG":
                 fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')

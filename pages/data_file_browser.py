@@ -13,14 +13,14 @@ st.set_page_config(page_title="Data File Browser", page_icon="📁", layout="wid
 st.title("📁 Data File Browser")
 
 st.markdown("""
-sa-ba-upofDataFiletheviewbrowse,管procwithkimasu。deirekutoritoyoteakusesuauthlimitisdiffnarimasu。
+サーバー上のデータファイルを閲覧・管理できます。ディレクトリによってアクセス権限が異なります。
 """)
 
 # Define directories with their permissions
 DIRECTORIES = {
     "cellxgene-data (Read Only)": {
         "path": "/home/lab/cellxgene-data",
-        "description": "cellxgenewith公opensareteexistData。viewbrowseandDownloadofmipossible。",
+        "description": "cellxgeneで公開されているデータ。閲覧とダウンロードのみ可能。",
         "can_download": True,
         "can_upload": False,
         "can_new_folder": False,
@@ -28,7 +28,7 @@ DIRECTORIES = {
     },
     "cellxgene Upload": {
         "path": "/home/lab/sftp-data/cellxgene_upload",
-        "description": "cellxgeneuseofDataUploadfuoruda。FileofUpload、fuorudamakebecome、deleteremoveispossible。",
+        "description": "cellxgene用のデータアップロードフォルダ。ファイルのアップロード、フォルダ作成、削除が可能。",
         "can_download": True,
         "can_upload": True,
         "can_new_folder": True,
@@ -36,7 +36,7 @@ DIRECTORIES = {
     },
     "SCALA Personal Folders": {
         "path": "/home/lab/sftp-data/SCALA-data/SCALA-upload/Personal_folders",
-        "description": "SCALAuseofpiece人fuoruda。FileofUpload、fuorudamakebecome、deleteremoveispossible。",
+        "description": "SCALA用の個人フォルダ。ファイルのアップロード、フォルダ作成、削除が可能。",
         "can_download": True,
         "can_upload": True,
         "can_new_folder": True,
@@ -46,7 +46,7 @@ DIRECTORIES = {
 
 # Directory selection
 selected_dir = st.selectbox(
-    "deirekutoritheSelect:",
+    "ディレクトリを選択:",
     options=list(DIRECTORIES.keys()),
     key="selected_directory"
 )
@@ -84,7 +84,7 @@ st.divider()
 
 # Check if directory exists
 if not os.path.exists(base_path):
-    st.error(f"❌ deirekutoriisexistatshimasen: {base_path}")
+    st.error(f"❌ ディレクトリが存在しません: {base_path}")
     st.stop()
 
 # ========================================
@@ -105,10 +105,10 @@ try:
         show_preview=False,
     )
 except FileNotFoundError as e:
-    st.error(f"❌ FileakusesuError: 壊retashinborikurinkuisarimasu。")
+    st.error(f"❌ ファイルアクセスエラー: 壊れたシンボリックリンクがあります。")
     event = None
 except Exception as e:
-    st.error(f"❌ Error: {str(e)}")
+    st.error(f"❌ エラー: {str(e)}")
     event = None
 
 st.divider()
@@ -139,7 +139,7 @@ if selected_file_path and os.path.exists(selected_file_path):
     file_size = os.path.getsize(selected_file_path) if not selected_is_dir else 0
     size_str = f"{file_size / (1024*1024):.1f} MB" if file_size > 0 else "Directory"
 
-    st.success(f"Selectmid: **{selected_file_name}** ({size_str})")
+    st.success(f"選択中: **{selected_file_name}** ({size_str})")
 
     col1, col2 = st.columns(2)
 
@@ -147,16 +147,16 @@ if selected_file_path and os.path.exists(selected_file_path):
     with col1:
         if dir_config["can_download"] and not selected_is_dir:
             if file_size > 500 * 1024 * 1024:
-                st.warning("⚠️ bigkinaFilewithsu。Downloadtotimebetweeniskakarimasu。")
+                st.warning("⚠️ 大きなファイルです。ダウンロードに時間がかかります。")
 
             # Two-step download to avoid loading file on every selection
-            if st.button("📥 Downloadlevelprep", key="prepare_download_btn"):
+            if st.button("📥 ダウンロード準備", key="prepare_download_btn"):
                 st.session_state.ready_to_download = selected_file_path
 
             if st.session_state.get('ready_to_download') == selected_file_path:
                 with open(selected_file_path, 'rb') as f:
                     st.download_button(
-                        label="📥 DownloadRun",
+                        label="📥 ダウンロード実行",
                         data=f,
                         file_name=selected_file_name,
                         key="download_btn"
@@ -165,30 +165,30 @@ if selected_file_path and os.path.exists(selected_file_path):
     # Delete button
     with col2:
         if dir_config["can_delete"]:
-            if st.button("🗑️ deleteremove", key="delete_btn", type="secondary"):
+            if st.button("🗑️ 削除", key="delete_btn", type="secondary"):
                 st.session_state.confirm_delete = selected_file_path
 
             if st.session_state.get('confirm_delete') == selected_file_path:
-                st.warning(f"maincurrenttodeleteremoveshimasuka？ **{selected_file_name}**")
+                st.warning(f"本当に削除しますか？ **{selected_file_name}**")
                 col_yes, col_no = st.columns(2)
                 with col_yes:
-                    if st.button("isi、deleteremovedo", key="confirm_yes", type="primary"):
+                    if st.button("はい、削除する", key="confirm_yes", type="primary"):
                         try:
                             if selected_is_dir:
                                 shutil.rmtree(selected_file_path)
                             else:
                                 os.remove(selected_file_path)
-                            st.success(f"✓ deleteremoveshimashita: {selected_file_name}")
+                            st.success(f"✓ 削除しました: {selected_file_name}")
                             st.session_state.confirm_delete = None
                             st.rerun()
                         except Exception as e:
-                            st.error(f"deleteremoveError: {e}")
+                            st.error(f"削除エラー: {e}")
                 with col_no:
-                    if st.button("kiyanseru", key="confirm_no"):
+                    if st.button("キャンセル", key="confirm_no"):
                         st.session_state.confirm_delete = None
                         st.rerun()
 else:
-    st.info("👆 FiletheSelectshitekudasai")
+    st.info("👆 ファイルを選択してください")
 
 st.divider()
 
@@ -209,39 +209,39 @@ if dir_config["can_upload"]:
 
         # Show relative path (or "root" if it's the base path)
         if upload_dir == base_path:
-            st.info(f"Uploadfirst: **ru-todeirekutori**")
+            st.info(f"アップロード先: **ルートディレクトリ**")
         else:
-            st.info(f"Uploadfirst: **{os.path.relpath(upload_dir, base_path)}/**")
+            st.info(f"アップロード先: **{os.path.relpath(upload_dir, base_path)}/**")
     else:
         upload_dir = base_path
-        st.info(f"Uploadfirst: **ru-todeirekutori**（File/fuorudatheSelectdoandchangefurtherwithkimasu）")
+        st.info(f"アップロード先: **ルートディレクトリ**（ファイル/フォルダを選択すると変更できます）")
 
     uploaded_file = st.file_uploader(
-        "FiletheSelect",
+        "ファイルを選択",
         key="file_uploader",
-        help="UploaddoFiletheSelectshitekudasai"
+        help="アップロードするファイルを選択してください"
     )
 
     if uploaded_file is not None:
         dest_path = os.path.join(upload_dir, uploaded_file.name)
 
         if os.path.exists(dest_path):
-            st.warning(f"⚠️ samenameFileisexistatshimasu: {uploaded_file.name}")
-            overwrite = st.checkbox("upwritekido", key="overwrite_check")
+            st.warning(f"⚠️ 同名ファイルが存在します: {uploaded_file.name}")
+            overwrite = st.checkbox("上書きする", key="overwrite_check")
         else:
             overwrite = True
 
-        if st.button("📤 UploadRun", key="upload_btn", type="primary"):
+        if st.button("📤 アップロード実行", key="upload_btn", type="primary"):
             if overwrite:
                 try:
                     with open(dest_path, 'wb') as f:
                         f.write(uploaded_file.getbuffer())
-                    st.success(f"✓ UploadComplete: {uploaded_file.name}")
+                    st.success(f"✓ アップロード完了: {uploaded_file.name}")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"UploadError: {e}")
+                    st.error(f"アップロードエラー: {e}")
             else:
-                st.error("upwritekitheallowcanshitekudasai")
+                st.error("上書きを許可してください")
 
 # ========================================
 # New Folder Section
@@ -260,32 +260,32 @@ if dir_config["can_new_folder"]:
 
         # Show relative path (or "root" if it's the base path)
         if parent_dir == base_path:
-            st.info(f"makebecomefirst: **ru-todeirekutori**")
+            st.info(f"作成先: **ルートディレクトリ**")
         else:
-            st.info(f"makebecomefirst: **{os.path.relpath(parent_dir, base_path)}/** in")
+            st.info(f"作成先: **{os.path.relpath(parent_dir, base_path)}/** 内")
     else:
         parent_dir = base_path
-        st.info(f"makebecomefirst: **ru-todeirekutori**（File/fuorudatheSelectdoandchangefurtherwithkimasu）")
+        st.info(f"作成先: **ルートディレクトリ**（ファイル/フォルダを選択すると変更できます）")
 
-    new_folder_name = st.text_input("fuorudaname", key="new_folder_name")
+    new_folder_name = st.text_input("フォルダ名", key="new_folder_name")
 
-    if st.button("📁 fuorudamakebecome", key="create_folder_btn"):
+    if st.button("📁 フォルダ作成", key="create_folder_btn"):
         if new_folder_name:
             # Sanitize folder name
             safe_name = "".join(c for c in new_folder_name if c.isalnum() or c in ('_', '-', '.', ' '))
             new_folder_path = os.path.join(parent_dir, safe_name)
 
             if os.path.exists(new_folder_path):
-                st.error(f"samenameoffuorudaisalreadytoexistatshimasu: {safe_name}")
+                st.error(f"同名のフォルダが既に存在します: {safe_name}")
             else:
                 try:
                     os.makedirs(new_folder_path)
-                    st.success(f"✓ fuorudathemakebecomeshimashita: {safe_name}")
+                    st.success(f"✓ フォルダを作成しました: {safe_name}")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"fuorudamakebecomeError: {e}")
+                    st.error(f"フォルダ作成エラー: {e}")
         else:
-            st.error("fuorudanametheInputshitekudasai")
+            st.error("フォルダ名を入力してください")
 
 # Show event details (for debugging)
 if event is not None:

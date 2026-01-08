@@ -8,7 +8,7 @@ import re
 import os
 import time
 import matplotlib
-matplotlib.use("cairo") # PDFoftransparentclearizepairplan interactivewithisumakurowkanot?
+matplotlib.use("cairo") # PDFの透明化対策 interactiveではうまく行かない?
 import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
@@ -53,20 +53,20 @@ from pages.cellchat_vis import (
 
 def get_r_permutation(nC, nboot, seed=1):
     """
-    Rsaywordofsample.intrelatedcounttheuseandplacechangeDatathegenerateshi、
-    Errorprocesstheincludemetafirmrobustnaimplement
+    R言語のsample.int関数を使用して置換データを生成し、
+    エラー処理を含めた堅牢な実装
     """
     try:
         import rpy2.robjects as ro
         from rpy2.robjects.packages import importr
         
-        # Rofbasemainpake-jitheinpo-to
+        # Rの基本パッケージをインポート
         base = importr('base')
         
-        # Rwithrandomcountshi-dotheSettings
+        # Rで乱数シードを設定
         ro.r('set.seed({})'.format(seed))
         
-        # RsidewithpermutationDatathegenerate（toraburushiyu-teinguforofkomentoattachki）
+        # R側でpermutationデータを生成（トラブルシューティング用のコメント付き）
         r_code = """
         nC <- {}
         nboot <- {}
@@ -76,18 +76,18 @@ def get_r_permutation(nC, nboot, seed=1):
         permutation
         """.format(nC, nboot)
         
-        # Rko-dotheRunandResulttheget
+        # Rコードを実行して結果を取得
         r_permutation = ro.r(r_code)
         
-        # RmatrixtheNumPydistributecolumntoconvert
+        # R行列をNumPy配列に変換
         permutation = np.array(r_permutation).astype(int)
         
-        # Ris1be-sunaofwith、Pythonof0be-sutoconvert
+        # Rは1ベースなので、Pythonの0ベースに変換
         permutation = permutation - 1
         
-        # distributecolumnofshapestatetheConfirmshi、requiredtorespondjiterotateplace
+        # 配列の形状を確認し、必要に応じて転置
         if permutation.shape[0] == nboot and permutation.shape[1] == nC:
-            permutation = permutation.T  # CellChatofperiodwaitdoshapeformattomatchwaseru
+            permutation = permutation.T  # CellChatの期待する形式に合わせる
         
         print(f"Successfully generated R permutation with shape: {permutation.shape}")
         print(f"Permutation range: min={np.min(permutation)}, max={np.max(permutation)}")
@@ -98,7 +98,7 @@ def get_r_permutation(nC, nboot, seed=1):
         print(f"Error generating R permutation: {str(e)}")
         print("Falling back to numpy permutation")
         
-        # fo-rubaku: NumPyofrandomcountgeneratetheuse
+        # フォールバック: NumPyの乱数生成を使用
         np.random.seed(seed)
         permutation = np.zeros((nC, nboot), dtype=int)
         for i in range(nboot):
@@ -108,63 +108,63 @@ def get_r_permutation(nC, nboot, seed=1):
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    Cellnameandcolorofonepierceshitamapinguthecreatedorelatedcount
+    細胞名と色の一貫したマッピングを作成する関数
 
     Parameters
     ----------
     cell_list : list
-        Cellnameoflist
+        細胞名のリスト
     palette_name : str
-        usedoseparatescattercolor-paretoname
+        使用する離散カラーパレット名
 
     Returns
     -------
     dict
-        Cellnamethekey、colorthebariyu-anddowordwrite
+        細胞名をキー、色をバリューとする辞書
 
     Note
     ----
-    pointsetsaretaseparatescatterparetoofcase、mazudeforutoofcolorcount（base_palette oflength）thegetshi、
-    Cellcountissoofcountorbelownarasoofmamausefor、supererucaseis sns.color_palette() of n_colors to
-    Cellcountthepointsetandsupplementbetweencolorthegenerateshimasu。
+    指定された離散パレットの場合、まずデフォルトの色数（base_palette の長さ）を取得し、
+    細胞数がその数以下ならそのまま利用、超える場合は sns.color_palette() の n_colors に
+    細胞数を指定して補間色を生成します。
     """
     n_cells = len(cell_list)
-    # deforutoofseparatescatterparetotheget（Example: "Set1"nara9color）
+    # デフォルトの離散パレットを取得（例: "Set1"なら9色）
     base_palette = sns.color_palette(palette_name)
     base_n = len(base_palette)
     
     if n_cells <= base_n:
-        # basemainparetoofcolorcountorinnara、aheadheadfromrequirednacounttheusefor
+        # 基本パレットの色数以内なら、先頭から必要な数を利用
         colors = base_palette[:n_cells]
     else:
-        # Cellcountisbasemainparetoofcolorcountthesupererucase、requirednacountofcolorthegenerate（lineshapesupplementbetween）
+        # 細胞数が基本パレットの色数を超える場合、必要な数の色を生成（線形補間）
         colors = sns.color_palette(palette_name, n_colors=n_cells)
         
-    # Cellnameandcolorthepairrespondattachketawordwritethereturnsu
+    # 細胞名と色を対応付けた辞書を返す
     return {cell: color for cell, color in zip(cell_list, colors)}
 
 def should_clear_session_state(uploaded_file):
-    """trueofnewFilejudgeset（sizedependexisttheexcluderemove）"""
+    """真の新ファイル判定（サイズ依存を排除）"""
     if not uploaded_file:
         return False
     
-    # firsttimeUpload
+    # 初回アップロード
     if 'last_file_name' not in st.session_state:
         return True
     
-    # Filenameischangefurthersareta
+    # ファイル名が変更された
     if uploaded_file.name != st.session_state.get('last_file_name', ''):
         return True
     
-    # AnalysisResultisexistatshinot（Errorafteretc）
+    # 解析結果が存在しない（エラー後など）
     if st.session_state.get('cellchat_res') is None:
         return True
     
     return False
 
 def clear_cellchat_session_state():
-    """newFiletimeoffitcutnasetionstatestatekuria"""
-    # newFiletimeisSettingsmokuria（FileischangewaruandCell typemochangewarufor）
+    """新ファイル時の適切なセッション状態クリア"""
+    # 新ファイル時は設定もクリア（ファイルが変わると細胞タイプも変わるため）
     keys_to_clear = ['cellchat_res', 'cellchat_temp_dir', 'sorted_order', 
                      'cell_color_map', 'current_cmap']
     for key in keys_to_clear:
@@ -174,31 +174,31 @@ def clear_cellchat_session_state():
 
 @st.cache_data
 def sanitize_filename(filename, max_length=20):
-    """Filenamethesafealltoandmaximumlengththecontrollimitdo"""
-    # specialspecialtextcharthedeleteremovealsoisplacechange
+    """ファイル名を安全にして最大長さを制限する"""
+    # 特殊文字を削除または置換
     filename = re.sub(r'[\\/*?:"<>|]', "_", filename)
-    # lengththecontrollimit
+    # 長さを制限
     if len(filename) > max_length:
         base, ext = os.path.splitext(filename)
         filename = base[:max_length] + ext
     return filename
 
 def save_cellchat_result(result, uploaded_filename, selected_types, output_dir="temp"):
-    """CellChatofResultthepickleFileandandSave"""
+    """CellChatの結果をpickleファイルとして保存"""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    # Filenamethesafealltoandlengththecontrollimit
+    # ファイル名を安全にして長さを制限
     safe_filename = sanitize_filename(uploaded_filename, 20)
     
-    # signaltaiputheshortishapeformatto
+    # シグナルタイプを短い形式に
     signal_types = "_".join([sig_type[:3] for sig_type in selected_types])
     
-    # SaveFilenamethecreate
+    # 保存ファイル名を作成
     save_filename = f"cellchat_{safe_filename}_{signal_types}.pkl"
     save_path = os.path.join(output_dir, save_filename)
     
-    # ResulttheSave
+    # 結果を保存
     with open(save_path, 'wb') as f:
         pickle.dump(result, f)
     
@@ -222,73 +222,73 @@ def identify_overexpressed_genes(
     min_cells: int = 10,
     min_cells_expr: int = 10
 ):
-    if not hasattr(pd.DataFrame, "iteritems"): #iteritemsisnotcaseofpairrespond
+    if not hasattr(pd.DataFrame, "iteritems"): #iteritemsがない場合の対応
         pd.DataFrame.iteritems = pd.DataFrame.items
 
-    # selfmoveconvertthevalidize
+    # 自動変換を有効化
     numpy2ri.activate()
     pandas2ri.activate()
     presto = rpackages.importr("presto")
-    # Datamatrixoflevelprepare（herewithis genes x cells thebeforeprovideanddo）
+    # データ行列の準備（ここでは genes x cells を前提とする）
     if scipy.sparse.issparse(adata.X):
         X = adata.X.toarray()
     else:
         X = np.asarray(adata.X)
-    # ※ AnnData withis X ispassnormal cells×genes naofwith、requiredtorespondjiterotateplaceandplease
-    # Example: X = X.T  # korewith X ofrowisGene、columnisCellandbecome
+    # ※ AnnData では X は通常 cells×genes なので、必要に応じて転置してください
+    # 例: X = X.T  # これで X の行が遺伝子、列が細胞となる
 
-    # serulabelofget
+    # セルラベルの取得
     labels = adata.obs[group_by] if group_by else adata.obs.iloc[:, 0]
     labels = pd.Categorical(labels)
     
-    # Genelistofget
+    # 遺伝子リストの取得
     features_use = list(adata.var_names) if features is None else list(set(features) & set(adata.var_names))
     
-    # oversurplusExpressionAnalysisforofmatrixthecreate（herewithis X ofrowisGene、columnisCellandtempset）
+    # 過剰発現解析用の行列を作成（ここでは X の行は遺伝子、列は細胞と仮定）
    # data_use = X[np.array([adata.var_names.get_loc(gene) for gene in features_use]), :]
     X_gene = X.T 
     data_use = X_gene[np.array([adata.var_names.get_loc(gene) for gene in features_use]), :]
     
-    # eachkurasutaoflabel
+    # 各クラスタのラベル
     level_use = list(labels.categories)
     
     if do_de:
         if do_fast:
-            # R of presto::wilcoxauc thecallbioutsu
-            # data_use: rowisGene、columnisCellofDatamatrix
-            # labels: CellgoandofGroup（lengthisCellcount）
+            # R の presto::wilcoxauc を呼び出す
+            # data_use: 行が遺伝子、列が細胞のデータ行列
+            # labels: 細胞ごとのグループ（長さは細胞数）
             with localconverter(ro.default_converter + pandas2ri.converter):
-                # data_use_df andand pandas.DataFrame toconvert
+                # data_use_df として pandas.DataFrame に変換
                 data_use_df = pd.DataFrame(data_use, index=features_use, columns=adata.obs_names)
-                # R withisrownameis features、columnnameisSamplename
+                # R では行名は features、列名はサンプル名
             
-            # Dataofnextsourcechieku
-            print(f"data_use_df shape: {data_use_df.shape}, labelcount: {len(labels)}")
+            # データの次元チェック
+            print(f"data_use_df shape: {data_use_df.shape}, ラベル数: {len(labels)}")
             
-            # nextsourceisonecauseshinotcase、Filepassreasonwithfo-rubaku
+            # 次元が一致しない場合、ファイル経由でフォールバック
             if data_use_df.shape[1] != len(labels):
-                print("Warning: Dataofnextsourcenotonecause。FilepassreasonwithRtoprocessthedependrelyshimasu")
+                print("警告: データの次元不一致。ファイル経由でRに処理を依頼します")
                 genes_de = run_presto_through_files(data_use_df, labels, level_use)
             else:
                 try:
-                    # passnormalofrpy2passreasonofprocessthetrymiru
-                    # labels the R of factor toconvert
+                    # 通常のrpy2経由の処理を試みる
+                    # labels を R の factor に変換
                     r_labels = ro.FactorVector(labels.astype(str).tolist())
-                    # groups_use Parametertois、pairobjectanddoGroupofbekutoruthetransfersu
+                    # groups_use パラメータには、対象とするグループのベクトルを渡す
                     r_groups = ro.StrVector(level_use)
                     
-                    # presto of wilcoxauc callbioutshi
+                    # presto の wilcoxauc 呼び出し
                     res = presto.wilcoxauc(data_use_df, r_labels, groups_use=r_groups)
                     
-                    # res is R of DataFrame tobecomeofwith、pandas toconvert
+                    # res は R の DataFrame になるので、pandas に変換
                     with localconverter(ro.default_converter + pandas2ri.converter):
                         genes_de = pd.DataFrame(ro.conversion.rpy2py(res))
                 except Exception as e:
-                    print(f"rpy2passreasonofRunError: {str(e)}")
-                    print("FilepassreasonwithRtoprocessthedependrelyshimasu")
+                    print(f"rpy2経由の実行エラー: {str(e)}")
+                    print("ファイル経由でRに処理を依頼します")
                     genes_de = run_presto_through_files(data_use_df, labels, level_use)
             
-            # Rversionandsamemannerto、columnnameofchangefurther
+            # R版と同様に、列名の変更
             genes_de.rename(columns={
                 "group": "clusters",
                 "feature": "features",
@@ -299,17 +299,17 @@ def identify_overexpressed_genes(
                 "padj": "pvalues.adj"
             }, inplace=True)
             genes_de.loc[:, "logFC_abs"]  = genes_de["logFC"].abs().copy()
-            # pct.max is pct.1 and pct.2 ofmaximumvalue
+            # pct.max は pct.1 と pct.2 の最大値
             genes_de.loc[:, "pct.max"] = genes_de[["pct.1", "pct.2"]].max(axis=1)
             
-            # Filtering
+            # フィルタリング
             markers_all = genes_de[(genes_de["pvalues"] < thresh_p) &
                                     (genes_de["logFC_abs"] >= thresh_fc) &
                                     (genes_de["pct.max"] > thresh_pct * 100)].copy()
             markers_all.sort_values("pvalues", inplace=True)
             
         else:
-            # followcomeof Python implement（scipy of Mann–Whitney U checksettheuse）
+            # 従来の Python 実装（scipy の Mann–Whitney U 検定を使用）
             markers = []
             for cluster in level_use:
                 cluster_mask = (labels == cluster)
@@ -339,7 +339,7 @@ def identify_overexpressed_genes(
         features_sig = markers_all["features"].unique()
     else:
         st.warning("DEG filter is off.")
-        # do.DE=False ofcase：eachGeneis min_cells_expr orupExpressionandexistkawithselectsep
+        # do.DE=False の場合：各遺伝子が min_cells_expr 以上発現しているかで選別
         nCells = (data_use > 0).sum(axis=1)
         markers_all = pd.DataFrame({
             "features": features_use,
@@ -348,101 +348,101 @@ def identify_overexpressed_genes(
         markers_all = markers_all[markers_all["nCells"] >= min_cells_expr]
         features_sig = markers_all["features"].unique()
     
-    # Resultthewordwriteandandreturnsu
+    # 結果を辞書として返す
     print(f"{len(features_sig)} genes passed filtering")
     return {"features": features_sig, "markers_all": markers_all}
 
 
 def run_presto_through_files(data_df, labels, groups_use):
     """
-    FilepassreasonwithR prestotheRundo
+    ファイル経由でR prestoを実行する
     
     Parameters:
     -----------
     data_df : pandas.DataFrame
-        Gene×Cellofmatrix
+        遺伝子×細胞の行列
     labels : pandas.Series
-        CellofGrouplabel
+        細胞のグループラベル
     groups_use : list
-        usedoGrouplist
+        使用するグループリスト
         
     Returns:
     --------
     pandas.DataFrame
-        wilcoxaucResult
+        wilcoxauc結果
     """
     import os
     import tempfile
     import subprocess
     import uuid
     
-    # onetimedeirekutorithecreate
+    # 一時ディレクトリを作成
     temp_dir = tempfile.mkdtemp(prefix="presto_")
     
     try:
-        # uni-kunasetionID
+        # ユニークなセッションID
         session_id = str(uuid.uuid4())
         
-        # Filepasu
+        # ファイルパス
         data_path = os.path.join(temp_dir, f"data_{session_id}.csv")
         labels_path = os.path.join(temp_dir, f"labels_{session_id}.csv")
         groups_path = os.path.join(temp_dir, f"groups_{session_id}.csv")
         output_path = os.path.join(temp_dir, f"result_{session_id}.csv")
         
-        # DatatheCSVandandSave
+        # データをCSVとして保存
         data_df.to_csv(data_path)
         pd.DataFrame({"label": labels.astype(str)}).to_csv(labels_path, index=False)
         pd.DataFrame({"group": groups_use}).to_csv(groups_path, index=False)
         
-        # Rsukuriputothecreate
+        # Rスクリプトを作成
         r_script_path = os.path.join(temp_dir, f"script_{session_id}.R")
         r_code = f"""
-        # requirednaraiburarithero-do
+        # 必要なライブラリをロード
         library(presto)
         
-        # DataofLoading
+        # データの読み込み
         data <- read.csv("{data_path}", row.names=1)
         labels <- read.csv("{labels_path}")$label
         groups <- read.csv("{groups_path}")$group
         
-        # DatatheConfirm
+        # データを確認
         print(dim(data))
         print(length(labels))
         print(groups)
         
-        # DataofPreprocessing
+        # データの前処理
         data_matrix <- as.matrix(data)
         
-        # wilcoxauc ofRun
+        # wilcoxauc の実行
         result <- presto::wilcoxauc(data_matrix, labels, groups_use=groups)
         
-        # ResulttheSave
+        # 結果を保存
         write.csv(result, "{output_path}", row.names=FALSE)
         
-        print("processComplete")
+        print("処理完了")
         """
         
         with open(r_script_path, "w") as f:
             f.write(r_code)
         
-        # RsukuriputotheRun
+        # Rスクリプトを実行
         try:
             subprocess.run(["Rscript", r_script_path], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"RsukuriputoRunError: {e}")
+            print(f"Rスクリプト実行エラー: {e}")
             raise
         
-        # Resultthereadmiintomu
+        # 結果を読み込む
         if os.path.exists(output_path):
             result_df = pd.read_csv(output_path)
             return result_df
         else:
-            raise FileNotFoundError(f"ResultFileisviewtsukarimasen: {output_path}")
+            raise FileNotFoundError(f"結果ファイルが見つかりません: {output_path}")
             
     finally:
-        # onetimeFileofkuri-napu（Option）
+        # 一時ファイルのクリーンアップ（オプション）
         # shutil.rmtree(temp_dir)
-        print(f"onetimeFileis {temp_dir} toSavesareteimasu")
+        print(f"一時ファイルは {temp_dir} に保存されています")
     
     return None
 
@@ -459,18 +459,18 @@ def compute_hill_outer(dataL, dataR, k, n):
             result[i, j] = xn / (kn + xn)
     return result
 
-# PythonimplementofCellChatDBprocessthedebagudoko-do
-# get_cellchatdb_from_rrelatedcountofaftertoorbelowofrelatedcounttheadd
+# Python実装のCellChatDB処理をデバッグするコード
+# get_cellchatdb_from_r関数の後に以下の関数を追加
 
 def debug_cellchatdb(db):
-    """CellChatDBofincontentthedetailstoOutputandverify"""
-    print("==== CellChatDBverify ====")
+    """CellChatDBの内容を詳細に出力して検証"""
+    print("==== CellChatDB検証 ====")
     
     if 'interaction' in db:
         interaction = db['interaction']
-        print(f"Ligand-Receptorpaircount: {len(interaction)}")
+        print(f"リガンド-レセプターペア数: {len(interaction)}")
         if len(interaction) > 0:
-            print("firstof5pair:")
+            print("最初の5ペア:")
             cols_to_show = ['ligand', 'receptor']
             if 'interaction_name' in interaction.columns:
                 cols_to_show.insert(0, 'interaction_name')
@@ -478,81 +478,81 @@ def debug_cellchatdb(db):
                 cols_to_show.append('pathway_name')
             print(interaction[cols_to_show].head(5))
             
-            # Ligand,ReceptorofkindtypetheConfirm
+            # リガンド・レセプターの種類を確認
             ligands = interaction['ligand'].unique()
             receptors = interaction['receptor'].unique()
             
-            print(f"\nuni-kunaLigandcount: {len(ligands)}")
-            print(f"LigandofExample (firstof10): {', '.join(map(str, ligands[:10]))}")
+            print(f"\nユニークなリガンド数: {len(ligands)}")
+            print(f"リガンドの例 (最初の10): {', '.join(map(str, ligands[:10]))}")
             
-            print(f"\nuni-kunaReceptorcount: {len(receptors)}")
-            print(f"ReceptorofExample (firstof10): {', '.join(map(str, receptors[:10]))}")
+            print(f"\nユニークなレセプター数: {len(receptors)}")
+            print(f"レセプターの例 (最初の10): {', '.join(map(str, receptors[:10]))}")
             
-            # Ligand,ReceptoroftypetheConfirm
-            print(f"\nLigandofDatatype: {type(interaction['ligand'].iloc[0])}")
-            print(f"ReceptorofDatatype: {type(interaction['receptor'].iloc[0])}")
+            # リガンド・レセプターの型を確認
+            print(f"\nリガンドのデータ型: {type(interaction['ligand'].iloc[0])}")
+            print(f"レセプターのデータ型: {type(interaction['receptor'].iloc[0])}")
             
-            # complexofLigand,ReceptorofConfirm
+            # 複合体のリガンド・レセプターの確認
             complex_ligands = [l for l in ligands if isinstance(l, str) and '_' in l]
             complex_receptors = [r for r in receptors if isinstance(r, str) and '_' in r]
             
-            print(f"\ncomplexLigandcount: {len(complex_ligands)}")
+            print(f"\n複合体リガンド数: {len(complex_ligands)}")
             if complex_ligands:
-                print(f"complexLigandofExample: {', '.join(complex_ligands[:5])}")
+                print(f"複合体リガンドの例: {', '.join(complex_ligands[:5])}")
                 
-            print(f"complexReceptorcount: {len(complex_receptors)}")
+            print(f"複合体レセプター数: {len(complex_receptors)}")
             if complex_receptors:
-                print(f"complexReceptorofExample: {', '.join(complex_receptors[:5])}")
+                print(f"複合体レセプターの例: {', '.join(complex_receptors[:5])}")
 
-            # Databe-sugetafter、structmakethedetailstoConfirm
-            print("DBstructmake:")
+            # データベース取得後、構造を詳細に確認
+            print("DB構造:")
             for key in db:
-                print(f"{key}: {type(db[key])}, rowcount: {len(db[key])}")
+                print(f"{key}: {type(db[key])}, 行数: {len(db[key])}")
 
-            print("Ligandoffirstof5tsuofExample:")
+            print("リガンドの最初の5つの例:")
             print(interaction['ligand'].head(5).tolist())
-            print("LigandofDatatype:", interaction['ligand'].dtype)
+            print("リガンドのデータ型:", interaction['ligand'].dtype)
     else:
-        print("CellChatDBtointeractionisincludedmasen")
+        print("CellChatDBにinteractionが含まれていません")
     
-    # complex, cofactorofConfirm
+    # complex, cofactorの確認
     if 'complex' in db and not db['complex'].empty:
-        print(f"\ncomplexinfocount: {len(db['complex'])}")
-        print("complexofExample (firstof3):")
+        print(f"\n複合体情報数: {len(db['complex'])}")
+        print("複合体の例 (最初の3):")
         print(db['complex'].head(3))
     else:
-        print("\ncomplexinfoisincludednotkaemptywithsu")
+        print("\n複合体情報が含まれていないか空です")
         
     if 'cofactor' in db and not db['cofactor'].empty:
-        print(f"\ncofactorinfocount: {len(db['cofactor'])}")
-        print("cofactorofExample (firstof3):")
+        print(f"\n補助因子情報数: {len(db['cofactor'])}")
+        print("補助因子の例 (最初の3):")
         print(db['cofactor'].head(3))
     else:
-        print("\ncofactorinfoisincludednotkaemptywithsu")
+        print("\n補助因子情報が含まれていないか空です")
         
-    print("==== CellChatDBverifyComplete ====\n")
+    print("==== CellChatDB検証完了 ====\n")
     
-    return db  # sourceofDBthesoofmamareturnandsourceofprocesstheinheritcontinuepossibleto
+    return db  # 元のDBをそのまま返して元の処理を継続可能に
 
     
 def hill_function(x, k, n):
     """
-    bekutoruizesaretahirurelatedcountofCalculation
-    countformat: y = x^n / (k^n + x^n)
-    x: Inputdistributecolumn
-    k: hirusetcount
-    n: hirurelatecount
+    ベクトル化されたヒル関数の計算
+    数式: y = x^n / (k^n + x^n)
+    x: 入力配列
+    k: ヒル定数
+    n: ヒル係数
     """
     x_n = np.power(x, n)
     return x_n / (np.power(k, n) + x_n)
 
 def compute_hill_outer_vectorized(dataL, dataR, k, n):
     """
-    dataLanddataRofoutaccumulatetopairandhirurelatedcountthefitfordo（bekutoruizeversion）
-    dataL: 1nextsourcedistributecolumn（LigandExpressionvalue）
-    dataR: 1nextsourcedistributecolumn（ReceptorExpressionvalue）
-    k, n: hirurelatedcountofParameter
-    returnrivalue: Calculationsareta2nextsourcedistributecolumn
+    dataLとdataRの外積に対してヒル関数を適用する（ベクトル化版）
+    dataL: 1次元配列（リガンド発現値）
+    dataR: 1次元配列（レセプター発現値）
+    k, n: ヒル関数のパラメータ
+    戻り値: 計算された2次元配列
     """
     outer = np.outer(dataL, dataR)
     return hill_function(outer, k, n)
@@ -560,27 +560,27 @@ def compute_hill_outer_vectorized(dataL, dataR, k, n):
 @st.cache_data
 def get_cellchatdb_from_r(species="human"):
     """
-    RofCellChatpake-jifromCellChatDBthegetdo（rpy2 3.5.1topairrespond）
+    RのCellChatパッケージからCellChatDBを取得する（rpy2 3.5.1に対応）
     
     Parameters
     ----------
     species : str
-        'human' alsois 'mouse' thepointsetandDatabe-sutheSelect
+        'human' または 'mouse' を指定してデータベースを選択
         
     Returns
     -------
     dict
-        'interaction', 'complex', 'cofactor', 'geneInfo' theincludemuCellChatDBofwordwrite（eachvalueis Pandas DataFrame）
+        'interaction', 'complex', 'cofactor', 'geneInfo' を含むCellChatDBの辞書（各値は Pandas DataFrame）
     """
     try:
-        # selfmoveconvertofvalidize
+        # 自動変換の有効化
         pandas2ri.activate()
-        # basepake-jiis importr theusetereadmiintomu
+        # baseパッケージは importr を使って読み込む
         base = importr("base")
-        # CellChatpake-jiofro-do
+        # CellChatパッケージのロード
         ro.r("library(CellChat)")
         
-        # pairobjectofDatasetothero-do
+        # 対象のデータセットをロード
         if species.lower() == "human":
             r_command = """
             data("CellChatDB.human")
@@ -594,28 +594,28 @@ def get_cellchatdb_from_r(species="human"):
             """
             db_name = "CellChatDB.mouse"
         else:
-            raise ValueError("species is 'human' alsois 'mouse' thepointsetandplease")
+            raise ValueError("species は 'human' または 'mouse' を指定してください")
         
-        # RkomandoofRun
+        # Rコマンドの実行
         ro.r(r_command)
         
         db = {}
         components = ['interaction', 'complex', 'cofactor', 'geneInfo']
         for comp in components:
-            # eachkonpo-nentotheget（selfmoveconverttothan Pandas DataFrame tonateexistiszu）
+            # 各コンポーネントを取得（自動変換により Pandas DataFrame になっているはず）
             r_data = ro.r(f"{db_name}${comp}")
-            # moshi r_data is Pandas DataFrame narasoofmamauseu
+            # もし r_data が Pandas DataFrame ならそのまま使う
             if isinstance(r_data, pd.DataFrame):
                 py_data = r_data
             else:
-                # converttherowu（passnormalisheretoiscomenotiszuwithsu）
+                # 変換を行う（通常はここには来ないはずです）
                 with ro.default_converter + pandas2ri.converter as cv:
                     py_data = ro.conversion.rpy2py(r_data)
             db[comp] = py_data
 
 
-        # get_cellchatdb_from_rrelatedcountinwithofmodifycorrect
-        # Datafure-mugetafter、typetheclearshowaltoconvert
+        # get_cellchatdb_from_r関数内での修正
+        # データフレーム取得後、型を明示的に変換
         if 'ligand' in db['interaction'].columns:
             db['interaction'].loc[:, 'ligand'] = db['interaction']['ligand'].astype(str)
         if 'receptor' in db['interaction'].columns:
@@ -626,20 +626,20 @@ def get_cellchatdb_from_r(species="human"):
         return db
     except Exception as e:
         import traceback
-        print("CellChatDBofgetintoErrorisoccurred: " + str(e))
+        print("CellChatDBの取得中にエラーが発生しました: " + str(e))
         traceback.print_exc()
         return None
 
 
 def debug_cellchatdb(db):
-    """CellChatDBofincontentthedetailstoOutputandverify"""
-    print("==== CellChatDBverify ====")
+    """CellChatDBの内容を詳細に出力して検証"""
+    print("==== CellChatDB検証 ====")
     
     if 'interaction' in db:
         interaction = db['interaction']
-        print(f"Ligand-Receptorpaircount: {len(interaction)}")
+        print(f"リガンド-レセプターペア数: {len(interaction)}")
         if len(interaction) > 0:
-            print("firstof5pair:")
+            print("最初の5ペア:")
             cols_to_show = ['ligand', 'receptor']
             if 'interaction_name' in interaction.columns:
                 cols_to_show.insert(0, 'interaction_name')
@@ -647,54 +647,54 @@ def debug_cellchatdb(db):
                 cols_to_show.append('pathway_name')
             print(interaction[cols_to_show].head(5))
             
-            # Ligand,ReceptorofkindtypetheConfirm
+            # リガンド・レセプターの種類を確認
             ligands = interaction['ligand'].unique()
             receptors = interaction['receptor'].unique()
             
-            print(f"\nuni-kunaLigandcount: {len(ligands)}")
-            print(f"LigandofExample (firstof10): {', '.join(map(str, ligands[:10]))}")
+            print(f"\nユニークなリガンド数: {len(ligands)}")
+            print(f"リガンドの例 (最初の10): {', '.join(map(str, ligands[:10]))}")
             
-            print(f"\nuni-kunaReceptorcount: {len(receptors)}")
-            print(f"ReceptorofExample (firstof10): {', '.join(map(str, receptors[:10]))}")
+            print(f"\nユニークなレセプター数: {len(receptors)}")
+            print(f"レセプターの例 (最初の10): {', '.join(map(str, receptors[:10]))}")
             
-            # Ligand,ReceptoroftypetheConfirm
-            print(f"\nLigandofDatatype: {type(interaction['ligand'].iloc[0])}")
-            print(f"ReceptorofDatatype: {type(interaction['receptor'].iloc[0])}")
+            # リガンド・レセプターの型を確認
+            print(f"\nリガンドのデータ型: {type(interaction['ligand'].iloc[0])}")
+            print(f"レセプターのデータ型: {type(interaction['receptor'].iloc[0])}")
             
-            # complexofLigand,ReceptorofConfirm
+            # 複合体のリガンド・レセプターの確認
             complex_ligands = [l for l in ligands if isinstance(l, str) and '_' in l]
             complex_receptors = [r for r in receptors if isinstance(r, str) and '_' in r]
             
-            print(f"\ncomplexLigandcount: {len(complex_ligands)}")
+            print(f"\n複合体リガンド数: {len(complex_ligands)}")
             if complex_ligands:
-                print(f"complexLigandofExample: {', '.join(complex_ligands[:5])}")
+                print(f"複合体リガンドの例: {', '.join(complex_ligands[:5])}")
                 
-            print(f"complexReceptorcount: {len(complex_receptors)}")
+            print(f"複合体レセプター数: {len(complex_receptors)}")
             if complex_receptors:
-                print(f"complexReceptorofExample: {', '.join(complex_receptors[:5])}")
+                print(f"複合体レセプターの例: {', '.join(complex_receptors[:5])}")
     else:
-        print("CellChatDBtointeractionisincludedmasen")
+        print("CellChatDBにinteractionが含まれていません")
     
-    # complex, cofactorofConfirm
+    # complex, cofactorの確認
     if 'complex' in db and not db['complex'].empty:
-        print(f"\ncomplexinfocount: {len(db['complex'])}")
-        print("complexofExample (firstof3):")
+        print(f"\n複合体情報数: {len(db['complex'])}")
+        print("複合体の例 (最初の3):")
         print(db['complex'].head(3))
     else:
-        print("\ncomplexinfoisincludednotkaemptywithsu")
+        print("\n複合体情報が含まれていないか空です")
         
     if 'cofactor' in db and not db['cofactor'].empty:
-        print(f"\ncofactorinfocount: {len(db['cofactor'])}")
-        print("cofactorofExample (firstof3):")
+        print(f"\n補助因子情報数: {len(db['cofactor'])}")
+        print("補助因子の例 (最初の3):")
         print(db['cofactor'].head(3))
     else:
-        print("\ncofactorinfoisincludednotkaemptywithsu")
+        print("\n補助因子情報が含まれていないか空です")
         
-    print("==== CellChatDBverifyComplete ====\n")
+    print("==== CellChatDB検証完了 ====\n")
     
-    return db  # sourceofDBthesoofmamareturnandsourceofprocesstheinheritcontinuepossibleto
+    return db  # 元のDBをそのまま返して元の処理を継続可能に
 
-# deirekutoriprocessforherupa-relatedcount
+# ディレクトリ処理用ヘルパー関数
 @st.cache_data
 def clear_old_directories(path):
     
@@ -703,10 +703,10 @@ def clear_old_directories(path):
         dir_path = os.path.join(path, dir_name)
         if os.path.isdir(dir_path):
             try:
-                # deirekutorinamefromtaimusutanputheget
+                # ディレクトリ名からタイムスタンプを取得
                 timestamp = float(dir_name)
                 dir_time = datetime.fromtimestamp(timestamp)
-                # 24timebetweenorupbeforeofdeirekutorithedeleteremove
+                # 24時間以上前のディレクトリを削除
                 if now - dir_time > timedelta(hours=24):
                     shutil.rmtree(dir_path)
             except:
@@ -720,20 +720,20 @@ def clear_old_files(path):
         file_path = os.path.join(path, file_name)
         if os.path.isfile(file_path):
             file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
-            # 24timebetweenorupbeforeofFilethedeleteremove
+            # 24時間以上前のファイルを削除
             if now - file_time > timedelta(hours=24):
                 os.remove(file_path)
 
 @st.cache_data
 def check_species_index(gene_list):
-    """Geneshinboruofbigtextcharoutpresentfrequentdegreefromhitokamausukatheinfermeasuredo"""
+    """遺伝子シンボルの大文字出現頻度からヒトかマウスかを推測する"""
     if not gene_list:
-        return 0  # emptyoflistofcaseisdeforutowithhito
+        return 0  # 空のリストの場合はデフォルトでヒト
     
-    # sanpuringu（Genelistisbigkiicase）
+    # サンプリング（遺伝子リストが大きい場合）
     sample_genes = gene_list[:500] if len(gene_list) > 500 else gene_list
     
-    # bigtextcharofoutpresentfrequentdegreetheCalculation
+    # 大文字の出現頻度を計算
     uppercase_ratios = []
     for gene in sample_genes:
         if not gene or not isinstance(gene, str):
@@ -742,14 +742,14 @@ def check_species_index(gene_list):
         ratio = uppercase_count / len(gene) if len(gene) > 0 else 0
         uppercase_ratios.append(ratio)
     
-    # meanvaluetheCalculation
+    # 平均値を計算
     avg_uppercase_ratio = sum(uppercase_ratios) / len(uppercase_ratios) if uppercase_ratios else 0
     
-    # ResulttherogutoOutput
-    print(f"Geneshinboruofbigtextcharoutpresentfrequentdegree: {avg_uppercase_ratio:.2f}")
+    # 結果をログに出力
+    print(f"遺伝子シンボルの大文字出現頻度: {avg_uppercase_ratio:.2f}")
     
-    # hito：bigtextcharismanyi（BRCA1）、mausu：smalltextcharismanyi（Brca1）
-    return 1 if avg_uppercase_ratio > 0.5 else 0  # 0.5not yetfullnaramausu、soreorupnarahito
+    # ヒト：大文字が多い（BRCA1）、マウス：小文字が多い（Brca1）
+    return 1 if avg_uppercase_ratio > 0.5 else 0  # 0.5未満ならマウス、それ以上ならヒト
 
 def find_first_index_or_zero(lst, elements):
     for element in elements:
@@ -764,22 +764,22 @@ def read_h5ad(file):
     adata = sc.read_h5ad(file)
     return adata
 
-# mostfitizesaretamatrixprocessrelatedcount
+# 最適化された行列処理関数
 def optimize_matrix_operations(X, adata):
     """
-    matrixoperatemakethemostfitizedorelatedcount
+    行列操作を最適化する関数
     """
-    logger.info(f"Xshapestate: {X.shape}, adata.obs_nameslength: {len(adata.obs_names)}, adata.var_nameslength: {len(adata.var_names)}")
+    logger.info(f"X形状: {X.shape}, adata.obs_names長さ: {len(adata.obs_names)}, adata.var_names長さ: {len(adata.var_names)}")
     
-    # supa-sumatrixofconvert（onedegreetoconvertandmemorieffectratethedirectionup）
+    # スパース行列の変換（一度に変換してメモリ効率を向上）
     if scipy.sparse.issparse(X):
-        logger.info("supa-sumatrixthedensematrixtoconvertandimasu")
+        logger.info("スパース行列を密行列に変換しています")
         
-        # memorieffectrateoffortopartdivaltoconvert
-        chunk_size = 5000  # fitcutnachiyankusizetheSelect
+        # メモリ効率のために部分的に変換
+        chunk_size = 5000  # 適切なチャンクサイズを選択
         
         if X.shape[0] > chunk_size:
-            logger.info(f"bigkinamatrixthe{chunk_size}rowzutsuconvertshimasu")
+            logger.info(f"大きな行列を{chunk_size}行ずつ変換します")
             result = []
             for i in range(0, X.shape[0], chunk_size):
                 end = min(i + chunk_size, X.shape[0])
@@ -829,34 +829,34 @@ def calculate_mean_expression_optimized(data_use, cell_labels, cell_types, min_c
 
 
 def apply_mean_function(data_subset, fun_type='triMean', trim=0.1):
-    """meanCalculationrelatedcount（Numbanashi）"""
+    """平均計算関数（Numbaなし）"""
     if fun_type == 'triMean':
-        # fourdivrankcountofCalculationandmean（Numbanot yetuse）
+        # 四分位数の計算と平均（Numba未使用）
         q1 = np.quantile(data_subset, 0.25, axis=0, method='linear')
         q2 = np.quantile(data_subset, 0.5, axis=0, method='linear')  # median
         q3 = np.quantile(data_subset, 0.75, axis=0, method='linear')
         return (q1 + 2*q2 + q3) / 4
     elif fun_type == 'truncatedMean':
-      # correctshiitorimumeanofimplement
+      # 正しいトリム平均の実装
       from scipy.stats import trim_mean
       if data_subset.ndim == 1:
           return trim_mean(data_subset, proportiontocut=trim)
 
       else:
-          # 2nextsourcedistributecolumnofcase、eachcolumn（Gene）totsuiteCalculation
+          # 2次元配列の場合、各列（遺伝子）について計算
           return np.array([trim_mean(data_subset[:, i], proportiontocut=trim)
                              for i in range(data_subset.shape[1])])
     else:
-        # deforutoissimplepuremean
+        # デフォルトは単純平均
         return np.mean(data_subset, axis=0)
 
 def process_single_permutation(data_use, cluster_indices, cell_types, fun_type='triMean', trim=0.1):
-    """simpleonepermutationofallkurasutaandallGeneofmeanExpressiontheCalculation（Numbanashi）"""
+    """単一permutationの全クラスタと全遺伝子の平均発現を計算（Numbaなし）"""
     n_genes = data_use.shape[1]
     numCluster = len(cell_types)
     result = np.zeros((n_genes, numCluster), dtype=np.float32)
     
-    # eachClustertotsuiteprocess
+    # 各クラスターについて処理
     for ct_idx in range(numCluster):
         cells = cluster_indices[ct_idx]
         if len(cells) > 0:
@@ -867,19 +867,19 @@ def process_single_permutation(data_use, cluster_indices, cell_types, fun_type='
 
 def process_permutation_batch(batch_indices, data_use, cell_labels, permutation, cell_types, 
                              fun_type='triMean', trim=0.1):
-    """permutationofbachiprocessrelatedcount"""
+    """permutationのバッチ処理関数"""
     n_genes = data_use.shape[1]
     numCluster = len(cell_types)
     results = np.zeros((n_genes, numCluster, len(batch_indices)), dtype=np.float32)
     
     for idx, j in enumerate(batch_indices):
-        # jnumbereyeofPermutationafterofCell type
+        # j番目のPermutation後の細胞タイプ
         group_boot = cell_labels.values[permutation[:, j]]
         
-        # eachClustertobelongdoCellofindextheget
+        # 各クラスターに属する細胞のインデックスを取得
         cluster_indices = [np.where(group_boot == ct)[0] for ct in cell_types]
         
-        # allofGeneandCell typeofmeanExpressiontheCalculation
+        # すべての遺伝子と細胞タイプの平均発現を計算
         results[:, :, idx] = process_single_permutation(
             data_use, cluster_indices, cell_types, fun_type, trim
         )
@@ -888,82 +888,82 @@ def process_permutation_batch(batch_indices, data_use, cell_labels, permutation,
 
 def precompute_gene_expressions(data_use, cell_labels, permutation, cell_types, FunMean, nboot, n_jobs=32,  fun_type="triMean", trim=0.1):
     """
-    thingbeforetoallGene×allCluster×allpermutationofmeanExpressionthemaandmeteCalculation
-    （Numbanashiofba-jiyon）
+    事前に全遺伝子×全クラスター×全permutationの平均発現をまとめて計算
+    （Numbaなしのバージョン）
     
     Parameters
     ----------
     data_use : np.ndarray
-        NormalizationsaretaExpressionmatrix (cells × genes)
+        正規化された発現行列 (cells × genes)
     cell_labels : pd.Series
-        Cell typelabel
+        細胞タイプラベル
     permutation : np.ndarray
-        placechangetesutoforofindexdistributecolumn (cells × nboot)
+        置換テスト用のインデックス配列 (cells × nboot)
     cell_types : list
-        validnaCell typeoflist
+        有効な細胞タイプのリスト
     FunMean : function
-        meanCalculationrelatedcount
+        平均計算関数
     nboot : int
-        placechangetesutotimecount
+        置換テスト回数
     n_jobs : int
-        aligncolumnprocesswithusedokoacount
+        並列処理で使用するコア数
         
     Returns
     -------
     np.ndarray
-        thingbeforeCalculationsaretameanExpressiondistributecolumn (genes × clusters × nboot)
+        事前計算された平均発現配列 (genes × clusters × nboot)
     list
-        simplepureizesaretaplacechangekurasumeanakusesuforoflist
+        単純化された置換クラス平均アクセス用のリスト
     """
-    logger.info("allGene×allCluster×allplacechangeofmeanExpressionthethingbeforeCalculationin...")
+    logger.info("全遺伝子×全クラスター×全置換の平均発現を事前計算中...")
     
-    # FunMeanfromCalculationtaiputhedecideset（koofpartdivissimpleabbreviateize）
-  #  fun_type = 'triMean'  # deforuto
-  #  trim = 0.1  # deforutovalue
+    # FunMeanから計算タイプを決定（この部分は簡略化）
+  #  fun_type = 'triMean'  # デフォルト
+  #  trim = 0.1  # デフォルト値
     
     numCluster = len(cell_types)
     n_genes = data_use.shape[1]
     
-    # memoriuseamountthecontrolcontroldoforofbachiprocess
-    batch_size = min(10, nboot)  # onedegreetoprocessdopermutationofcounttheadjustarrange
+    # メモリ使用量を制御するためのバッチ処理
+    batch_size = min(10, nboot)  # 一度に処理するpermutationの数を調整
     
-    # allGene×allCluster×allpermutationofmeanExpressiontheformatstoredodistributecolumn
+    # 全遺伝子×全クラスター×全permutationの平均発現を格納する配列
     all_gene_expr = np.zeros((n_genes, numCluster, nboot), dtype=np.float32)
     
-    # bachitodivratioandaligncolumnprocess
+    # バッチに分割して並列処理
     all_batches = [list(range(i, min(i+batch_size, nboot))) for i in range(0, nboot, batch_size)]
     
-    # koacountthecontrollimit
-    n_jobs_effective = min(n_jobs, len(all_batches), 32)  # maximum8koatocontrollimit
+    # コア数を制限
+    n_jobs_effective = min(n_jobs, len(all_batches), 32)  # 最大8コアに制限
     
     if n_jobs_effective > 1:
-        # aligncolumnprocesswithCalculation
-        logger.info(f"{n_jobs_effective}koawithaligncolumnprocesstheRunin...")
+        # 並列処理で計算
+        logger.info(f"{n_jobs_effective}コアで並列処理を実行中...")
         results = Parallel(n_jobs=n_jobs_effective)(
             delayed(process_permutation_batch)(
                 batch_indices, data_use, cell_labels, permutation, cell_types, fun_type, trim
             ) for batch_indices in all_batches
         )
         
-        # Resultofunifymatch
+        # 結果の統合
         for batch_idx, batch_indices in enumerate(all_batches):
             for idx, j in enumerate(batch_indices):
-                if j < nboot:  # rangesurroundchieku
+                if j < nboot:  # 範囲チェック
                     all_gene_expr[:, :, j] = results[batch_idx][:, :, idx]
     else:
-        # shingurukoawithprocess
-        logger.info("shingurukoawithprocesstheRunin...")
+        # シングルコアで処理
+        logger.info("シングルコアで処理を実行中...")
         for j in range(nboot):
             if j % 10 == 0:
-                logger.info(f"Permutation {j+1}/{nboot} theProcessing...")
+                logger.info(f"Permutation {j+1}/{nboot} を処理中...")
             
-            # jnumbereyeofPermutationafterofCell type
+            # j番目のPermutation後の細胞タイプ
             group_boot = cell_labels.values[permutation[:, j]]
             
-            # eachClustertobelongdoCellofindextheget
+            # 各クラスターに属する細胞のインデックスを取得
             cluster_indices = [np.where(group_boot == ct)[0] for ct in cell_types]
             
-            # allofGeneandCell typeofmeanExpressiontheCalculation
+            # すべての遺伝子と細胞タイプの平均発現を計算
             all_gene_expr[:, :, j] = process_single_permutation(
                 data_use, cluster_indices, cell_types, fun_type, trim
             )
@@ -975,7 +975,7 @@ def precompute_gene_expressions(data_use, cell_labels, permutation, cell_types, 
 
 def precompute_complex_mapping(complex_input, gene_to_index):
     """
-    complexandsoofstructbecomeGeneofindexmapinguthethingbeforeCalculation
+    複合体とその構成遺伝子のインデックスマッピングを事前計算
     """
     complex_mapping = {}
     
@@ -983,13 +983,13 @@ def precompute_complex_mapping(complex_input, gene_to_index):
         return complex_mapping
     
     for complex_name in complex_input.index:
-        # complexofsubunitotheget
+        # 複合体のサブユニットを取得
         subunits_cols = [col for col in complex_input.columns if 'subunit' in col]
         subunits = complex_input.loc[complex_name, subunits_cols].dropna().astype(str)
         subunits = [s for s in subunits if s != "" and s in gene_to_index]
         
         if subunits:
-            # subunitoofGeneindextheSave
+            # サブユニットの遺伝子インデックスを保存
             complex_mapping[complex_name] = [gene_to_index[s] for s in subunits]
     
     return complex_mapping
@@ -998,7 +998,7 @@ import pandas as pd
 
 def check_gene_symbol(gene_set, gene_info):
     """
-    gene_info ofindextoincludednotGeneisareba、WarningtheOutputdo（modifycorrectisrowwanot）
+    gene_info のインデックスに含まれていない遺伝子があれば、警告を出力する（修正は行わない）
     """
     missing = [gene for gene in gene_set if gene not in gene_info.index]
     if missing:
@@ -1006,14 +1006,14 @@ def check_gene_symbol(gene_set, gene_info):
 
 def extract_gene_subset(genes, complex_input, gene_info):
     """
-    complexData（complex_input）toexistatdocase、eachGeneofrowfromsubunitoinfotheextractoutdo。
-    existatshinakerebasourceofGenenamethesoofmamareturnsu。
+    複合体データ（complex_input）に存在する場合、各遺伝子の行からサブユニット情報を抽出する。
+    存在しなければ元の遺伝子名をそのまま返す。
     """
     extracted = []
     for gene in genes:
         if gene in complex_input.index:
             row = complex_input.loc[gene]
-            # NaN yaemptytextcharcolumntheremoveremoveandsubunitotheextractout
+            # NaN や空文字列を除去してサブユニットを抽出
             subunits = [str(x).strip() for x in row if pd.notna(x) and str(x).strip() != ""]
             if subunits:
                 extracted.extend(subunits)
@@ -1025,24 +1025,24 @@ def extract_gene_subset(genes, complex_input, gene_info):
 
 def extractGene(db):
     """
-    CellChatDB fromrelatedgiveandexistGeneshinborutheextractoutdorelatedcount
-    （Rversion extractGene ofraisemovetomatchwaseru）
+    CellChatDB から関与している遺伝子シンボルを抽出する関数
+    （R版 extractGene の挙動に合わせる）
 
     Parameters
     ----------
     db : dict
-        orbelowofkeytheincludemuwordwrite:
-          - "interaction": pandas DataFrame（mustmust）→ column "ligand", "receptor", "agonist", "antagonist", "co_A_receptor", "co_I_receptor theincludemu
-          - "complex": pandas DataFrame（rownametocomplexname、eachcolumntosubunitoinfo）
-          - "cofactor": pandas DataFrame（rownameiskofuakuta-Gene、"cofactor" withstartmarucolumnissubunitoinfo）
-          - "geneInfo": pandas DataFrame（publicformatnaGeneshinborutheindexandandkeephold）
+        以下のキーを含む辞書:
+          - "interaction": pandas DataFrame（必須）→ 列 "ligand", "receptor", "agonist", "antagonist", "co_A_receptor", "co_I_receptor を含む
+          - "complex": pandas DataFrame（行名に複合体名、各列にサブユニット情報）
+          - "cofactor": pandas DataFrame（行名がコファクター遺伝子、"cofactor" で始まる列がサブユニット情報）
+          - "geneInfo": pandas DataFrame（公式な遺伝子シンボルをインデックスとして保持）
           
     Returns
     -------
     list
-        weightmultitheremoveita、relatedgiveandexistuni-kunaGeneshinboruoflist
+        重複を除いた、関与しているユニークな遺伝子シンボルのリスト
     """
-    # getwaymethodisyu-za-sidewithorbelowofliketorowteimasu
+    # 取得方法はユーザー側で以下のように行っています
     # resource = db.get('interaction', pd.DataFrame())
     # complex_input = db.get('complex', pd.DataFrame())
     # cofactor_input = db.get('cofactor', pd.DataFrame())
@@ -1052,7 +1052,7 @@ def extractGene(db):
     cofactor_input = db.get('cofactor', pd.DataFrame())
     gene_info = db.get('geneInfo', pd.DataFrame())
 
-    # complexandkofuakuta-inofallneedelementtotsuitepublicformatGeneshinborukathechieku（Warningtheoutsu）
+    # 複合体およびコファクター内の全要素について公式遺伝子シンボルかをチェック（警告を出す）
     if not complex_input.empty:
         complex_genes = complex_input.values.flatten()
         check_gene_symbol(list(complex_genes), gene_info)
@@ -1060,32 +1060,32 @@ def extractGene(db):
         cofactor_genes = cofactor_input.values.flatten()
         check_gene_symbol(list(cofactor_genes), gene_info)
 
-    # resource from ligand and receptor ofuni-kunaGenetheget
+    # resource から ligand と receptor のユニークな遺伝子を取得
     geneL = resource["ligand"].dropna().astype(str).unique().tolist() if "ligand" in resource.columns else []
     geneR = resource["receptor"].dropna().astype(str).unique().tolist() if "receptor" in resource.columns else []
     geneLR = geneL + geneR
 
-    # resource inwithcomplexDatatoincludednotGenetotsuitechieku（Warningofmi）
+    # resource 内で複合体データに含まれていない遺伝子についてチェック（警告のみ）
     if not complex_input.empty:
         genes_not_in_complex = [gene for gene in geneLR if gene not in complex_input.index]
     else:
         genes_not_in_complex = geneLR
     check_gene_symbol(genes_not_in_complex, gene_info)
 
-    # complexinfotobaseduite、ligand, receptor ofeachlistthefurthernew
+    # 複合体情報に基づいて、ligand, receptor の各リストを更新
     if not complex_input.empty:
         geneL = extract_gene_subset(geneL, complex_input, gene_info)
         geneR = extract_gene_subset(geneR, complex_input, gene_info)
     geneLR = geneL + geneR
 
-    # resource from agonist, antagonist, co_A_receptor, co_I_receptor columnthegetshi、kofuakuta-oflistthecreate
+    # resource から agonist, antagonist, co_A_receptor, co_I_receptor 列を取得し、コファクターのリストを作成
     cofactor_list = []
     for col in ["agonist", "antagonist", "co_A_receptor", "co_I_receptor"]:
         if col in resource.columns:
             cofactor_list.extend(resource[col].dropna().astype(str).tolist())
     cofactor_list = list(set([g for g in cofactor_list if g != ""]))
 
-    # cofactor_input from、rownameis cofactor_list toonecausedorowof "cofactor" withstartmarucolumntheextractout
+    # cofactor_input から、行名が cofactor_list に一致する行の "cofactor" で始まる列を抽出
     gene_cofactor = []
     if not cofactor_input.empty:
         cofactor_cols = [col for col in cofactor_input.columns if col.startswith("cofactor")]
@@ -1095,32 +1095,32 @@ def extractGene(db):
             cofactorsubunits_v = cofactorsubunits.values.flatten()
             gene_cofactor = list(set([str(x).strip() for x in cofactorsubunits_v if pd.notna(x) and str(x).strip() != ""]))
 
-    # finalalto、interaction reasoncomeofGeneand cofactor reasoncomeofGenetheunifymatchanduni-kunalistthereturnsu
+    # 最終的に、interaction 由来の遺伝子と cofactor 由来の遺伝子を統合してユニークなリストを返す
     gene_use = list(set(geneLR + gene_cofactor))
     return gene_use, resource, complex_input, cofactor_input, gene_info
 
 def identify_overexpressed_interactions(features_sig, gene_use, resource, complex_input=None):
     """
-    RversionofidentifyOverExpressedInteractionstocompletealltoonecausesaseruimplement
+    R版のidentifyOverExpressedInteractionsに完全に一致させる実装
     """
-    # typeofNormalization
+    # 型の正規化
     features_sig = [str(f) for f in features_sig]
     gene_use = [str(g) for g in gene_use]
     
-    # debaguOutput
+    # デバッグ出力
     print(f"DEG genes count: {len(features_sig)}")
     
-    # 1. complexofFiltering - Rversionandcompletealltosamerojiku
+    # 1. 複合体のフィルタリング - R版と完全に同じロジック
     expressed_complex_names = []
     complexes_with_subunits = {}
     
     if complex_input is not None and not complex_input.empty:
         for complex_name in complex_input.index:
-            # Rversionandsamesubunitogetrojiku
+            # R版と同じサブユニット取得ロジック
             subunit_cols = [col for col in complex_input.columns if "subunit" in col]
             subunits = [str(s) for s in complex_input.loc[complex_name, subunit_cols].values if isinstance(s, str) and s != ""]
             
-            # Rversionofrojiku：subunitoofizurekaisDEGwith、allteisAnalysispairobjectGenetoincludemareru
+            # R版のロジック：サブユニットのいずれかがDEGで、全てが解析対象遺伝子に含まれる
             has_deg_subunit = any(s in features_sig for s in subunits)
             all_in_gene_use = all(s in gene_use for s in subunits)
             
@@ -1130,7 +1130,7 @@ def identify_overexpressed_interactions(features_sig, gene_use, resource, comple
     
     print(f"Complex subunits with DEGs count: {len(expressed_complex_names)}")
     
-    # 2. LRpairofFiltering
+    # 2. LRペアのフィルタリング
     valid_elements = set(features_sig).union(set(expressed_complex_names))
     valid_pairs = []
     
@@ -1138,20 +1138,20 @@ def identify_overexpressed_interactions(features_sig, gene_use, resource, comple
         ligand = str(row['ligand'])
         receptor = str(row['receptor'])
         
-        # Rversionof all(unlist(pairLR[x,]) %in% c(features.sig, rownames(complexSubunits.sig)))
+        # R版の all(unlist(pairLR[x,]) %in% c(features.sig, rownames(complexSubunits.sig)))
         if ligand in valid_elements and receptor in valid_elements:
             valid_pairs.append(idx)
     
-    # FilteringsaretaLRpair
+    # フィルタリングされたLRペア
     resource_filtered = resource.loc[valid_pairs].copy() if valid_pairs else resource.iloc[0:0].copy()
     print(f"Filtered LR pairs: {len(resource_filtered)}")
     
-    # ResulttheCSVtoekusupo-to（RResultandComparisonfor）
+    # 結果をCSVにエクスポート（R結果と比較用）
     pd.Series(features_sig).to_csv("py_features_sig.csv")
     pd.Series(expressed_complex_names).to_csv("py_complex_names.csv")
     resource_filtered.to_csv("py_filtered_pairs.csv")
     
-    # 3. relatedconnectGeneofcollectgather
+    # 3. 関連遺伝子の収集
     lr_related_genes = set(features_sig)
     
     for _, row in resource_filtered.iterrows():
@@ -1171,14 +1171,14 @@ def identify_overexpressed_interactions(features_sig, gene_use, resource, comple
     return resource_filtered, list(lr_related_genes)
 
 def debug_cellchatdb(db):
-    """CellChatDBofincontentthedetailstoOutputandverify"""
-    print("==== CellChatDBverify ====")
+    """CellChatDBの内容を詳細に出力して検証"""
+    print("==== CellChatDB検証 ====")
     
     if 'interaction' in db:
         interaction = db['interaction']
-        print(f"Ligand-Receptorpaircount: {len(interaction)}")
+        print(f"リガンド-レセプターペア数: {len(interaction)}")
         if len(interaction) > 0:
-            print("firstof5pair:")
+            print("最初の5ペア:")
             cols_to_show = ['ligand', 'receptor']
             if 'interaction_name' in interaction.columns:
                 cols_to_show.insert(0, 'interaction_name')
@@ -1186,61 +1186,61 @@ def debug_cellchatdb(db):
                 cols_to_show.append('pathway_name')
             print(interaction[cols_to_show].head(5))
             
-            # Ligand,ReceptorofkindtypetheConfirm
+            # リガンド・レセプターの種類を確認
             ligands = interaction['ligand'].unique()
             receptors = interaction['receptor'].unique()
             
-            print(f"\nuni-kunaLigandcount: {len(ligands)}")
-            print(f"LigandofExample (firstof10): {', '.join(map(str, ligands[:10]))}")
+            print(f"\nユニークなリガンド数: {len(ligands)}")
+            print(f"リガンドの例 (最初の10): {', '.join(map(str, ligands[:10]))}")
             
-            print(f"\nuni-kunaReceptorcount: {len(receptors)}")
-            print(f"ReceptorofExample (firstof10): {', '.join(map(str, receptors[:10]))}")
+            print(f"\nユニークなレセプター数: {len(receptors)}")
+            print(f"レセプターの例 (最初の10): {', '.join(map(str, receptors[:10]))}")
             
-            # Ligand,ReceptoroftypetheConfirm
-            print(f"\nLigandofDatatype: {type(interaction['ligand'].iloc[0])}")
-            print(f"ReceptorofDatatype: {type(interaction['receptor'].iloc[0])}")
+            # リガンド・レセプターの型を確認
+            print(f"\nリガンドのデータ型: {type(interaction['ligand'].iloc[0])}")
+            print(f"レセプターのデータ型: {type(interaction['receptor'].iloc[0])}")
             
-            # complexofLigand,ReceptorofConfirm
+            # 複合体のリガンド・レセプターの確認
             complex_ligands = [l for l in ligands if isinstance(l, str) and '_' in l]
             complex_receptors = [r for r in receptors if isinstance(r, str) and '_' in r]
             
-            print(f"\ncomplexLigandcount: {len(complex_ligands)}")
+            print(f"\n複合体リガンド数: {len(complex_ligands)}")
             if complex_ligands:
-                print(f"complexLigandofExample: {', '.join(complex_ligands[:5])}")
+                print(f"複合体リガンドの例: {', '.join(complex_ligands[:5])}")
                 
-            print(f"complexReceptorcount: {len(complex_receptors)}")
+            print(f"複合体レセプター数: {len(complex_receptors)}")
             if complex_receptors:
-                print(f"complexReceptorofExample: {', '.join(complex_receptors[:5])}")
+                print(f"複合体レセプターの例: {', '.join(complex_receptors[:5])}")
 
-            # Databe-sugetafter、structmakethedetailstoConfirm
-            print("DBstructmake:")
+            # データベース取得後、構造を詳細に確認
+            print("DB構造:")
             for key in db:
-                print(f"{key}: {type(db[key])}, rowcount: {len(db[key])}")
+                print(f"{key}: {type(db[key])}, 行数: {len(db[key])}")
 
-            print("Ligandoffirstof5tsuofExample:")
+            print("リガンドの最初の5つの例:")
             print(interaction['ligand'].head(5).tolist())
-            print("LigandofDatatype:", interaction['ligand'].dtype)
+            print("リガンドのデータ型:", interaction['ligand'].dtype)
     else:
-        print("CellChatDBtointeractionisincludedmasen")
+        print("CellChatDBにinteractionが含まれていません")
     
-    # complex, cofactorofConfirm
+    # complex, cofactorの確認
     if 'complex' in db and not db['complex'].empty:
-        print(f"\ncomplexinfocount: {len(db['complex'])}")
-        print("complexofExample (firstof3):")
+        print(f"\n複合体情報数: {len(db['complex'])}")
+        print("複合体の例 (最初の3):")
         print(db['complex'].head(3))
     else:
-        print("\ncomplexinfoisincludednotkaemptywithsu")
+        print("\n複合体情報が含まれていないか空です")
         
     if 'cofactor' in db and not db['cofactor'].empty:
-        print(f"\ncofactorinfocount: {len(db['cofactor'])}")
-        print("cofactorofExample (firstof3):")
+        print(f"\n補助因子情報数: {len(db['cofactor'])}")
+        print("補助因子の例 (最初の3):")
         print(db['cofactor'].head(3))
     else:
-        print("\ncofactorinfoisincludednotkaemptywithsu")
+        print("\n補助因子情報が含まれていないか空です")
         
-    print("==== CellChatDBverifyComplete ====\n")
+    print("==== CellChatDB検証完了 ====\n")
     
-    return db  # sourceofDBthesoofmamareturnandsourceofprocesstheinheritcontinuepossibleto
+    return db  # 元のDBをそのまま返して元の処理を継続可能に
 
 
 
@@ -1248,7 +1248,7 @@ def cellchat_analysis(
     adata,
     groupby,
     #db,
-    gene_use, #koreisLR genesofinfo
+    gene_use, #これはLR genesの情報
     complex_input,
     cofactor_input,
     resource,
@@ -1269,55 +1269,55 @@ def cellchat_analysis(
     key_added="cellchat_res",
    # debug_mode=False,
     trim=0.1,
-    apply_pval_filter=True,  # deforutotheTruetochangefurther
-    features=None,  # add：specificofGenelisttheusedoOption
+    apply_pval_filter=True,  # デフォルトをTrueに変更
+    features=None,  # 追加：特定の遺伝子リストを使用するオプション
     r_patcher=False,
     do_de=True
 ):
     """
-    mostfitizesaretaCellChatAlgorithm
+    最適化されたCellChatアルゴリズム
     
     Parameters
     ----------
     adata : AnnData
-        AnnDataobujiekuto
+        AnnDataオブジェクト
     groupby : str
-        Cell type/Clustertheincludemu.obsofcolormuname
+        細胞タイプ/クラスターを含む.obsのカラム名
     db : dict
-        CellChatDBwordwrite（get_cellchatdb_from_r()withgetshitamoof）
-        'interaction', 'complex', 'cofactor', 'geneInfo'theincludemu
+        CellChatDB辞書（get_cellchatdb_from_r()で取得したもの）
+        'interaction', 'complex', 'cofactor', 'geneInfo'を含む
     
-    [soofotherofParameterisomitabbreviate]
+    [その他のパラメータは省略]
     apply_pval_filter : bool, optional
-        SignificantwaterleveltofulltanotInteractionthedeleteremovedowhether。Default: True（Rofimplementandonecause）
+        有意水準に満たない相互作用を削除するかどうか。Default: True（Rの実装と一致）
 
     features : list, optional
-        specificofGenelisttheusedocasetopointset。Noneofcaseisoverexpressed_genesfromspecific。
+        特定の遺伝子リストを使用する場合に指定。Noneの場合はoverexpressed_genesから特定。
     
     Returns
     -------
     dict
-        CellbetweencommunicationAnalysisResult
+        細胞間通信解析結果
     """
     try:
-        logger.info("CellChatAlgorithmtheRunin...")
+        logger.info("CellChatアルゴリズムを実行中...")
 
         progress_bar = st.progress(0)
         status_area = st.empty()
         status_area.text("Preparing data...")
 
-        # shi-dotheSettings
+        # シードを設定
         np.random.seed(seed)
 
 
-        # Preprocessingsuteputheadd
+        # 前処理ステップを追加
         if features is not None:
             st.write("Using union/intersection genes...")
-            # provideprovidesaretaGenelisttheuse
+            # 提供された遺伝子リストを使用
             logger.info(f"Using provided gene list: {len(features)} genes")
-            # existatdoGeneofmithekeephold
+            # 存在する遺伝子のみを保持
 
-            # newshikusetmeaningshitarelatedcounttheuseandLRpairandrelatedconnectGenetheFiltering
+            # 新しく定義した関数を使用してLRペアと関連遺伝子をフィルタリング
 
             adata_filtered, resource_filtered = preprocess_data(adata, groupby, complex_input, gene_use=gene_use, min_cells=min_cells, min_cells_expr=min_cells_expr,
                 thresh_pct=expr_prop, resource=resource, features =features, do_de=do_de)
@@ -1326,64 +1326,64 @@ def cellchat_analysis(
                 st.write(resource_filtered.head(3))
         else:
             st.write("Features is None")
-            # followcomepassrioverexpressed_genesthespecific
+            # 従来通りoverexpressed_genesを特定
             adata_filtered, resource_filtered = preprocess_data(adata, groupby, complex_input, gene_use=gene_use, min_cells=min_cells, min_cells_expr=min_cells_expr,
                 thresh_pct=expr_prop, resource=resource, features =None, do_de=do_de)
         
         
-        #after、reource_filterdtheresourceanddo
+        #以後、reource_filterdをresourceとする
         resource=resource_filtered.copy()
         progress_bar.progress(0.05)
         
        
-        # Datashapeformatofverify
+        # データ形式の検証
         if not hasattr(adata_filtered, 'obs') or not hasattr(adata_filtered, 'var'):
-            raise ValueError("InputisAnnDataobujiekutowithisnot exist")
+            raise ValueError("入力がAnnDataオブジェクトではありません")
             
         if groupby not in adata_filtered.obs.columns:
-            raise ValueError(f"pointsetsaretaGroupcolumn '{groupby}' isadata.obstoexistatshimasen")
+            raise ValueError(f"指定されたグループ列 '{groupby}' がadata.obsに存在しません")
         
-        # ExpressionDataofget
+        # 発現データの取得
         if use_layer is not None and use_layer in adata_filtered.layers:
-            logger.info(f"reiya- '{use_layer}' theuseshimasu")
+            logger.info(f"レイヤー '{use_layer}' を使用します")
             X = adata_filtered.layers[use_layer]
         else:
-            logger.info("deforutoXmatorikusutheuseshimasu")
+            logger.info("デフォルトXマトリックスを使用します")
             X = adata_filtered.X
         
-        # supa-sumatrixofconvert（mostfitize）
+        # スパース行列の変換（最適化）
         X = optimize_matrix_operations(X, adata_filtered)
 
         progress_bar.progress(0.1)
         
-        # ExpressionmatrixtheDataFrametoconvert
+        # 発現行列をDataFrameに変換
         expr_df = pd.DataFrame(X, index=adata_filtered.obs_names, columns=adata_filtered.var_names)
         
-        # Cell typelabelofgetandverify
+        # 細胞タイプラベルの取得と検証
         cell_labels = adata_filtered.obs[groupby].copy()
         cell_types = np.array(sorted(cell_labels.unique()))
         
-        logger.info(f"Cell typecount: {len(cell_types)}")
+        logger.info(f"細胞タイプ数: {len(cell_types)}")
         if len(cell_types) < 2:
-            raise ValueError(f"Cell typeis1tsushikanot exist。fewnakuandmo2tsurequiredwithsu。")
+            raise ValueError(f"細胞タイプが1つしかありません。少なくとも2つ必要です。")
         
-        # RofimplementandsamemannertomaximumvaluewithNormalization（R: data.use <- data/max(data)）
+        # Rの実装と同様に最大値で正規化（R: data.use <- data/max(data)）
         data_use = X / np.max(X).astype(np.float64)
         
-        # debagufor：DataofStatisticalinfotheOutput
+        # デバッグ用：データの統計情報を出力
         print(f"Data statistics after max normalization - min: {np.min(data_use)}, max: {np.max(data_use)}, mean: {np.mean(data_use)}")
 
         nC = data_use.shape[0]
         progress_bar.progress(0.2)
         status_area.text("Filtering data...")
-        # FunMeanofSelect - Rofimplementandonecausesaseru
+        # FunMeanの選択 - Rの実装と一致させる
         if fun_type == "triMean":
             def FunMean(x):
-                # NANtheclearshowaltoremoveout（na.rm=TRUEtopairrespond）
+                # NANを明示的に除外（na.rm=TRUEに対応）
                 x_no_nan = x[~np.isnan(x)]
                 if len(x_no_nan) == 0:
                     return np.nan
-                # Randcompletealltoonecausesaserufor、Rof quantile relatedcountthedirectconnectuse
+                # Rと完全に一致させるため、Rの quantile 関数を直接使用
                 try:
                     import rpy2.robjects as ro
                     from rpy2.robjects import numpy2ri
@@ -1391,12 +1391,12 @@ def cellchat_analysis(
                     r_quantile = ro.r['quantile']
                     r_mean = ro.r['mean']
                     
-                    # RwithtriMeantheCalculation
+                    # RでtriMeanを計算
                     r_vector = ro.FloatVector(x_no_nan)
                     r_result = r_mean(r_quantile(r_vector, ro.FloatVector([0.25, 0.5, 0.5, 0.75])))
                     return float(r_result[0])
                 except:
-                    # fo-rubaku: Pythonofimplement
+                    # フォールバック: Pythonの実装
                     q1 = np.percentile(x_no_nan, 25, interpolation='linear')
                     q2 = np.percentile(x_no_nan, 50, interpolation='linear')
                     q3 = np.percentile(x_no_nan, 75, interpolation='linear')
@@ -1412,59 +1412,59 @@ def cellchat_analysis(
             def FunMean(x):
                 return np.mean(x)
         
-        # eachGeneofeachCell typetookerumeanExpressionamounttheCalculation（mostfitize）
+        # 各遺伝子の各細胞タイプにおける平均発現量を計算（最適化）
         data_use_avg_dict, cell_counts = calculate_mean_expression_optimized(
             data_use, cell_labels, cell_types, min_cells, FunMean
         )
         
-        logger.info(f"Cell typegoandofCellcount: {cell_counts}")
+        logger.info(f"細胞タイプごとの細胞数: {cell_counts}")
         
-        # validnaCell typetheConfirm
+        # 有効な細胞タイプを確認
       #  if len(cell_types) < 2:
-      #      raise ValueError(f"minimumCellcount {min_cells} thefulltasuCell typeis2tsunot yetfullwithsu。min_cellsthereduceraandplease。")
+      #      raise ValueError(f"最小細胞数 {min_cells} を満たす細胞タイプが2つ未満です。min_cellsを減らしてください。")
         progress_bar.progress(0.3)
         status_area.text("Calculating LR expression levels...")
-        # meanExpressionamounttheDataFrametoconvert
+        # 平均発現量をDataFrameに変換
         data_use_avg_df = pd.DataFrame(data_use_avg_dict, index=adata_filtered.var_names)
         
-        # Genetheindextomapingu
+        # 遺伝子をインデックスにマッピング
         gene_to_index = {gene: i for i, gene in enumerate(adata_filtered.var_names)}
         
-        # LigandandReceptorofmeanExpressionamounttheCalculation
-        logger.info("LigandandReceptorofExpressionamounttheCalculationin...")
+        # リガンドとレセプターの平均発現量を計算
+        logger.info("リガンドとレセプターの発現量を計算中...")
         dataLavg = computeExpr_LR(resource['ligand'].values, data_use_avg_df, complex_input)
         dataRavg = computeExpr_LR(resource['receptor'].values, data_use_avg_df, complex_input)
         
-        # debagufor：Expressionvaluetheekusupo-to
+        # デバッグ用：発現値をエクスポート
         pd.DataFrame(dataLavg, columns=cell_types, index=resource.index).to_csv("py_dataLavg.csv")
         pd.DataFrame(dataRavg, columns=cell_types, index=resource.index).to_csv("py_dataRavg.csv")
         
-        # togetheractivenatureizeandtogetherblockharmReceptorofeffectresulttheconsiderconsider
+        # 共活性化および共阻害受容体の効果を考慮
         dataRavg_co_A_receptor = computeExpr_coreceptor(cofactor_input, data_use_avg_df, resource, "A")
         dataRavg_co_I_receptor = computeExpr_coreceptor(cofactor_input, data_use_avg_df, resource, "I")
         dataRavg = dataRavg * dataRavg_co_A_receptor / dataRavg_co_I_receptor
         
-        # Cellcountofeffectresulttheconsiderconsider
+        # 細胞数の効果を考慮
         if population_size:
-            # eachCell typeofCellcountofratiomatchtheCalculation
+            # 各細胞タイプの細胞数の割合を計算
             cell_proportions = np.array([np.sum(cell_labels == ct) for ct in cell_types]) / nC
-            # eachLigand,Receptorpairtopairandsameratiomatchtheuse
+            # 各リガンド・レセプターペアに対して同じ割合を使用
             dataLavg2 = np.tile(cell_proportions, (len(resource), 1))
             dataRavg2 = dataLavg2
         else:
             dataLavg2 = np.ones((len(resource), len(cell_types)))
             dataRavg2 = np.ones((len(resource), len(cell_types)))
         
-        # agonisutoandantagonisutoofindexthespecific
+        # アゴニストとアンタゴニストのインデックスを特定
         index_agonist = np.where(resource['agonist'].notna() & (resource['agonist'] != ""))[0] if 'agonist' in resource.columns else []
         index_antagonist = np.where(resource['antagonist'].notna() & (resource['antagonist'] != ""))[0] if 'antagonist' in resource.columns else []
         
         progress_bar.progress(0.4)
         status_area.text("Preparing permutation data...")
-        # placechangechecksetofforofDatathelevelprepare
+        # 置換検定のためのデータを準備
         permutation = np.zeros((nC, nboot), dtype=int)
 
-        # RandofcompleteallonecauseoffortoRofrandomcountgeneratetheuse
+        # Rとの完全一致のためにRの乱数生成を使用
         try:
             permutation = get_r_permutation(nC, nboot, seed=seed)
             print("Using R permutation for exact compatibility")
@@ -1474,26 +1474,26 @@ def cellchat_analysis(
                 permutation[:, i] = np.random.permutation(nC)
         progress_bar.progress(0.5)
         
-        # allGeneofmeanExpressionthethingbeforeCalculation（mostfitize）
+        # 全遺伝子の平均発現を事前計算（最適化）
         #all_gene_expr, data_use_avg_boot = precompute_gene_expressions(
         all_gene_expr = precompute_gene_expressions(
             data_use, cell_labels, permutation, cell_types, FunMean, nboot, fun_type=fun_type, trim=trim
         )
         
-        # komiyunike-tionprobabilityandSignificantnaturetheCalculation
+        # コミュニケーション確率と有意性を計算
         numCluster = len(cell_types)
         nLR = len(resource)
         Prob = np.zeros((numCluster, numCluster, nLR))
         Pval = np.zeros((numCluster, numCluster, nLR))
         
-        logger.info(f"Ligand-ReceptorpairofAnalysisthestart: {nLR}pair")
+        logger.info(f"リガンド-レセプターペアの解析を開始: {nLR}ペア")
         progress_bar.progress(0.6)
         status_area.text("Starting LR pair analysis...")
         
-        # complexandsoofstructbecomeGeneofmapinguthethingbeforetoCalculation
+        # 複合体とその構成遺伝子のマッピングを事前に計算
         complex_mapping = precompute_complex_mapping(complex_input, gene_to_index)
         
-        # Ligand,ReceptorofGeneindextheget
+        # リガンド・レセプターの遺伝子インデックスを取得
         ligand_indices = []
         receptor_indices = []
         
@@ -1502,15 +1502,15 @@ def cellchat_analysis(
             ligand = resource['ligand'].iloc[i]
             receptor = resource['receptor'].iloc[i]
             
-            # simpleoneGenekacomplexkathejudgeset
+            # 単一遺伝子か複合体かを判定
             if isinstance(ligand, str) and ligand in gene_to_index:
-                # simpleoneGene
+                # 単一遺伝子
                 ligand_indices.append((i, [gene_to_index[ligand]], False))
             elif isinstance(ligand, str) and ligand in complex_mapping:
-                # complex
+                # 複合体
                 ligand_indices.append((i, complex_mapping[ligand], True))
             else:
-                # not yetknowofGene/complex
+                # 未知の遺伝子/複合体
                 ligand_indices.append((i, [], None))
             
             if isinstance(receptor, str) and receptor in gene_to_index:
@@ -1520,69 +1520,69 @@ def cellchat_analysis(
             else:
                 receptor_indices.append((i, [], None))
         
-        # LRpairgoandofru-pu
+        # LRペアごとのループ
         st.write("Long loop processes...")
         progress_bar_lr = st.progress(0)
         for i in range(nLR):
             dataLR = np.outer(dataLavg[i, :], dataRavg[i, :])
             
-            # hirurelatedcounttheuse（Rofko-doandonecause）
+            # ヒル関数を使用（Rのコードと一致）
             P1 = compute_hill_outer_vectorized(dataLavg[i, :], dataRavg[i, :], k, n)
             
-            # agonisutoeffectresulttheCalculation
+            # アゴニスト効果を計算
             P2 = np.ones((numCluster, numCluster))
             if i in index_agonist:
                 data_agonist = computeExpr_agonist(data_use_avg_df, resource, cofactor_input, i, k, n)
                 P2 = np.outer(data_agonist, data_agonist)
             
-            # antagonisutoeffectresulttheCalculation
+            # アンタゴニスト効果を計算
             P3 = np.ones((numCluster, numCluster))
             if i in index_antagonist:
                 data_antagonist = computeExpr_antagonist(data_use_avg_df, resource, cofactor_input, i, k, n)
                 P3 = np.outer(data_antagonist, data_antagonist)
             
-            # CellcounteffectresulttheCalculation
+            # 細胞数効果を計算
             P4 = np.ones((numCluster, numCluster))
             if population_size:
                 P4 = np.outer(dataLavg2[i, :], dataRavg2[i, :])
             
-            # finalalnaprobability
+            # 最終的な確率
             Pnull = P1 * P2 * P3 * P4
             Prob[:, :, i] = Pnull
             
-            # placechangechecksettoyoruPvalueCalculation
+            # 置換検定によるP値計算
             if np.sum(Pnull) == 0:
-                # Interactionisnotcase
+                # 相互作用がない場合
                 Pval[:, :, i] = 1
                 continue
             
             Pnull_vec = Pnull.flatten()
             
-            # koofLRpairofLigandandReceptorofindexinfotheget
+            # このLRペアのリガンドとレセプターのインデックス情報を取得
             ligand_info = ligand_indices[i]
             receptor_info = receptor_indices[i]
             
-            # Expressionisgetwithkinotcaseissukipu
+            # 発現が取得できない場合はスキップ
             if ligand_info[2] is None or receptor_info[2] is None:
                 Pval[:, :, i] = 1
                 continue
             
-            # eachplacechangewithofbu-tosutorapuprobabilitytheCalculation
+            # 各置換でのブートストラップ確率を計算
             Pboot = np.zeros((numCluster * numCluster, nboot))
             
-            # bachiprocesstheguideenterandmemoriuseamountthemanagereason
+            # バッチ処理を導入してメモリ使用量を管理
             batch_size = min(20, nboot)
             
-            # aligncolumnprocessofSettings
+            # 並列処理の設定
             n_jobs_to_use = min(n_jobs, os.cpu_count() or 1)
             
-            # aligncolumnprocessforrelatedcount
+            # 並列処理用関数
 
             def compute_permutation_batch_vectorized(batch_indices):
                 batch_results = np.zeros((numCluster * numCluster, len(batch_indices)))
                 for idx, j in enumerate(batch_indices):
                     lr_i, ligand_gene_indices, is_ligand_complex = ligand_info
-                    # LigandofExpressionvalueget
+                    # リガンドの発現値取得
                     if not is_ligand_complex:
                         if ligand_gene_indices:
                             ligand_idx = ligand_gene_indices[0]
@@ -1596,8 +1596,8 @@ def cellchat_analysis(
                             dataLavgB = np.exp(np.mean(log_values, axis=0)).reshape(1, -1)
                         else:
                             dataLavgB = np.zeros((1, numCluster))
-                    # ReceptorofExpressionvalueget
-                    # ReceptorofExpressionget
+                    # レセプターの発現値取得
+                    # レセプターの発現取得
                     lr_i, receptor_gene_indices, is_receptor_complex = receptor_info
                     if not is_receptor_complex:
                         if receptor_gene_indices:
@@ -1612,38 +1612,38 @@ def cellchat_analysis(
                             dataRavgB = np.exp(np.mean(log_values, axis=0)).reshape(1, -1)
                         else:
                             dataRavgB = np.zeros((1, numCluster))
-                    # outaccumulatetheCalculationshi、bekutoruizehirurelatedcountthefitfor
+                    # 外積を計算し、ベクトル化ヒル関数を適用
                     dataLRB = np.outer(dataLavgB[0, :], dataRavgB[0, :])
                     P1_boot = hill_function(dataLRB, k, n)
                     batch_results[:, idx] = P1_boot.flatten()
                 return batch_results
-            # bachiprocesswithaligncolumnCalculation
+            # バッチ処理で並列計算
             for b_start in range(0, nboot, batch_size):
                 b_end = min(b_start + batch_size, nboot)
                 batch_indices = list(range(b_start, b_end))
                 
                 if n_jobs_to_use > 1 and len(batch_indices) > 1:
-                    # aligncolumnprocess
+                    # 並列処理
                     batch_results_list = Parallel(n_jobs=n_jobs_to_use, backend="loky")(
                         delayed(compute_permutation_batch_vectorized)([j]) for j in batch_indices
                     )
-                    # Resultofresultmatch
+                    # 結果の結合
                     for j_idx, j in enumerate(batch_indices):
                         Pboot[:, j] = batch_results_list[j_idx][:, 0]
                 else:
-                    # simpleonesuredoprocess
+                    # 単一スレッド処理
                     batch_results = compute_permutation_batch_vectorized(batch_indices)
                     for j_idx, j in enumerate(batch_indices):
                         Pboot[:, j] = batch_results[:, j_idx]
             
-            # pvalueofCalculation
+            # p値の計算
             #nReject = np.sum(Pboot > np.expand_dims(Pnull_vec, 1), axis=1)
-            # RofimplementtomatchwasetediffdivwithComparison
+            # Rの実装に合わせて差分で比較
             if r_patcher:
-                # floatmovesmallcountpointprecisedegreeofquestiontopicthetimeavoid
+                # 浮動小数点精度の問題を回避
                 nReject = np.sum((Pboot - np.expand_dims(Pnull_vec, 1)) > 1e-10, axis=1)
             else:
-                # Randsame: rowSums(Pboot - Pnull > 0)
+                # Rと同じ: rowSums(Pboot - Pnull > 0)
                 nReject = np.sum((Pboot - np.expand_dims(Pnull_vec, 1)) > 0, axis=1)
             p = nReject / nboot
             Pval[:, :, i] = p.reshape(numCluster, numCluster)
@@ -1653,20 +1653,20 @@ def cellchat_analysis(
         progress_bar_lr.empty()
         progress_bar.progress(0.8)
 
-        # purobuis0ofcaseofpvaluethe1toSettings (koreisnormaltorowu)
+        # プロブが0の場合のp値を1に設定 (これは常に行う)
         Pval[Prob == 0] = 1
 
-        # PvalueFilteringbeforeofstatestatetheverify
+        # P値フィルタリング前の状態を検証
         print(f"CellChat_analysis Before pval filtering - Prob > 0 count: {np.sum(Prob > 0)}")
         
-        # apply_pval_filterParametertobaseduitepvaluewithofFilteringthefitfor
+        # apply_pval_filterパラメータに基づいてp値でのフィルタリングを適用
         if apply_pval_filter:
             if r_patcher:
                 #Prob[(Pval >= trim_threshold) > 1.49e-8] = 0
                 Prob[Pval >= (trim_threshold - 1.49e-8)] = 0
             else:
                 Prob[Pval >= trim_threshold] = 0
-        # PvalueFilteringafterofstatestatetheverify
+        # P値フィルタリング後の状態を検証
         print(f"After pval filtering - Prob > 0 count: {np.sum(Prob > 0)}")
 
 
@@ -1688,10 +1688,10 @@ def cellchat_analysis(
             # Update p-values
             Pval[Prob == 0] = 1
 
-        # ResulttonamebeforetheSettings
+        # 結果に名前を設定
         dimnames = [list(cell_types), list(cell_types), list(resource.index)]
         
-        # debagufor：InteractioncountofdetailstheOutput
+        # デバッグ用：相互作用数の詳細を出力
         print(f"\n=== Interaction Count Summary ===")
         print(f"Total LR pairs analyzed: {nLR}")
         print(f"LR pairs with Prob > 0 (before p-value filter): {np.sum(np.any(Prob > 0, axis=(0,1)))}")
@@ -1699,7 +1699,7 @@ def cellchat_analysis(
         print(f"Total interactions with p-value < {trim_threshold}: {np.sum(Pval < trim_threshold)}")
         print(f"Total significant interactions (Prob > 0 AND p < {trim_threshold}): {np.sum((Prob > 0) & (Pval < trim_threshold))}")
         
-        # Cell typepairgoandofInteractioncount
+        # 細胞タイプペアごとの相互作用数
         interaction_counts = np.zeros((len(cell_types), len(cell_types)))
         for i in range(len(cell_types)):
             for j in range(len(cell_types)):
@@ -1713,35 +1713,35 @@ def cellchat_analysis(
         print(interaction_df)
         print(f"================================\n")
         
-        # signalPathwayreberuwithofcommunicationprobabilitytheCalculation
+        # シグナル経路レベルでの通信確率を計算
         netP = computeCommunProbPathway({"prob": Prob, "pval": Pval}, resource,
             thresh=trim_threshold, apply_pval_filter=apply_pval_filter, r_patcher=r_patcher)
         
-        # incenternaturepointmarktheCalculation
+        # 中心性指標を計算
         if netP["pathways"] is not None and len(netP["pathways"]) > 0:
             netP["centr"] = {}
             for p_idx in range(len(netP["pathways"])):
-                # eachpathwayofprobabilitymatrixtheget
+                # 各パスウェイの確率行列を取得
                 pathway_prob = netP["prob"][:, :, p_idx]
                 
-                # simpleoneofpathwaytopairandincenternaturetheCalculation
-                # 3nextsourcedistributecolumnthecreateandCalculationrelatedcounttotransfersu
+                # 単一のパスウェイに対して中心性を計算
+                # 3次元配列を作成して計算関数に渡す
                 pathway_prob_3d = np.expand_dims(pathway_prob, axis=2)
                 netP["centr"][p_idx] = netAnalysis_computeCentrality(pathway_prob_3d)[0]
         
-        # aggregateNetworkofincenternaturemoCalculation
+        # 集計ネットワークの中心性も計算
         prob_sum = np.sum(Prob, axis=2)
         prob_sum_3d = np.expand_dims(prob_sum, axis=2)
         net_centr = netAnalysis_computeCentrality(prob_sum_3d)[0]
         
-        # aggregateNetworktheCalculation
+        # 集計ネットワークを計算
         net_summary = aggregateCell_Cell_Communication({"prob": Prob, "pval": Pval},
             cell_types, pval_threshold=trim_threshold, apply_pval_filter=apply_pval_filter,
             r_patcher=r_patcher)
         progress_bar.empty()
-        logger.info("CellChatAnalysisisCompleteshimashita")
+        logger.info("CellChat解析が完了しました")
         
-        # ResulttheDatafure-mutoconvert
+        # 結果をデータフレームに変換
         results_data = {
             'source': [],
             'target': [],
@@ -1781,27 +1781,27 @@ def cellchat_analysis(
         }
     
     except Exception as e:
-        logger.error(f"Errorisoccurred: {str(e)}")
+        logger.error(f"エラーが発生しました: {str(e)}")
         logger.error(traceback.format_exc())
         return {'error': str(e), 'traceback': traceback.format_exc()}
 
 
 def geometricMean(expr_values):
     """
-    RofimplementtomatchwasetahowwhatmeanCalculation
+    Rの実装に合わせた幾何平均計算
     """
     if expr_values.ndim == 1:
-        # 1nextsourcedistributecolumnofcase
-        # Randsamemovemake: log(0) = -Inf, mean with -Inf = -Inf, exp(-Inf) = 0
+        # 1次元配列の場合
+        # Rと同じ動作: log(0) = -Inf, mean with -Inf = -Inf, exp(-Inf) = 0
         with np.errstate(divide='ignore'):
             log_values = np.log(expr_values)
-        # -Infisincludemarerucase、meanmo-Inftobecome（Rofmovemaketheagainpresent）
+        # -Infが含まれる場合、meanも-Infになる（Rの動作を再現）
         if np.any(np.isneginf(log_values)):
             return 0.0
         else:
             return np.exp(np.mean(log_values))
     else:
-        # 2nextsourcedistributecolumnofcase（columngoandtoCalculation）
+        # 2次元配列の場合（列ごとに計算）
         result = np.zeros(expr_values.shape[1])
         for i in range(expr_values.shape[1]):
             with np.errstate(divide='ignore'):
@@ -1815,7 +1815,7 @@ def geometricMean(expr_values):
 @st.cache_data
 def computeExpr_coreceptor(cofactor_input, data_use, pairLRsig, type_coreceptor):
     """
-    Ligand-ReceptorofInteractiontookerutogetherReceptoreffectresultthemoderuize
+    リガンド-レセプターの相互作用における共受容体効果をモデル化
     """
     if cofactor_input.empty or pairLRsig.empty:
         return np.ones((len(pairLRsig), data_use.shape[1]))
@@ -1834,7 +1834,7 @@ def computeExpr_coreceptor(cofactor_input, data_use, pairLRsig, type_coreceptor)
         for idx in index_coreceptor:
             coreceptor = coreceptor_all[idx]
             if coreceptor in cofactor_input.index:
-                # cofactortheget
+                # 補助因子を取得
                 cofactor_cols = [col for col in cofactor_input.columns if 'cofactor' in col]
                 cofactors = cofactor_input.loc[coreceptor, cofactor_cols].dropna().astype(str)
                 # cofactors = [c for c in cofactors if c != "" and c in data_use.index]
@@ -1843,7 +1843,7 @@ def computeExpr_coreceptor(cofactor_input, data_use, pairLRsig, type_coreceptor)
                 if len(cofactors) == 1:
                     data_coreceptor[idx] = 1 + data_use.loc[cofactors[0]].values
                 elif len(cofactors) > 1:
-                    # 1 + eachtogetherReceptorofExpressionofaccumulate
+                    # 1 + 各共受容体の発現の積
                     prod = np.ones(numCluster)
                     for c in cofactors:
                         prod *= (1 + data_use.loc[c].values)
@@ -1854,7 +1854,7 @@ def computeExpr_coreceptor(cofactor_input, data_use, pairLRsig, type_coreceptor)
 @st.cache_data
 def computeExpr_agonist(data_use, pairLRsig, cofactor_input, index_agonist, Kh, n):
     """
-    agonisutoisLigand-ReceptorInteractiontogiveerueffectresultthemoderuize
+    アゴニストがリガンド-レセプター相互作用に与える効果をモデル化
     """
     if cofactor_input.empty or pairLRsig.empty or 'agonist' not in pairLRsig.columns:
         return np.ones(data_use.shape[1])
@@ -1863,7 +1863,7 @@ def computeExpr_agonist(data_use, pairLRsig, cofactor_input, index_agonist, Kh, 
     if pd.isna(agonist) or agonist == "" or agonist not in cofactor_input.index:
         return np.ones(data_use.shape[1])
     
-    # agonisutoGenetheget
+    # アゴニスト遺伝子を取得
     cofactor_cols = [col for col in cofactor_input.columns if 'cofactor' in col]
     agonist_genes = cofactor_input.loc[agonist, cofactor_cols].dropna().astype(str)
     agonist_genes = [g for g in agonist_genes if g != "" and g in data_use.index]
@@ -1872,7 +1872,7 @@ def computeExpr_agonist(data_use, pairLRsig, cofactor_input, index_agonist, Kh, 
         data_avg = data_use.loc[agonist_genes[0]].values
         data_agonist = 1 + data_avg**n / (Kh**n + data_avg**n)
     elif len(agonist_genes) > 1:
-        # eachagonisutoGeneofeffectresultofaccumulate
+        # 各アゴニスト遺伝子の効果の積
         data_agonist = np.ones(data_use.shape[1])
         for g in agonist_genes:
             data_avg = data_use.loc[g].values
@@ -1885,7 +1885,7 @@ def computeExpr_agonist(data_use, pairLRsig, cofactor_input, index_agonist, Kh, 
 @st.cache_data
 def computeExpr_antagonist(data_use, pairLRsig, cofactor_input, index_antagonist, Kh, n):
     """
-    antagonisutoisLigand-ReceptorInteractiontogiveerueffectresultthemoderuize
+    アンタゴニストがリガンド-レセプター相互作用に与える効果をモデル化
     """
     if cofactor_input.empty or pairLRsig.empty or 'antagonist' not in pairLRsig.columns:
         return np.ones(data_use.shape[1])
@@ -1894,7 +1894,7 @@ def computeExpr_antagonist(data_use, pairLRsig, cofactor_input, index_antagonist
     if pd.isna(antagonist) or antagonist == "" or antagonist not in cofactor_input.index:
         return np.ones(data_use.shape[1])
     
-    # antagonisutoGenetheget
+    # アンタゴニスト遺伝子を取得
     cofactor_cols = [col for col in cofactor_input.columns if 'cofactor' in col]
     antagonist_genes = cofactor_input.loc[antagonist, cofactor_cols].dropna().astype(str)
     antagonist_genes = [g for g in antagonist_genes if g != "" and g in data_use.index]
@@ -1903,7 +1903,7 @@ def computeExpr_antagonist(data_use, pairLRsig, cofactor_input, index_antagonist
         data_avg = data_use.loc[antagonist_genes[0]].values
         data_antagonist = Kh**n / (Kh**n + data_avg**n)
     elif len(antagonist_genes) > 1:
-        # eachantagonisutoGeneofeffectresultofaccumulate
+        # 各アンタゴニスト遺伝子の効果の積
         data_antagonist = np.ones(data_use.shape[1])
         for g in antagonist_genes:
             data_avg = data_use.loc[g].values
@@ -1916,47 +1916,47 @@ def computeExpr_antagonist(data_use, pairLRsig, cofactor_input, index_antagonist
 @st.cache_data
 def computeCommunProbPathway(net, pairLR_use, thresh=0.05, apply_pval_filter=True, r_patcher=False):
     """
-    signalPathwayreberuwithofcommunicationprobabilitytheCalculation
+    シグナル経路レベルでの通信確率を計算
     
     Parameters
     ----------
     net : dict
-        communicationprobabilityandSignificantnaturetheincludemuwordwrite
+        通信確率と有意性を含む辞書
     pairLR_use : pd.DataFrame
-        Ligand-Receptorpairinfo
+        リガンド-レセプターペア情報
     thresh : float, optional
-        SignificantnaturejudgesetofpvalueThreshold
+        有意性判定のp値閾値
     apply_pval_filter : bool, optional
-        pvalueFilteringthefitfordowhether。deforutoisTrue
+        p値フィルタリングを適用するかどうか。デフォルトはTrue
         
     Returns
     -------
     dict
-        pathwayreberuwithofcommunicationprobabilityinfo
+        パスウェイレベルでの通信確率情報
     """
     prob = net["prob"].copy()
     pval = net["pval"]
     
-    # PvalueFilteringbeforeofstatestatetheverify
+    # P値フィルタリング前の状態を検証
     print(f"computeCommunProbPathway - Before filtering - prob > 0 count: {np.sum(prob > 0)}")
 
-    # apply_pval_filterParametertobaseduitepvaluewithofFilteringthefitfor
+    # apply_pval_filterパラメータに基づいてp値でのフィルタリングを適用
     if apply_pval_filter:
         if r_patcher:
            # prob[(pval - thresh) >= 1.49e-8] = 0
            prob[pval >= (thresh-1.49e-8)] = 0
         else:
             prob[pval >= thresh] = 0
-    # PvalueFilteringafterofstatestatetheverify
+    # P値フィルタリング後の状態を検証
     print(f"computeCommunProbPathway - After filtering - prob > 0 count: {np.sum(prob > 0)}")
-    # pathwayinfoisnotcaseisprocessthesukipu
+    # パスウェイ情報がない場合は処理をスキップ
     if 'pathway_name' not in pairLR_use.columns:
         return {
             "pathways": [],
             "prob": np.zeros((prob.shape[0], prob.shape[1], 0))
         }
     
-    # signalPathwaygoandtoaggregate
+    # シグナル経路ごとに集計
     pathways = pairLR_use['pathway_name'].dropna().unique()
     prob_pathways = np.zeros((prob.shape[0], prob.shape[1], len(pathways)))
     
@@ -1964,7 +1964,7 @@ def computeCommunProbPathway(net, pairLR_use, thresh=0.05, apply_pval_filter=Tru
         idx = np.where(pairLR_use['pathway_name'] == pathway)[0]
         prob_pathways[:, :, i] = np.sum(prob[:, :, idx], axis=2)
     
-    # totalcommunicationstrengthtobaseduitealignbereplacee
+    # 総通信強度に基づいて並べ替え
     pathway_sums = np.sum(prob_pathways, axis=(0, 1))
     significant_idx = np.where(pathway_sums > 0)[0]
     
@@ -1987,28 +1987,28 @@ def computeCommunProbPathway(net, pairLR_use, thresh=0.05, apply_pval_filter=Tru
 
 @st.cache_data
 def computeExpr_complex(complex_input, data_use, complex_genes):
-    """complexofExpressiontheCalculationdorelatedcount（Rofimplementtopairrespond）"""
+    """複合体の発現を計算する関数（Rの実装に対応）"""
     result = np.zeros((len(complex_genes), data_use.shape[1]))
     
     for i, complex_gene in enumerate(complex_genes):
         if complex_gene in complex_input.index:
-            # complexofsubunitotheget
+            # 複合体のサブユニットを取得
             subunits_cols = [col for col in complex_input.columns if 'subunit' in col]
             subunits = complex_input.loc[complex_gene, subunits_cols].dropna().astype(str)
             subunits = [s for s in subunits if s != "" and s in data_use.index]
             
             if len(subunits) > 0:
-                # Expressionvalueofget
+                # 発現値の取得
                 expr_values = data_use.loc[subunits].values
-                # howwhatmeanofCalculation
+                # 幾何平均の計算
                 result[i] = geometricMean(expr_values)
     
     return result
 
 @st.cache_data
 def computeExpr_LR(geneLR, data_use, complex_input):
-    """LigandalsoisReceptorofExpressiontheCalculationdorelatedcount（Rofimplementtopairrespond）"""
-    geneLR = [str(gene) for gene in geneLR]  # clearshowaltotextcharcolumntoconvert
+    """リガンドまたはレセプターの発現を計算する関数（Rの実装に対応）"""
+    geneLR = [str(gene) for gene in geneLR]  # 明示的に文字列に変換
     print(f"First 5 geneLR values: {geneLR[:5]}")
     print(f"Data_use.index type: {type(data_use.index)}")
     print(f"First 5 gene names in data_use: {list(data_use.index)[:5]}")
@@ -2017,12 +2017,12 @@ def computeExpr_LR(geneLR, data_use, complex_input):
     nLR = len(geneLR)
     numCluster = data_use.shape[1]
     
-    # simpleoneGeneofprocess（Randsamemannerofwaymethod）
+    # 単一遺伝子の処理（Rと同様の方法）
     index_singleL = [i for i, gene in enumerate(geneLR) if gene in data_use.index]
     dataLavg = np.zeros((nLR, numCluster))
     
     if index_singleL:
-        # simpleoneGeneofExpressionthemaandmeteget
+        # 単一遺伝子の発現をまとめて取得
         gene_indices = [geneLR[i] for i in index_singleL if geneLR[i] in data_use.index]
         if gene_indices:
             dataL1avg = data_use.loc[gene_indices].values
@@ -2030,7 +2030,7 @@ def computeExpr_LR(geneLR, data_use, complex_input):
                 if idx < len(dataL1avg):
                     dataLavg[gene_idx] = dataL1avg[idx]
     
-    # complexofprocess（Randsamemannerofwaymethod）
+    # 複合体の処理（Rと同様の方法）
     index_complexL = [i for i in range(nLR) if i not in index_singleL]
     if index_complexL and not complex_input.empty:
         complex_genes = [geneLR[i] for i in index_complexL]
@@ -2047,59 +2047,59 @@ def computeExpr_LR(geneLR, data_use, complex_input):
 @st.cache_data
 def netAnalysis_computeCentrality(prob):
     """
-    NetworkincenternaturepointmarktheCalculation (reformgoodversion)
+    ネットワーク中心性指標を計算 (改良版)
     
     Parameters
     ----------
     prob : numpy.ndarray
-        communicationprobabilitymatrix (shapestate: [cell_types, cell_types, interactions])
+        通信確率行列 (形状: [cell_types, cell_types, interactions])
     debug_mode : bool, optional
-        debagumo-do
+        デバッグモード
         
     Returns
     -------
     centrality : dict
-        eachintarakution（Network）goandofincenternaturepointmarkofdeikushiyonari
+        各インタラクション（ネットワーク）ごとの中心性指標のディクショナリ
     """
     
-    # Inputis2nextsourceofcaseis3nextsourcetoexpandstretch（axisErrortimeavoid）
+    # 入力が2次元の場合は3次元に拡張（軸エラー回避）
     if prob.ndim == 2:
         prob = np.expand_dims(prob, axis=2)
     
-    # rpy2ofSettingsandrequirednaRpake-jiofinpo-to
+    # rpy2の設定と必要なRパッケージのインポート
     r_available = False
     try:
         import rpy2.robjects as ro
         from rpy2.robjects.packages import importr
         from rpy2.robjects import numpy2ri
         
-        # selfmoveconvertofvalidize
+        # 自動変換の有効化
         numpy2ri.activate()
         
-        # Rraiburariofinpo-to
+        # Rライブラリのインポート
         base = importr('base')
         sna = importr('sna')
         
-        # igraphpake-jiofLoading
+        # igraphパッケージの読み込み
         try:
             ro.r('library(igraph, quietly=TRUE)')
             r_available = True
-            print("RraiburariofLoadingSuccess: igraph, sna")
+            print("Rライブラリの読み込み成功: igraph, sna")
         except Exception as e:
-            print(f"igraphLoadingError: {str(e)}")
+            print(f"igraph読み込みエラー: {str(e)}")
             r_available = False
             
     except Exception as e:
-        print(f"RraiburariofLoadingError: {str(e)}")
+        print(f"Rライブラリの読み込みエラー: {str(e)}")
         print(traceback.format_exc())
-        print("NetworkXwithfo-rubakushimasu。")
+        print("NetworkXでフォールバックします。")
     
-    # NetworkXtheuseshitaCalculation
+    # NetworkXを使用した計算
   #  centrality_nx = netAnalysis_computeCentrality_nx(prob)
     
 
     try:
-        # Rofrelatedcountthesetmeaning
+        # Rの関数を定義
         ro.r('''
         computeCentralityLocal <- function(net) {
           centr <- list()
@@ -2133,13 +2133,13 @@ def netAnalysis_computeCentrality(prob):
             try:
                 net_mat = prob[:, :, i]
                 
-                # NumPymatrixtheRofmatrixtoconvert
+                # NumPy行列をRの行列に変換
                 r_mat = ro.r.matrix(net_mat, nrow=net_mat.shape[0], ncol=net_mat.shape[1])
                 
-                # RrelatedcounttheRun
+                # R関数を実行
                 r_centr = ro.r['computeCentralityLocal'](r_mat)
                 
-                # RofResultthePythonofwordwritetoconvert
+                # Rの結果をPythonの辞書に変換
                 centrality_r[i] = {}
                 for metric in ["outdeg", "indeg", "outdeg_unweighted", "indeg_unweighted", 
                               "hub", "authority", "eigen", "page_rank", "betweenness", "flowbet", "info"]:
@@ -2147,52 +2147,52 @@ def netAnalysis_computeCentrality(prob):
                         if metric in r_centr.names:
                             centrality_r[i][metric] = np.array(r_centr.rx2(metric))
                     except Exception as e:
-                        print(f"pointmark {metric} ofgetintoError: {str(e)}")
-                        centrality_r[i][metric] = np.zeros(net_mat.shape[0])  # deforutovaluetheSettings
+                        print(f"指標 {metric} の取得中にエラー: {str(e)}")
+                        centrality_r[i][metric] = np.zeros(net_mat.shape[0])  # デフォルト値を設定
             
             except Exception as e:
-                print(f"RCalculationwithError (interaction {i}): {str(e)}")
-                centrality_r[i] = centrality_nx[i]  # NetworkXofResulttheuse
+                print(f"R計算でエラー (interaction {i}): {str(e)}")
+                centrality_r[i] = centrality_nx[i]  # NetworkXの結果を使用
         
-        # debagumo-doofcase、ResulttheComparison
+        # デバッグモードの場合、結果を比較
   #      if debug_mode:
   #          compare_centrality_results(centrality_r, centrality_nx)
         
         return centrality_r
     except Exception as e:
-        print(f"RwithofincenternatureCalculationtolosefailshimashita: {str(e)}")
+        print(f"Rでの中心性計算に失敗しました: {str(e)}")
         print(traceback.format_exc())
-        print("NetworkXofResulttheuseshimasu。")
+        print("NetworkXの結果を使用します。")
 
 @st.cache_data
 def aggregateCell_Cell_Communication(net, cell_types, pval_threshold=0.05, apply_pval_filter=True, r_patcher=False):
     """
-    CellbetweencommunicationNetworktheaggregate
+    細胞間通信ネットワークを集計
     
     Parameters
     ----------
     net : dict
-        communicationprobabilityandSignificantnaturetheincludemuwordwrite
+        通信確率と有意性を含む辞書
     cell_types : list
-        validnaCell typeoflist
+        有効な細胞タイプのリスト
     pval_threshold : float, optional
-        SignificantnaturejudgesetofpvalueThreshold。deforutois0.05
+        有意性判定のp値閾値。デフォルトは0.05
     apply_pval_filter : bool, optional
-        pvalueFilteringthefitfordowhether。deforutoisTrue
+        p値フィルタリングを適用するかどうか。デフォルトはTrue
         
     Returns
     -------
     dict
-        aggregatesaretaNetworkinfo
+        集計されたネットワーク情報
     """
     prob = net["prob"]
     pval = net["pval"]
     
-    # PythonimplementwithFilteringbeforeafterofvaluetheComparison
+    # Python実装でフィルタリング前後の値を比較
     print(f"aggregateCell_Cell_Communication Before filtering - sig_prob > 0 count: {np.sum(prob > 0)}")
     print('pval_threshold')
     print(pval_threshold)
-    # apply_pval_filterParametertobaseduitepvaluewithofFilteringthefitfor
+    # apply_pval_filterパラメータに基づいてp値でのフィルタリングを適用
     sig_prob = prob.copy()
     if apply_pval_filter:
         if r_patcher:
@@ -2200,58 +2200,58 @@ def aggregateCell_Cell_Communication(net, cell_types, pval_threshold=0.05, apply
         else:
             sig_prob[pval >= pval_threshold] = 0
     print(f"aggregateCell_Cell_Communication After filtering - sig_prob > 0 count: {np.sum(sig_prob > 0)}")
-    # diffbecomeThresholdwithoftryshi
+    # 異なる閾値での試し
     test_thresholds = [0, 0.0001, 0.001, 0.005, 0.006, 0.007, 0.008, 0.009, 0.0095, 0.0099, 0.01, 0.02, 0.05, 0.1]
     for thresh in test_thresholds:
         count = np.sum(sig_prob > thresh)
         print(f"Count with threshold {thresh}: {count}")
 
 
-    # strength_matrix and count_matrix ofCalculationitemplacetoorbelowtheadd
+    # strength_matrix と count_matrix の計算箇所に以下を追加
     print(f"sig_prob shape: {sig_prob.shape}")
     print(f"sig_prob min: {np.min(sig_prob)}, max: {np.max(sig_prob)}, sum: {np.sum(sig_prob)}")
     print(f"sig_prob > 0 count: {np.sum(sig_prob > 0)}")
     print(f"sig_prob > 1e-10 count: {np.sum(sig_prob > 1e-10)}")
     print(f"sig_prob > 0.01 count: {np.sum(sig_prob > 0.01)}")
     
-    # eachCell typepairbetweenoftotalintarakutionstrength
+    # 各細胞タイプペア間の総インタラクション強度
     strength_matrix = np.sum(sig_prob, axis=2)
     
-    # intarakutioncount
+    # インタラクション数
     print("countmatrix >0")
-    count_matrix = np.sum(sig_prob > 0, axis=2) #koredaandRtoratiobetecountismanykubecome
+    count_matrix = np.sum(sig_prob > 0, axis=2) #これだとRに比べて数が多くなる
     print(count_matrix)
     print("countmatrix >1.49e-8")
     count_matrix = np.sum(sig_prob > 1.49e-8, axis=2)
     print(count_matrix)
-    print("countmatrix >0.001") #r_patcherisexistandkiiskorewithcleanup
+    print("countmatrix >0.001") #r_patcherがあるときはこれでcleanup
     count_matrix = np.sum(sig_prob > 0.001, axis=2)
     print(count_matrix)
     if not r_patcher:
         count_matrix = np.sum(sig_prob > 0, axis=2)
 
-    # eachLigand-Receptorpairofcontribution
+    # 各リガンド-レセプターペアの寄与度
     lr_contribution = np.sum(np.sum(sig_prob, axis=0), axis=0)
     
-    # eachCell typeofsendreceivetotalamount
+    # 各細胞タイプの送受信総量
     outgoing = np.sum(strength_matrix, axis=1)
     incoming = np.sum(strength_matrix, axis=0)
     
-    # matrixtheDataFrametoconvert
+    # 行列をDataFrameに変換
     strength_df = pd.DataFrame(strength_matrix, index=cell_types, columns=cell_types)
     count_df = pd.DataFrame(count_matrix, index=cell_types, columns=cell_types)
     
-    # Networkpointmark
+    # ネットワーク指標
     try:
         network_centrality = calculate_network_centrality({"strength_matrix": strength_df})
     except Exception as e:
-        print(f"NetworkincenternatureCalculationError: {str(e)}")
+        print(f"ネットワーク中心性計算エラー: {str(e)}")
         import traceback
         print(traceback.format_exc())
         network_centrality = pd.DataFrame()
 
     
-    # matrixofStatisticalinfo
+    # 行列の統計情報
     strength_stats = {
         'min': float(np.min(strength_matrix)),
         'max': float(np.max(strength_matrix)),
@@ -2273,14 +2273,14 @@ def aggregateCell_Cell_Communication(net, cell_types, pval_threshold=0.05, apply
 
 def debug_interaction_matrix(matrix, title="Interaction Matrix Debug"):
     """
-    InteractionmatrixofdebaguinfotheOutput
+    相互作用行列のデバッグ情報を出力
     
     Parameters
     ----------
     matrix : pd.DataFrame or numpy.ndarray
-        Interactionmatrix
+        相互作用行列
     title : str
-        title
+        タイトル
     """
     print(f"===== {title} =====")
     
@@ -2288,7 +2288,7 @@ def debug_interaction_matrix(matrix, title="Interaction Matrix Debug"):
     if hasattr(matrix, 'empty'):
         # For pandas DataFrame
         if matrix.empty:
-            print("emptyofmatrixwithsu")
+            print("空の行列です")
             return
         values = matrix.values
         print(f"Shape: {matrix.shape}")
@@ -2301,7 +2301,7 @@ def debug_interaction_matrix(matrix, title="Interaction Matrix Debug"):
     else:
         # For numpy ndarray
         if matrix.size == 0:
-            print("emptyofmatrixwithsu")
+            print("空の行列です")
             return
         print(f"Shape: {matrix.shape}")
         print(f"Min value: {np.min(matrix)}")
@@ -2316,35 +2316,35 @@ def debug_interaction_matrix(matrix, title="Interaction Matrix Debug"):
 
 def plot_circle_communication(network_summary, title="Cell-Cell Communication Network", figsize=(10, 10)):
     """
-    sa-kiyura-plotwithCellbetweencommunicationthedraw
+    サーキュラープロットで細胞間通信を描画
     
     Parameters
     ----------
     network_summary : dict
-        NetworkaggregateResult
+        ネットワーク集計結果
     title : str
-        plotoftitle
+        プロットのタイトル
     figsize : tuple
-        figureofsize
+        図のサイズ
         
     Returns
     -------
     matplotlib.figure.Figure
-        plotofFigureobujiekuto
+        プロットのFigureオブジェクト
     """
     try:
         fig, ax = plt.subplots(figsize=figsize)
         
-        # strengthmatrixtheget
+        # 強度行列を取得
         if 'strength_matrix' not in network_summary or isinstance(network_summary['strength_matrix'], pd.DataFrame) and network_summary['strength_matrix'].empty:
-            ax.text(0.5, 0.5, "Dataisnot exist", ha='center', va='center')
+            ax.text(0.5, 0.5, "データがありません", ha='center', va='center')
             ax.axis('off')
             plt.title(title)
             return fig
             
         matrix = network_summary['strength_matrix']
         
-        # matrixtheNormalization
+        # 行列を正規化
         if isinstance(matrix, pd.DataFrame):
             if matrix.sum().sum() > 0:
                 norm_matrix = matrix / matrix.max().max()
@@ -2356,23 +2356,23 @@ def plot_circle_communication(network_summary, title="Cell-Cell Communication Ne
             else:
                 norm_matrix = matrix
         
-        # color-maptheSettings
+        # カラーマップを設定
         colors = plt.cm.Set3(np.linspace(0, 1, len(matrix)))
         
-        # sa-kiyura-plotofdraw（simpleeasyversion）
-        # realoccasionofCellChatwithiscirclizeetcofpake-jitheusetethanwashpracticesaretaplotthecreate
+        # サーキュラープロットの描画（簡易版）
+        # 実際のCellChatではcirclizeなどのパッケージを使ってより洗練されたプロットを作成
         plt.title(title)
         plt.axis('equal')
         plt.axis('off')
         
-        # simpleeasyalnasa-kiyura-plotofdami-implement
+        # 簡易的なサーキュラープロットのダミー実装
         theta = np.linspace(0, 2*np.pi, len(matrix)+1)[:-1]
         
-        # no-dothedistributeplace
+        # ノードを配置
         x = np.cos(theta)
         y = np.sin(theta)
         
-        # no-doofdraw
+        # ノードの描画
         if isinstance(matrix, pd.DataFrame):
             labels = matrix.index
         else:
@@ -2382,10 +2382,10 @@ def plot_circle_communication(network_summary, title="Cell-Cell Communication Ne
             ax.scatter(xi, yi, s=300, color=colors[i], edgecolor='black', zorder=10)
             ax.text(xi*1.15, yi*1.15, label, ha='center', va='center', fontsize=12, fontweight='bold')
         
-        # ejiofdraw
+        # エッジの描画
         for i, sender in enumerate(range(len(matrix))):
             for j, receiver in enumerate(range(len(matrix))):
-                # DataFrameandNumpyofbothwaytopairrespond
+                # DataFrameとNumpyの両方に対応
                 if isinstance(matrix, pd.DataFrame):
                     sender_label = matrix.index[i]
                     receiver_label = matrix.columns[j]
@@ -2398,71 +2398,71 @@ def plot_circle_communication(network_summary, title="Cell-Cell Communication Ne
                     else:
                         continue
                 
-                # bejiecurvelinewitharcthedraw
+                # ベジェ曲線で弧を描画
                 xi, yi = x[i], y[i]
                 xj, yj = x[j], y[j]
-                # inbetweenpointthefewshizurasu
+                # 中間点を少しずらす
                 xm = (xi + xj) / 2
                 ym = (yi + yj) / 2
-                # incenterfromseparatesu
+                # 中心から離す
                 dx = xm
                 dy = ym
                 d = np.sqrt(dx**2 + dy**2)
                 xm += dx / d * 0.3
                 ym += dy / d * 0.3
                 
-                # thicksaisstrengthtoratioExample
+                # 太さは強度に比例
                 width = 1 + 4 * strength
                 ax.plot([xi, xm, xj], [yi, ym, yj], 'gray', linewidth=width, alpha=0.6)
                 
-                # arrowmarkthedraw
+                # 矢印を描画
                 ax.arrow(xm, ym, (xj-xm)*0.2, (yj-ym)*0.2, width=0.01*strength, 
                         head_width=0.05*width, head_length=0.1*width, 
                         fc='black', ec='black', zorder=5)
         
         return fig
     except Exception as e:
-        st.error(f"sa-kiyura-plotcreateError: {str(e)}")
+        st.error(f"サーキュラープロット作成エラー: {str(e)}")
         st.error(traceback.format_exc())
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"sa-kiyura-plotcreateError: {str(e)}", ha='center', va='center', wrap=True)
+        ax.text(0.5, 0.5, f"サーキュラープロット作成エラー: {str(e)}", ha='center', va='center', wrap=True)
         ax.axis('off')
         plt.title(title)
         return fig
 
 def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_threshold=0.05, figsize=(12, 10)):
     """
-    dotoplotwithCellbetweenofLRInteractionthedraw
+    ドットプロットで細胞間のLR相互作用を描画
     
     Parameters
     ----------
     results_df : pd.DataFrame
-        CellChatofCalculationResult
+        CellChatの計算結果
     source_cells : list
-        sendsideofCell typelist
+        送信側の細胞タイプリスト
     target_cells : list
-        receivesideofCell typelist
+        受信側の細胞タイプリスト
     top_n : int
-        Displaydouprankpairofcount
+        表示する上位ペアの数
     pval_threshold : float
-        SignificantandminasuPvalueofThreshold
+        有意とみなすP値の閾値
     figsize : tuple
-        figureofsize
+        図のサイズ
         
     Returns
     -------
     matplotlib.figure.Figure
-        plotofFigureobujiekuto
+        プロットのFigureオブジェクト
     """
     try:
         if results_df.empty:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "validnaInteractionDataisnot exist", ha='center', va='center')
+            ax.text(0.5, 0.5, "有効な相互作用データがありません", ha='center', va='center')
             ax.axis('off')
             plt.title('Ligand-Receptor Interactions')
             return fig
             
-        # SelectshitaCell typetheFiltering
+        # 選択した細胞タイプをフィルタリング
         filtered_df = results_df[
             (results_df['source'].isin(source_cells)) & 
             (results_df['target'].isin(target_cells)) &
@@ -2471,23 +2471,23 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
         
         if len(filtered_df) == 0:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, f"pointsetshitaConditionwithvalidnaInteractionisnot exist。\nSelectshitaCell typebetweenwithisSignificantnaInteractionischeckoutsaremasenwithshita。\nPvalueThresholdtheupgeruka、sepofCell typetheSelectandplease。", 
+            ax.text(0.5, 0.5, f"指定した条件で有効な相互作用がありません。\n選択した細胞タイプ間では有意な相互作用が検出されませんでした。\nP値閾値を上げるか、別の細胞タイプを選択してください。", 
                    ha='center', va='center', wrap=True)
             ax.axis('off')
             plt.title('Ligand-Receptor Interactions')
             return fig
         
-        # LRpairgoandtoaggregate
+        # LRペアごとに集計
         if 'interaction_prob_normalized' not in filtered_df.columns:
             filtered_df['interaction_prob_normalized'] = filtered_df['prob']
             
         lr_summary = filtered_df.groupby(['ligand', 'receptor'])['interaction_prob_normalized'].sum().reset_index()
         lr_summary = lr_summary.sort_values('interaction_prob_normalized', ascending=False).head(top_n)
         
-        # Ligand-Receptorpairtheresultmatch
+        # リガンド-レセプターペアを結合
         lr_summary['interaction'] = lr_summary['ligand'] + '-' + lr_summary['receptor']
         
-        # eachpairofCell typepairgoandofstrengththeCalculation
+        # 各ペアの細胞タイプペアごとの強度を計算
         dot_data = []
         
         for lr_pair in lr_summary[['ligand', 'receptor']].itertuples(index=False):
@@ -2495,7 +2495,7 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
             
             for source in source_cells:
                 for target in target_cells:
-                    # koofLRpairandkoofCell typepairtopairresponddorowtheextractout
+                    # このLRペアとこの細胞タイプペアに対応する行を抽出
                     subset = filtered_df[
                         (filtered_df['ligand'] == ligand) & 
                         (filtered_df['receptor'] == receptor) &
@@ -2517,18 +2517,18 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
         
         if len(dot_df) == 0:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "dotoplotforofDataisnot exist", ha='center', va='center')
+            ax.text(0.5, 0.5, "ドットプロット用のデータがありません", ha='center', va='center')
             ax.axis('off')
             plt.title('Ligand-Receptor Interactions')
             return fig
         
-        # sort
+        # ソート
         unique_interactions = lr_summary['interaction'].tolist()
         
-        # plotcreate
+        # プロット作成
         fig, ax = plt.subplots(figsize=figsize)
         
-        # dotoplotofDatalevelprepare
+        # ドットプロットのデータ準備
         plot_data = {}
         
         for source in source_cells:
@@ -2552,18 +2552,18 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
                             'pvalue': 1
                         }
         
-        # eachserupairtopairandplot
+        # 各セルペアに対してプロット
         cell_pairs = list(plot_data.keys())
         n_pairs = len(cell_pairs)
         
         if n_pairs == 0:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "dotoplotforofDataisnot exist", ha='center', va='center')
+            ax.text(0.5, 0.5, "ドットプロット用のデータがありません", ha='center', va='center')
             ax.axis('off')
             plt.title('Ligand-Receptor Interactions')
             return fig
             
-        # verticaltosubplotthecreate
+        # 縦にサブプロットを作成
         fig, axes = plt.subplots(n_pairs, 1, figsize=(figsize[0], figsize[1] * n_pairs / 3), sharex=True)
         
         if n_pairs == 1:
@@ -2577,19 +2577,19 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
             for interaction in unique_interactions:
                 data = plot_data[cell_pair][interaction]
                 strengths.append(data['strength'])
-                # sizeis-log10(pvalue)toratioExample
+                # サイズは-log10(pvalue)に比例
                 sizes.append(max(20, -np.log10(data['pvalue'] + 1e-10) * 20))
                 interactions.append(interaction)
             
-            # zerowithnotstrengthofmiplot
+            # ゼロでない強度のみプロット
             non_zero = [i for i, s in enumerate(strengths) if s > 0]
             
             if non_zero:
-                # color-mapofSettings
+                # カラーマップの設定
                 max_strength = max(np.array(strengths)[non_zero]) if non_zero else 1
                 colors = plt.cm.YlOrRd(np.array(strengths)[non_zero] / max_strength)
                 
-                # scatter plotplot
+                # 散布図プロット
                 scatter = ax.scatter(
                     [interactions[i] for i in non_zero],
                     [0] * len(non_zero),
@@ -2599,17 +2599,17 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
                     edgecolors='gray'
                 )
                 
-                # Yaxislabeltheserupairnameto
+                # Y軸ラベルをセルペア名に
                 ax.set_ylabel(cell_pair, fontsize=12)
                 
-                # YaxiseyeflourishrithenonDisplay
+                # Y軸目盛りを非表示
                 ax.set_yticks([])
             else:
-                ax.text(0.5, 0, f"SignificantnaInteractionnashi", ha='center', va='center')
+                ax.text(0.5, 0, f"有意な相互作用なし", ha='center', va='center')
                 ax.set_ylabel(cell_pair, fontsize=12)
                 ax.set_yticks([])
             
-            # mostafterofsubplotofmiXaxislabelthetimerotate
+            # 最後のサブプロットのみX軸ラベルを回転
             if i == len(axes) - 1:
                 plt.xticks(rotation=90, ha='right')
                 
@@ -2619,44 +2619,44 @@ def plot_dot_lr_network(results_df, source_cells, target_cells, top_n=20, pval_t
         
         return fig
     except Exception as e:
-        st.error(f"dotoplotcreateError: {str(e)}")
+        st.error(f"ドットプロット作成エラー: {str(e)}")
         st.error(traceback.format_exc())
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"dotoplotcreateError: {str(e)}", ha='center', va='center', wrap=True)
+        ax.text(0.5, 0.5, f"ドットプロット作成エラー: {str(e)}", ha='center', va='center', wrap=True)
         ax.axis('off')
         plt.title('Ligand-Receptor Interactions')
         return fig
 
 def plot_aggregated_network(network_summary, threshold=0.01, figsize=(12, 10)):
     """
-    aggregatesaretaNetworkthegraphshapeformatwithdraw
+    集計されたネットワークをグラフ形式で描画
     
     Parameters
     ----------
     network_summary : dict
-        NetworkaggregateResult
+        ネットワーク集計結果
     threshold : float
-        DisplaydominimumInteractionstrength
+        表示する最小相互作用強度
     figsize : tuple
-        figureofsize
+        図のサイズ
         
     Returns
     -------
     matplotlib.figure.Figure
-        plotofFigureobujiekuto
+        プロットのFigureオブジェクト
     """
     try:
-        # strengthmatrixtheget
+        # 強度行列を取得
         if 'strength_matrix' not in network_summary or isinstance(network_summary['strength_matrix'], pd.DataFrame) and network_summary['strength_matrix'].empty:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, "validnaInteractionDataisnot exist", ha='center', va='center')
+            ax.text(0.5, 0.5, "有効な相互作用データがありません", ha='center', va='center')
             ax.axis('off')
             plt.title('Cell-Cell Communication Network')
             return fig
             
         matrix = network_summary['strength_matrix']
         
-        # shikiivalueorbelowtheFiltering
+        # しきい値以下をフィルタリング
         if isinstance(matrix, pd.DataFrame):
             filtered_matrix = matrix.copy()
             filtered_matrix[filtered_matrix < threshold] = 0
@@ -2664,25 +2664,25 @@ def plot_aggregated_network(network_summary, threshold=0.01, figsize=(12, 10)):
             filtered_matrix = matrix.copy()
             filtered_matrix[filtered_matrix < threshold] = 0
         
-        # graphthecreate
+        # グラフを作成
         if isinstance(filtered_matrix, pd.DataFrame):
             G = nx.from_pandas_adjacency(filtered_matrix, create_using=nx.DiGraph())
         else:
-            # safesetoffor、matrixthe numpy distributecolumntoconvertandfromgraphgenerate
+            # 安定のため、行列を numpy 配列に変換してからグラフ生成
             adj_mat = np.array(filtered_matrix)
             G = nx.from_numpy_array(adj_mat, create_using=nx.DiGraph())
-        # alonestandno-dothedeleteremove
+        # 孤立ノードを削除
         G.remove_nodes_from(list(nx.isolates(G)))
         
         if len(G) == 0:
             fig, ax = plt.subplots(figsize=figsize)
-            ax.text(0.5, 0.5, f"Threshold {threshold} orupofInteractionisnot exist。\nThresholdthebelowgetemiteplease。", 
+            ax.text(0.5, 0.5, f"閾値 {threshold} 以上の相互作用がありません。\n閾値を下げてみてください。", 
                    ha='center', va='center')
             ax.axis('off')
             plt.title('Cell-Cell Communication Network')
             return fig
         
-        # ejiofweighttheseto
+        # エッジの重みをセット
         if isinstance(filtered_matrix, pd.DataFrame):
             for u, v, d in G.edges(data=True):
                 d['weight'] = filtered_matrix.loc[u, v]
@@ -2692,13 +2692,13 @@ def plot_aggregated_network(network_summary, threshold=0.01, figsize=(12, 10)):
         
         fig, ax = plt.subplots(figsize=figsize)
         
-        # no-doofcolortheSettings
+        # ノードの色を設定
         node_color = plt.cm.Set3(np.linspace(0, 1, len(G)))[:len(G)]
         
-        # no-doofrankplacethedecideset
+        # ノードの位置を決定
         pos = nx.spring_layout(G, seed=42)
         
-        # ejiofthicksatheweighttoratioExamplesaseru
+        # エッジの太さを重みに比例させる
         if isinstance(filtered_matrix, pd.DataFrame):
             max_weight = filtered_matrix.max().max()
         else:
@@ -2709,30 +2709,30 @@ def plot_aggregated_network(network_summary, threshold=0.01, figsize=(12, 10)):
         else:
             edge_weights = [1.0 for u, v, d in G.edges(data=True)]
         
-        # no-dothedraw
+        # ノードを描画
         nx.draw_networkx_nodes(G, pos, node_size=700, node_color=node_color, alpha=0.8, ax=ax)
         
-        # ejithedraw
+        # エッジを描画
         nx.draw_networkx_edges(
             G, pos, width=edge_weights, alpha=0.6, 
             edge_color='gray', arrows=True, 
             arrowstyle='->', arrowsize=20, ax=ax
         )
         
-        # labelthedraw
+        # ラベルを描画
         nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif', ax=ax)
 
-        # titleandadjustarrange
+        # タイトルと調整
         plt.title('Cell-Cell Communication Network', fontsize=14)
         plt.axis('off')
         plt.tight_layout()
         
         return fig
     except Exception as e:
-        st.error(f"NetworkfigurecreateError: {str(e)}")
+        st.error(f"ネットワーク図作成エラー: {str(e)}")
         st.error(traceback.format_exc())
         fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, f"NetworkfigurecreateError: {str(e)}", ha='center', va='center', wrap=True)
+        ax.text(0.5, 0.5, f"ネットワーク図作成エラー: {str(e)}", ha='center', va='center', wrap=True)
         ax.axis('off')
         plt.title('Cell-Cell Communication Network')
         return fig
@@ -2752,29 +2752,29 @@ def preprocess_data(
     min_cells_expr=10
 ):
     """
-    CellChatofDataPreprocessingtherowurelatedcount（Rversionofprocessordertomatchwasetamodifycorrectversion）
+    CellChatのデータ前処理を行う関数（R版の処理順序に合わせた修正版）
     """
     st.write(f"original data: {adata.shape[0]} cells x {adata.shape[1]} genes")
     
-    # 1. CellGroupofCellcountchieku koreisRwithisfirsttoisrowwanot
+    # 1. 細胞グループの細胞数チェック これはRでは最初には行わない
 #    cell_counts = adata.obs[group_by].value_counts()
 #    valid_groups = cell_counts[cell_counts >= min_cells].index.tolist()
 #    if len(valid_groups) < len(cell_counts):
-#        st.warning(f"{len(cell_counts) - len(valid_groups)}pieceofCellGroupis{min_cells}Cellnot yetfullofforremoveoutsaremashita")
+#        st.warning(f"{len(cell_counts) - len(valid_groups)}個の細胞グループが{min_cells}細胞未満のため除外されました")
     
-    # validnaGroupofCelldakethekeephold
+    # 有効なグループの細胞だけを保持
 #    adata_filtered = adata[adata.obs[group_by].isin(valid_groups)].copy()
     
     valid_signaling_genes = [g for g in gene_use if g in adata.var_names]
     st.write(f"LR genes found in data: {len(valid_signaling_genes)}")
-    # signalingGeneofmithekeephold（RversionofsubsetDatamutualcurrentofprocess）
+    # シグナリング遺伝子のみを保持（R版のsubsetData相当の処理）
     adata_filtered = adata[:, valid_signaling_genes].copy()
     st.write(f"LR gene data: {adata_filtered.shape[0]} cells x {adata_filtered.shape[1]} genes")
     
     if features is None:
-        # 3. highExpressionGeneofsameset（RversionofidentifyOverExpressedGenesmutualcurrent）
+        # 3. 高発現遺伝子の同定（R版のidentifyOverExpressedGenes相当）
         overexpressed_genes_result = identify_overexpressed_genes(
-            adata_filtered,  # suwithtosignalingGenetoFilteringdonemi
+            adata_filtered,  # すでにシグナリング遺伝子にフィルタリング済み
             group_by=group_by,
             thresh_pct=thresh_pct,
             thresh_p=thresh_p,
@@ -2785,14 +2785,14 @@ def preprocess_data(
             min_cells_expr=min_cells_expr
         )
         
-        # highExpressionGenetheextractout
+        # 高発現遺伝子を抽出
         features_sig = overexpressed_genes_result['features']
     else:
         st.write("Using features...")
         features_sig = features.copy()
     
-    # 4. LRpairFiltering（RversionofidentifyOverExpressedInteractionsmutualcurrent）
-    # tapuruthereceiveketakeru
+    # 4. LRペアフィルタリング（R版のidentifyOverExpressedInteractions相当）
+    # タプルを受け取る
     result = identify_overexpressed_interactions(
         features_sig=features_sig, 
         gene_use=valid_signaling_genes,
@@ -2800,27 +2800,27 @@ def preprocess_data(
         complex_input=complex_input
     )
     
-    # tapurutheexpandopen
+    # タプルを展開
     resource_filtered, lr_genes_from_function = result
     
     st.write(f"Filtered LR pairs: {len(resource_filtered)}")
     
-    # riso-suisemptywithnotcaseofmiDisplay
+    # リソースが空でない場合のみ表示
     if not resource_filtered.empty:
         st.write(resource_filtered.head(3))
         
-    # 5. ExpressiondiffofexistGene＋FilteringsaretaLRpairtorelatedconnectdoGeneofmithekeephold
-    lr_related_genes = set(features_sig)  # DEGGenethebasemainandandkeephold
+    # 5. 発現差のある遺伝子＋フィルタリングされたLRペアに関連する遺伝子のみを保持
+    lr_related_genes = set(features_sig)  # DEG遺伝子を基本として保持
     
-    for _, row in resource_filtered.iterrows():  # herethemodifycorrect
+    for _, row in resource_filtered.iterrows():  # ここを修正
         ligand, receptor = row['ligand'], row['receptor']
-        # simplepurenaGeneofcaseissoofmamaadd
+        # 単純な遺伝子の場合はそのまま追加
         if ligand in valid_signaling_genes:
             lr_related_genes.add(ligand)
         if receptor in valid_signaling_genes:
             lr_related_genes.add(receptor)
         
-        # complexofcaseissubunitotheadd
+        # 複合体の場合はサブユニットを追加
         if complex_input is not None:
             if ligand in complex_input.index:
                 subunit_cols = [col for col in complex_input.columns if 'subunit' in col]
@@ -2834,16 +2834,16 @@ def preprocess_data(
                 subunits = [s for s in subunits if s != "" and s in valid_signaling_genes]
                 lr_related_genes.update(subunits)
     
-    # relatedconnectdoGeneofmithekeephold
+    # 関連する遺伝子のみを保持
     lr_related_genes = list(lr_related_genes)
     adata_filtered = adata_filtered[:, lr_related_genes].copy()
     
-    st.write(f"Preprocessingafter: {adata_filtered.shape[0]}Cell x {adata_filtered.shape[1]}Gene")
+    st.write(f"前処理後: {adata_filtered.shape[0]}細胞 x {adata_filtered.shape[1]}遺伝子")
     
     return adata_filtered, resource_filtered
 
 
-# plotforofyu-teiriteirelatedcount
+# プロット用のユーティリティ関数
 def scPalette(n):
     """
     Generate colors from a customed color palette
@@ -2865,7 +2865,7 @@ def scPalette(n):
     if n <= len(colorSpace):
         colors = colorSpace[:n]
     else:
-        # colorRampPalettetomutualcurrentdorelatedcount
+        # colorRampPaletteに相当する関数
         from matplotlib.colors import LinearSegmentedColormap
         cmap = LinearSegmentedColormap.from_list('custom_cmap', colorSpace)
         colors = [cmap(i / n) for i in range(n)]
@@ -2893,7 +2893,7 @@ def ggPalette(n):
     rgb_colors = [hsv_to_rgb(hsv) for hsv in hsv_colors]
     return rgb_colors[:n]
 
-# ko-dodaiaguramuVisualizationofforofrelatedcount
+# コードダイアグラム可視化のための関数
 def plot_chord_cell(net, color_use=None, group=None, cell_order=None, 
                    sources_use=None, targets_use=None, lab_cex=0.8,
                    small_gap=1, big_gap=10, remove_isolate=False, 
@@ -2939,7 +2939,7 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
         print("Please install plotly: pip install plotly")
         return None
     
-    # InputisDataFrameofcase、matrixtoconvert
+    # 入力がDataFrameの場合、行列に変換
     if isinstance(net, pd.DataFrame):
         if all(c in net.columns for c in ["source", "target", "prob"]):
             cell_levels = sorted(list(set(net['source'].unique()) | set(net['target'].unique())))
@@ -2950,7 +2950,7 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
                 net_matrix[src_idx, tgt_idx] = row['prob']
             net = net_matrix
             
-    # so-su,ta-getoofFiltering
+    # ソース・ターゲットのフィルタリング
     if sources_use is not None or targets_use is not None:
         cells_level = np.arange(net.shape[0])
         df_net = pd.DataFrame()
@@ -2977,13 +2977,13 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
                 indices = [cell_levels.index(t) for t in targets_use if t in cell_levels]
                 df_net = df_net[df_net['target'].isin(indices)]
         
-        # matrixtoconvertshidirectsu
+        # 行列に変換し直す
         if not df_net.empty:
             net = np.zeros((len(cell_levels), len(cell_levels)))
             for _, row in df_net.iterrows():
                 net[int(row['source']), int(row['target'])] = row['value']
     
-    # alonestandno-doofdeleteremove（Option）
+    # 孤立ノードの削除（オプション）
     if remove_isolate:
         idx1 = np.where(np.sum(net, axis=0) == 0)[0]
         idx2 = np.where(np.sum(net, axis=1) == 0)[0]
@@ -2991,17 +2991,17 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
         if len(idx) > 0:
             net = np.delete(np.delete(net, idx, axis=0), idx, axis=1)
     
-    # color-Settings
+    # カラー設定
     if color_use is None:
         color_use = scPalette(net.shape[0])
     
-    # labelSettings
+    # ラベル設定
     if cell_order is None:
         labels = [f"Cell{i+1}" for i in range(net.shape[0])]
     else:
         labels = cell_order
     
-    # Plotlytheuseshitako-dodaiaguramuofcreate
+    # Plotlyを使用したコードダイアグラムの作成
     source_list = []
     target_list = []
     value_list = []
@@ -3013,13 +3013,13 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
                 source_list.append(i)
                 target_list.append(j)
                 value_list.append(net.iloc[i, j])
-                # colorisso-suofcolortheuse
+                # 色はソースの色を使用
                 if isinstance(color_use, list):
                     color_list.append(color_use[i % len(color_use)])
                 else:
                     color_list.append(color_use.get(i, '#377EB8'))
     
-    # color-the16advanceshapeformattoconvert（requirednacase）
+    # カラーを16進形式に変換（必要な場合）
     for i in range(len(color_list)):
         if isinstance(color_list[i], tuple) and len(color_list[i]) in [3, 4]:
             if max(color_list[i]) <= 1:
@@ -3055,38 +3055,38 @@ def plot_chord_cell(net, color_use=None, group=None, cell_order=None,
 @st.cache_data
 def calculate_network_centrality(net):
     """
-    NetworkincenternaturetheCalculationdo - netAnalysis_signalingRole_networkofCalculationmethodtheuse
+    ネットワーク中心性を計算する - netAnalysis_signalingRole_networkの計算法を使用
     
     Parameters
     ----------
     net : dict
-        NetworkData（strength_matrixtheincludemu）
+        ネットワークデータ（strength_matrixを含む）
         
     Returns
     -------
     pd.DataFrame
-        incenternatureCalculationResult
+        中心性計算結果
     """
     import networkx as nx
     import pandas as pd
     import numpy as np
     
-    # strength_matrixtheget
+    # strength_matrixを取得
     if 'strength_matrix' in net:
         if isinstance(net['strength_matrix'], pd.DataFrame):
             adj = net['strength_matrix'].values
             cell_types = net['strength_matrix'].index.tolist()
         else:
             adj = np.array(net['strength_matrix'])
-            # cell_typestheget
+            # cell_typesを取得
             if 'net' in net and 'dimnames' in net['net'] and len(net['net']['dimnames']) > 0:
                 cell_types = net['net']['dimnames'][0]
             else:
                 cell_types = [f"Cell{i+1}" for i in range(adj.shape[0])]
     elif 'net' in net and 'prob' in net['net']:
-        # net['net']['prob']theuse
+        # net['net']['prob']を使用
         adj = np.array(net['net']['prob'])
-        if adj.ndim == 3:  # 3nextsourcedistributecolumnnara2nextsourcetogatherabout
+        if adj.ndim == 3:  # 3次元配列なら2次元に集約
             adj = np.sum(adj, axis=2)
         
         if 'dimnames' in net['net'] and len(net['net']['dimnames']) > 0:
@@ -3094,20 +3094,20 @@ def calculate_network_centrality(net):
         else:
             cell_types = [f"Cell{i+1}" for i in range(adj.shape[0])]
     else:
-        print("validnaInteractionDataisviewtsukarimasen")
+        print("有効な相互作用データが見つかりません")
         return pd.DataFrame()
     
-    # graphthecreate
+    # グラフを作成
     G = nx.from_numpy_array(adj, create_using=nx.DiGraph)
     mapping = {i: cell_types[i] for i in range(len(cell_types))}
     G = nx.relabel_nodes(G, mapping)
     
-    # incenternaturepointmarkofCalculation
-    # 1. Sender & Receiver: sourceofgraphwithCalculation
+    # 中心性指標の計算
+    # 1. Sender & Receiver: 元のグラフで計算
     sender = dict(G.out_degree(weight='weight'))
     receiver = dict(G.in_degree(weight='weight'))
     
-    # 2. Betweenness: weightreversecountconvertshitagraphwithCalculation
+    # 2. Betweenness: 重み逆数変換したグラフで計算
     G_betweenness = G.copy()
     for u, v, d in G_betweenness.edges(data=True):
         if 'weight' in d and d['weight'] > 0:
@@ -3116,21 +3116,21 @@ def calculate_network_centrality(net):
     try:
         betweenness = nx.betweenness_centrality(G_betweenness, weight='weight')
     except:
-        print("mediummediateincenternatureofCalculationtolosefailshimashita")
+        print("媒介中心性の計算に失敗しました")
         betweenness = {node: 0.0 for node in G.nodes()}
     
-    # 3. Mediator & Influencer: specialspecialrelatedcountwithCalculation
+    # 3. Mediator & Influencer: 特殊関数で計算
     try:
         from pages.cellchat_vis import compute_flow_betweenness, compute_information_centrality
         mediator = compute_flow_betweenness(G)
         influencer = compute_information_centrality(G)
     except Exception as e:
-        print(f"specialspecialincenternatureCalculationError: {str(e)}")
-        # fo-rubaku: marklevelalnaincenternaturepointmarkwithsubstitutefor
+        print(f"特殊中心性計算エラー: {str(e)}")
+        # フォールバック: 標準的な中心性指標で代用
         mediator = {node: 0.0 for node in G.nodes()}
         influencer = {node: 0.0 for node in G.nodes()}
     
-    # Datafure-muthecreate
+    # データフレームを作成
     cell_type_list = list(G.nodes())
     centrality_df = pd.DataFrame({
         'cell_type': cell_type_list,
@@ -3145,7 +3145,7 @@ def calculate_network_centrality(net):
     return centrality_df
 
 
-# meinprocess
+# メイン処理
 if __name__ == "__main__":
     st.set_page_config(page_title="CellChat-Python", page_icon="💬")
     st.sidebar.title("Options")
@@ -3166,17 +3166,17 @@ if __name__ == "__main__":
         cellchat_temp_dir = st.session_state.cellchat_temp_dir
 
     st.markdown("### CellChat Python implemetation")
- #   st.markdown("###### weight(strength)isRandhoboonecause。interaction countismutualrelateddoissweetme。")
+ #   st.markdown("###### weight(strength)はRとほぼ一致。interaction countは相関するが甘め。")
 
-    uploaded_file = st.file_uploader("H5AD for calculation or cellchat result pkl file for visualization", type=['h5ad', 'pkl'], help="H5ADFilewithnewruleAnalysis、PKLFilewithSavedonemiResulttheLoadingmasu")
+    uploaded_file = st.file_uploader("H5AD for calculation or cellchat result pkl file for visualization", type=['h5ad', 'pkl'], help="H5ADファイルで新規解析、PKLファイルで保存済み結果を読み込みます")
 
     if uploaded_file is not None:
         file_type = uploaded_file.name.split('.')[-1].lower()
         
-        # PKLFileofcaseisSavedonemiCellChatResultthereadmiintomu
+        # PKLファイルの場合は保存済みCellChat結果を読み込む
         if file_type == 'pkl':
             try:
-                # SavedonemiFilethereadmiintomu
+                # 保存済みファイルを読み込む
                 bytes_data = uploaded_file.read()
                 result = pickle.loads(bytes_data)
                 st.session_state.cellchat_res = result
@@ -3190,32 +3190,32 @@ if __name__ == "__main__":
                 st.markdown("##### Cells:")
                 st.write(", ".join(cell_list))
                 if 'groupby' in result:
-                    # guro-baruchangecountofgroupbythefurthernew
+                    # グローバル変数のgroupbyを更新
                     groupby = result['groupby']
-                st.success("CellChatResultthecorrectnormaltoLoadingmashita！Visualizationthestartwithkimasu")
+                st.success("CellChat結果を正常に読み込みました！可視化を開始できます")
                 
-                # UploadsaretaFilenametheSave（Savebuttonfor）
+                # アップロードされたファイル名を保存（保存ボタン用）
                 if 'uploaded_filename' not in st.session_state:
                     st.session_state.uploaded_filename = uploaded_file.name
                 
-                # herefromisVisualizationtabutodirectconnectadvancemu
+                # ここからは可視化タブに直接進む
                 if st.session_state.get('cellchat_res') is not None:
-                    # cell_listofextractout - multicountofwaymethodthetrymiru
+                    # cell_listの抽出 - 複数の方法を試みる
                     pass
                     
             except Exception as e:
-                st.error(f"PKLFileofLoadingtolosefailshimashita: {str(e)}")
+                st.error(f"PKLファイルの読み込みに失敗しました: {str(e)}")
                 st.error(traceback.format_exc())
         
-        # H5ADFileofcaseispassnormalofAnalysisfuro-
+        # H5ADファイルの場合は通常の解析フロー
         elif file_type == 'h5ad':
-            # newshiiFilejudgesetrojiku（sizedependexisttheexcluderemove）
+            # 新しいファイル判定ロジック（サイズ依存を排除）
             if should_clear_session_state(uploaded_file):
                 clear_cellchat_session_state()
                 st.session_state.last_file_name = uploaded_file.name
-                st.success("newshiiFileischeckoutsaremashita。kiyashiyuthekuriashimashita。")
+                st.success("新しいファイルが検出されました。キャッシュをクリアしました。")
 
-            # UploadsaretaFilenametheSave（Savebuttonfor）
+            # アップロードされたファイル名を保存（保存ボタン用）
             st.session_state.uploaded_filename = uploaded_file.name
 
             adata = read_h5ad(uploaded_file)
@@ -3239,7 +3239,7 @@ if __name__ == "__main__":
                 except:
                     pass
 
-            # useforpossiblenareiya-theDisplay
+            # 利用可能なレイヤーを表示
             available_layers = list(adata.layers.keys()) if hasattr(adata, 'layers') else []
             st.write(f"Additional data layers: {', '.join(available_layers) if available_layers else 'NA'}")
 
@@ -3249,7 +3249,7 @@ if __name__ == "__main__":
             cell_list = sorted(adata.obs[groupby].cat.categories.to_list() if hasattr(adata.obs[groupby], 'cat') else sorted(adata.obs[groupby].unique()))
             st.write(", ".join(cell_list))
 
-            # sorted_orderofinitializetheherewithrowu
+            # sorted_orderの初期化をここで行う
             if "sorted_order" not in st.session_state:
                 st.session_state.sorted_order = cell_list
 
@@ -3275,7 +3275,7 @@ if __name__ == "__main__":
                     n_cpus = st.slider("Num CPUs:", 
                                   min_value=1, max_value=os.cpu_count(), step=1, value=os.cpu_count()-2)
                    # r_patcher = st.checkbox("Fine-tune to match R calc results", value=False,
-                   #     help="RandofCalculationResultofdifferitheexistdegreedegreeabsorbcollectdo。weighttotsuiteischiekushinakutemonearsimilardo。countischiekushinotandmanykubecomeis、leandirectionisonecausedo。countofthresholdofbaselevelisyayaarbitrarymeaningal。")
+                   #     help="Rとの計算結果の違いをある程度吸収する。weightについてはチェックしなくても近似する。countはチェックしないと多くなるが、傾向は一致する。countのthresholdの基準はやや恣意的。")
                     r_patcher = False
 
                     n_perms = st.slider("Permutation number:", 
@@ -3284,7 +3284,7 @@ if __name__ == "__main__":
 
                     min_cells = st.number_input('Min cells in a cell-type:', 
                                                min_value=0, max_value=100, step=1, value=10,
-                                               help="SCALAofcellchatwithisFilteringisoff。")
+                                               help="SCALAのcellchatではフィルタリングはoff。")
 
                     expr_prop = st.number_input('Min fraction of expressing cells:', 
                                                min_value=0.0, max_value=0.9, step=0.01, value=0.0)
@@ -3293,22 +3293,22 @@ if __name__ == "__main__":
                 with col2:
 
                     do_de = st.checkbox("Filter pathways by differential expression in at least one cell type.",
-                                        value=True, help="dorekaonetsuofClusterwithDEGofmooftheselectsep。offofcase、ExpressionCellcountwithFiltering。")
+                                        value=True, help="どれか一つのクラスターでDEGのものを選別。offの場合、発現細胞数でフィルタリング。")
 
                     thresh_p = st.number_input('Threshold p value for overexpressed genes:', 
                                                min_value=0.0, max_value=0.9, step=0.01, value=0.05,
-                                               help = "WilcoxontoyoruchangeizeGeneSelectofthreshold")
+                                               help = "Wilcoxonによる変化遺伝子選択のthreshold")
 
-                    # nesutoshitacolormuwithindento
+                    # ネストしたカラムでインデント
                     subcol1, subcol2 = st.columns([0.1, 0.9])
                     with subcol2:
                         st.write("If DEG filtering is off:")
                         min_cells_expr = st.number_input('Gene filtering for min expressing cells:', 
                                                    min_value=0, max_value=100, step=1, value=10,
-                                                   help="DEGtoyoruFilteringisoffofandkitoallCellofinwithExpressionandexistCellcountwithFiltering。kanarilowkushinotand、mushirostrictshikubecome。")
+                                                   help="DEGによるフィルタリングがoffのときに全細胞の中で発現している細胞数でフィルタリング。かなり低くしないと、むしろ厳しくなる。")
                    
                     st.markdown("---")
-                    fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="EstimationsareruLigand-Receptorpairofcountis、CellGroupgoandofmeanGeneExpressionamounttheCalculationdowaymethodtodependexistdo。trimeanisotherofwaymethodthanmofewnotInteractionthegenerate。CellChatisthanstrongiInteractiontheadvancemeasuredonatureableisexcellentreteexistkoandiswakateori、realtestalverifyoffortoInteractionthesqueezeriintomuupwithnonnormaltohavefor。trimeanis25%cutcutmeantonearsimilarandori、koreis1tsuofGroupwithExpressionandexistCellofratiomatchis25%not yetfullofcase、meanGeneExpressionamountiszerotobecomekoandthemeaningtastedo。truncatedMeanwithis5%and10%cutcutmeanequaltheSettingswithkiru")
+                    fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="推定されるリガンド-受容体ペアの数は、細胞グループごとの平均遺伝子発現量を計算する方法に依存する。trimeanは他の方法よりも少ない相互作用を生成。CellChatはより強い相互作用を予測する性能が優れていることがわかっており、実験的検証のために相互作用を絞り込む上で非常に有用。trimeanは25%切断平均に近似しており、これは1つのグループで発現している細胞の割合が25%未満の場合、平均遺伝子発現量がゼロになることを意味する。truncatedMeanでは5%および10%切断平均等を設定できる")
 
                     st.markdown("*To reduce stringency for pathway selection, use truncatedMean.*")
                     trim = st.number_input("Trimming for truncated mean:", min_value=0.00, max_value=0.25, value=0.10)
@@ -3319,7 +3319,7 @@ if __name__ == "__main__":
                     trim_threshold = st.number_input('Filtering P threshold:', 
                                                min_value=0.01, max_value=0.20, step=0.01, value=0.05)
                     st.markdown('---')
-                    population_size = st.checkbox("population.size", value=False, help="CellcountismanyiClustersamepersonofcommunicationhodostrongku（probabilityishighmeto）evaluatepricedocase。")
+                    population_size = st.checkbox("population.size", value=False, help="細胞数が多いクラスター同士の通信ほど強く（確率が高めに）評価する場合。")
       
                 
                 submitted_basic = st.form_submit_button("Apply settings")
@@ -3331,16 +3331,16 @@ if __name__ == "__main__":
 
             if st.button('Run calc') or (st.session_state.get('cellchat_res') is not None):
                 if st.session_state.get('cellchat_res') is None:
-                    # CellChatDBtheget
+                    # CellChatDBを取得
                     try:
                         start_cpu = time.time()
                         with st.spinner('Getting CellChatDB from R...'):
                             cellchatdb = get_cellchatdb_from_r(species=species)
-                            # debaguOutputtheadd
+                            # デバッグ出力を追加
                         cellchatdb = debug_cellchatdb(cellchatdb)
                         st.success(f"{species} CellChatDB is succcesfully obtained")
                     except Exception as e:
-                        st.error(f"CellChatDBofgetintoErrorisoccurred: {str(e)}")
+                        st.error(f"CellChatDBの取得中にエラーが発生しました: {str(e)}")
                         st.stop()
                     interaction = cellchatdb['interaction']
                     interaction_filtered = interaction[interaction['annotation'].isin(selected_types)]
@@ -3349,12 +3349,12 @@ if __name__ == "__main__":
                     st.write(f"LR pair number: {len(cellchatdb['interaction'])}")
                     st.write(cellchatdb['interaction'].head(3))
                     
-                    # Datareiya-ofSettings
+                    # データレイヤーの設定
                     use_layer = None if data_layer == 'X (default)' else data_layer
 
-                    #herewithdbtheexpandopenandoku
+                    #ここでdbを展開しておく
                     gene_use, resource, complex_input, cofactor_input, gene_info = extractGene(cellchatdb)
-                    # herewith、resource isFilteringdonemiof interaction（tsumari、selected_types tothiscurrentdopair）ofmitheincludemuiszuwithsu。
+                    # ここで、resource はフィルタリング済みの interaction（つまり、selected_types に該当するペア）のみを含むはずです。
                     st.write(f"Resource LR pair numbers:{len(resource)}")
                     print(f'gene_use {len(gene_use)}')
                     print(f'complex_input {len(complex_input)}')
@@ -3362,14 +3362,14 @@ if __name__ == "__main__":
                     print(f'gene_info {len(gene_info)}')
 
 
-                    # Databe-suofverify
+                    # データベースの検証
                     if resource.empty:
-                        raise ValueError("DBofInteractioninfo(interaction)isemptywithsu。validnaCellChatDBkaConfirmandplease。")
+                        raise ValueError("DBの相互作用情報(interaction)が空です。有効なCellChatDBか確認してください。")
                         
-                    # requirednacolumnofexistattheConfirm
+                    # 必要な列の存在を確認
                     for required_col in ['ligand', 'receptor']:
                         if required_col not in resource.columns:
-                            raise ValueError(f"riso-suDatafure-mutois '{required_col}' columnisrequiredwithsu")
+                            raise ValueError(f"リソースデータフレームには '{required_col}' 列が必要です")
 
                     st.write(f"LR genes in db: {len(gene_use)}")
 
@@ -3404,42 +3404,42 @@ if __name__ == "__main__":
                         st.session_state.cellchat_res = result
                     
                     if 'error' in result:
-                        st.error(f"AnalysisintoErrorisoccurred: {result['error']}")
+                        st.error(f"解析中にエラーが発生しました: {result['error']}")
                         st.code(result['traceback'])
                     else:
-                        st.success('CellChatAnalysisisCompleteshimashita！')
+                        st.success('CellChat解析が完了しました！')
                         time_cpu = time.time() - start_cpu
                         st.write(f"Computing time: {round(time_cpu)}")
                         print(f"Computing time: {round(time_cpu)}")
                 
-            # orbelowisResultofDisplaypartdiv
+            # 以下は結果の表示部分
             
         result = st.session_state.get('cellchat_res')
 
         if result is not None:
             
             if 'error' in result:
-                st.error(f"AnalysisintoErrorisoccurred: {result['error']}")
+                st.error(f"解析中にエラーが発生しました: {result['error']}")
                 if 'traceback' in result:
                     st.code(result['traceback'])
             else:
-                # ResultDisplay
+                # 結果表示
                 st.subheader("1. CellChat results")
                 
-                st.write("Interactionte-buru (uprank10item):")
+                st.write("相互作用テーブル (上位10件):")
                 if 'results' in result and len(result['results']) > 0:
                     st.write(result['results'].sort_values('prob', ascending=False).head(10))
                     
 
-                    # mazu、ResultofCSV（Interactionte-buru）thetextcharcolumntoconvert
+                    # まず、結果のCSV（相互作用テーブル）を文字列に変換
                     csv_str = result['results'].to_csv(index=False, sep = '\t')
 
-                    # nextto、strength_matrixandcount_matrixtheTSVtoconvert
-                    # DataFrameofcase
+                    # 次に、strength_matrixとcount_matrixをTSVに変換
+                    # DataFrameの場合
                     if isinstance(result['network']['strength_matrix'], pd.DataFrame):
                         strength_tsv = result['network']['strength_matrix'].to_csv(sep='\t', index=True)
                     else:
-                        # numpydistributecolumnofcase、DataFrameizeandfromTSVize（herewithistemptodimnamesisexistandtempset）
+                        # numpy配列の場合、DataFrame化してからTSV化（ここでは仮にdimnamesがあると仮定）
                         strength_df = pd.DataFrame(result['network']['strength_matrix'], 
                                                    index=result['network']['dimnames'][0], 
                                                    columns=result['network']['dimnames'][1])
@@ -3453,19 +3453,19 @@ if __name__ == "__main__":
                                                 columns=result['network']['dimnames'][1])
                         count_tsv = count_df.to_csv(sep='\t', index=True)
 
-                    # memoriupwithZIPFilethecreate
+                    # メモリ上でZIPファイルを作成
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
                         zf.writestr("cellchat_results.tsv", csv_str)
                         zf.writestr("strength_matrix.tsv", strength_tsv)
                         zf.writestr("count_matrix.tsv", count_tsv)
 
-                    # bafuaofpointatheaheadheadtoreturnsu
+                    # バッファのポインタを先頭に戻す
                     zip_buffer.seek(0)
 
-                    # st.download_buttonwithZIPFiletheprovideprovide
+                    # st.download_buttonでZIPファイルを提供
                     st.download_button(
-                        label="ResulttheZIPandandDownload",
+                        label="結果をZIPとしてダウンロード",
                         data=zip_buffer,
                         file_name="cellchat_results.zip",
                         mime="application/zip"
@@ -3473,16 +3473,16 @@ if __name__ == "__main__":
 
 
                 else:
-                    st.warning("validnaInteractionResultisnot exist。Parametertheadjustarrangeandagaintryrowandplease。")
+                    st.warning("有効な相互作用結果がありません。パラメータを調整して再試行してください。")
                     
-                # debaguinfotheDisplay
-                with st.expander("debaguinfo"):
+                # デバッグ情報を表示
+                with st.expander("デバッグ情報"):
                     if 'network' in result and 'strength_matrix' in result['network']:
-                        debug_interaction_matrix(result['network']['strength_matrix'], "Interactionstrengthmatrix")
+                        debug_interaction_matrix(result['network']['strength_matrix'], "相互作用強度行列")
                     if 'network' in result and 'count_matrix' in result['network']:
-                        debug_interaction_matrix(result['network']['count_matrix'], "Interactioncountmatrix")
+                        debug_interaction_matrix(result['network']['count_matrix'], "相互作用数行列")
                 
-                # Visualization
+                # 可視化
                 st.subheader("2. Visualization of communication network")
                 st.markdown("###### Visualization options are displayed at the bottom of the left side panel")
                 plt.style.use('default')
@@ -3506,15 +3506,15 @@ if __name__ == "__main__":
                         index=0
                     )
 
-                    # sorted_order ofeternalcontinueizeimplement（sourceofcellchat.pyofFunctiontherecoversource）
+                    # sorted_order の永続化実装（元のcellchat.pyの機能を復元）
                     if "sorted_order" not in st.session_state:
                         st.session_state.sorted_order = cell_list
                         sorted_order = None
                     else:
                         sorted_order = st.session_state.get('sorted_order')
 
-                    # color-mapofeternalcontinueizeimplement
-                    # color-mapischangefurthersaretacasealsoisfirstmeteofcase
+                    # カラーマップの永続化実装
+                    # カラーマップが変更された場合または初めての場合
                     if 'cell_color_map' not in st.session_state or st.session_state.get('current_cmap', '') != cmap_name:
                         if sorted_order:
                             st.session_state.cell_color_map = create_cell_color_mapping(sorted_order, cmap_name)
@@ -3523,14 +3523,14 @@ if __name__ == "__main__":
                         st.session_state.current_cmap = cmap_name
 
                     sort_cell = st.checkbox("Change cell order?")
-                    # session_statetoenterreru
+                    # session_stateに入れる
                     if sort_cell:
                         with st.form("Sorter"):
                             #sorted_order = sort_items(sorted(adata.obs[groupby].unique()))
                             sorted_order = sort_items(st.session_state.get('sorted_order', cell_list).copy())
                             submitted_sort = st.form_submit_button("Done sorting")
                         st.session_state.sorted_order = sorted_order
-                        # sorted_orderchangefurthertimeiscurrentofcolor-paretowithcolormapthefurthernew
+                        # sorted_order変更時は現在のカラーパレットで色マップを更新
                         current_cmap = st.session_state.get('current_cmap', cmap_name)
                         st.session_state.cell_color_map = create_cell_color_mapping(sorted_order, current_cmap)
                      #   st.write(f"Color map changed{st.session_state.cell_color_map }")
@@ -3614,7 +3614,7 @@ if __name__ == "__main__":
                                 font_size_title=heatmap_title,
                                 sorted_order=sorted_order,
                                 annot=heatmap_annot,
-                                color_use=st.session_state.get('cell_color_map', None),  # colormapingutheadd
+                                color_use=st.session_state.get('cell_color_map', None),  # 色マッピングを追加
                                 show_color_bar=show_color_bar,
                                 figx=heatmap_x,
                                 figy=heatmap_y,
@@ -3636,9 +3636,9 @@ if __name__ == "__main__":
                                     mime='application/octet-stream'
                                 )
                         else:
-                            st.warning("Networkinfoisuseforwithkimasen")
+                            st.warning("ネットワーク情報が利用できません")
 
-                with tabs[1]:  # ko-dodaiaguramu tab
+                with tabs[1]:  # コードダイアグラム tab
                     st.markdown("#### Chord diagram")
                     
                     if 'netP' in result and 'pathways' in result['netP']:
@@ -3646,7 +3646,7 @@ if __name__ == "__main__":
                         col1, col2 = st.columns(2)
 
                         with col1:
-                            # Selectlimb: "Aggregate" alsois pieceseppathwayofmulticountSelect
+                            # 選択肢: "Aggregate" または 個別パスウェイの複数選択
                             option_type = st.radio(
                                 "Display type:",
                                 ["Aggregate", "Specific pathways"],
@@ -3654,7 +3654,7 @@ if __name__ == "__main__":
                             )
                             if option_type == "Aggregate":
                                 selected_pathway = "Aggregate"
-                                # Interaction measure theSelectdorajiobutton
+                                # Interaction measure を選択するラジオボタン
                                 diagram_measure = st.radio(
                                     "Select value:",
                                     ["Interaction weight", "Interaction number"],
@@ -3662,18 +3662,18 @@ if __name__ == "__main__":
                                 )
                                 measure = "weight" if diagram_measure == "Interaction weight" else "count"
                             else:
-                                # multicountofpathwaytheSelectpossibletodo
+                                # 複数のパスウェイを選択可能にする
                                 pathways = list(result['netP']['pathways'])
                                 selected_pathways = st.multiselect(
                                     "Select pathways (multiple selection allowed):",
                                     sorted(pathways),
                                     default=[pathways[0]] if pathways else []
                                 )
-                                selected_pathway = selected_pathways  # listandandtransfersu
-                                measure = "weight"  # specificpathwaywithisnormaltoweight
+                                selected_pathway = selected_pathways  # リストとして渡す
+                                measure = "weight"  # 特定パスウェイでは常にweight
                         
                         with col2:
-                            # DisplaykasutamaizuOption
+                            # 表示カスタマイズオプション
                             sector_space = st.number_input("Space between sectors (degree):", min_value=0, max_value=20, value=5)
                             alpha_edge = st.slider("Transparency of edge:", min_value=0.1, max_value=1.0, value=0.4, step=0.1)
                             edge_border_width = st.slider("Edge border width", min_value=0.0, max_value=1.0, value=0.4, step=0.1)
@@ -3696,16 +3696,16 @@ if __name__ == "__main__":
                                             sorted_order=sorted_order,
                                             measure=measure,
                                             figsize=(chord_x, chord_y),
-                                            space=sector_space,               # sekuta-betweenofemptywhite 5degree
-                                            alpha_edge=alpha_edge,        # rinkuoftransparentcleardegree 0.6
-                                        #    show_edge_border=show_edge_border, # rinkuofblackiwheeloutlinethenonDisplay
+                                            space=sector_space,               # セクター間の空白 5度
+                                            alpha_edge=alpha_edge,        # リンクの透明度 0.6
+                                        #    show_edge_border=show_edge_border, # リンクの黒い輪郭を非表示
                                             edge_border_width=edge_border_width,
                                             sources_use=sources_use,
                                             targets_use=targets_use
                                         )
                                         st.pyplot(fig_chord)
                                         
-                                        # PDF andandSave,Download
+                                        # PDF として保存・ダウンロード
                                         import io
                                         pdf_buffer = io.BytesIO()
                                         fig_chord.savefig(pdf_buffer, format="pdf", bbox_inches="tight")
@@ -3714,7 +3714,7 @@ if __name__ == "__main__":
                                         if option_type == "Aggregate":
                                             filename = 'cellchat_chord_aggregate.pdf'
                                         else:
-                                            # multicountpathwayofcaseispathwaycounttheDisplay
+                                            # 複数パスウェイの場合はパスウェイ数を表示
                                             if len(selected_pathway) <= 2:
                                                 pathway_str = '_'.join(selected_pathway)
                                             else:
@@ -3728,68 +3728,68 @@ if __name__ == "__main__":
                                             mime='application/octet-stream'
                                         )
                                     except Exception as e:
-                                        st.error(f"ko-dodaiaguramugenerateError: {str(e)}")
+                                        st.error(f"コードダイアグラム生成エラー: {str(e)}")
                                         import traceback
                                         st.error(traceback.format_exc())
                     else:
-                        st.warning("Resulttopathwayinfoisnot exist。")
+                        st.warning("結果にパスウェイ情報がありません。")
                 
                 
                 with tabs[2]:
-                    st.markdown("#### Ligand-Receptorpairofcontribution")
+                    st.markdown("#### リガンド-レセプターペアの寄与度")
                     
                     st.info("""
-                    koofgraphiseachLigand-ReceptorpairisallbodyofsignalingNetworktodoofdegreedegreecontributegiveandexistkatheshowandimasu。
-                    contributionishighipairhodo、Cell-cell communicationtooiteweightneednaroleratiotheresulttaandimasu。
-                    possiblenacaseis、eachpairisbelongdosignalingpathwaymoDisplaysaremasu。
+                    このグラフは各リガンド-レセプターペアが全体のシグナリングネットワークにどの程度寄与しているかを示しています。
+                    寄与度が高いペアほど、細胞間コミュニケーションにおいて重要な役割を果たしています。
+                    可能な場合は、各ペアが属するシグナリングパスウェイも表示されます。
                     """)
                     
                     if 'network' in result and 'lr_contribution' in result['network']:
                         lr_contribution = result['network']['lr_contribution']
                         
                         if isinstance(lr_contribution, np.ndarray) and len(lr_contribution) > 0:
-                            # DataFrameofinfofromDataoflengththeget
+                            # DataFrameの情報からデータの長さを取得
                             lr_contrib_len = np.sum(lr_contribution > 0)
                             
-                            # DisplaydotopuLRpaircountofSelect（maximumvaluetheadjustarrange）
-                            top_n = st.slider("DisplaydotopuLRpaircount:", 
+                            # 表示するトップLRペア数の選択（最大値を調整）
+                            top_n = st.slider("表示するトップLRペア数:", 
                                              min_value=1, 
                                              max_value=min(30, int(lr_contrib_len)) if lr_contrib_len > 0 else 10, 
                                              value=min(10, int(lr_contrib_len)) if lr_contrib_len > 0 else 10)
                             
-                            # color-sukeymuSelect
+                            # カラースキーム選択
                             color_scheme = st.selectbox(
-                                "color-sukeymu:", 
+                                "カラースキーム:", 
                                 ["viridis", "plasma", "inferno", "magma", "cividis", "Blues", "Greens", "Oranges", "Reds"],
                                 index=0
                             )
 
                             if st.button("Generate LR contribution graph"):
                             
-                                # plotofhighsathemovealtoadjustarrange（paircounttoratioExample）
-                                plot_height = 6 + 0.3 * top_n  # paircounttorespondjitehighsatheadjustarrange
+                                # プロットの高さを動的に調整（ペア数に比例）
+                                plot_height = 6 + 0.3 * top_n  # ペア数に応じて高さを調整
                                 from pages.cellchat_vis import  plot_lr_contribution
 
-                                # Networksamari-toLRnameinfotheadd
+                                # ネットワークサマリーにLR名情報を追加
                                 network_data = result['network'].copy()
                                 
-                                # interaction_namesofget
+                                # interaction_namesの取得
                                 interaction_names = result['net']['dimnames'][2]
                                 
-                                # LRpairinfoofwordwritethecreate
+                                # LRペア情報の辞書を作成
                                 lr_pairs = {}
                                 for i, interaction_name in enumerate(interaction_names):
-                                    # resultsDatafure-mufromLRinfothechecksearch
+                                    # resultsデータフレームからLR情報を検索
                                     matching_rows = result['results'][result['results']['interaction_name'] == interaction_name]
                                     if not matching_rows.empty:
                                         row = matching_rows.iloc[0]
                                         lr_pairs[interaction_name] = f"{row['ligand']}-{row['receptor']}"
                                 
-                                # network_datatoLRinfotheadd
+                                # network_dataにLR情報を追加
                                 network_data['lr_names'] = lr_pairs
                                 network_data['interaction_names'] = interaction_names
                                 
-                                # LRcontributionofgraphthegenerate
+                                # LR寄与度のグラフを生成
                                 fig_lr = plot_lr_contribution(
                                     network_data, 
                                     top_n=top_n, 
@@ -3797,53 +3797,53 @@ if __name__ == "__main__":
                                 )
 
                                 
-                                # figureofsutairuthefurthernew
+                                # 図のスタイルを更新
                                 for ax in fig_lr.get_axes():
-                                    # color-mapthechangefurther
+                                    # カラーマップを変更
                                     if hasattr(ax, 'patches') and len(ax.patches) > 0:
                                         cmap = plt.cm.get_cmap(color_scheme)
                                         colors = cmap(np.linspace(0.2, 0.9, len(ax.patches)))
                                         for i, patch in enumerate(ax.patches):
                                             patch.set_color(colors[i])
                                     
-                                    # backscenecolorofSettings
-                                 #   ax.set_facecolor('#f8f9fa')  # thinigure-
+                                    # 背景色の設定
+                                 #   ax.set_facecolor('#f8f9fa')  # 薄いグレー
                                     
-                                    # guridolineofSettings
+                                    # グリッド線の設定
                                  #   ax.grid(axis='x', linestyle='--', alpha=0.3)
                                     
-                                    # framelineofSettings
+                                    # 枠線の設定
                                     for spine in ax.spines.values():
                                         spine.set_color('#cccccc')
                                 
                                 st.pyplot(fig_lr)
                                 
-                                # PDFSaveandDownload
+                                # PDF保存とダウンロード
                                 pdf_path = f"{cellchat_temp_dir}/lr_contribution.pdf"
                                 fig_lr.savefig(pdf_path, bbox_inches='tight')
                                 
                                 with open(pdf_path, "rb") as pdf_file:
                                     pdf_bytes = pdf_file.read()
                                     st.download_button(
-                                        label="LRcontributionPDFtheDownload",
+                                        label="LR寄与度PDFをダウンロード",
                                         data=pdf_bytes,
                                         file_name='cellchat_lr_contribution.pdf',
                                         mime='application/octet-stream'
                                     )
                                 
-                                # contributionuprankofLRpairinfothete-buruwithmoDisplay（Option）
-                                if st.checkbox("contributionuprankofLRpairdetailstheDisplay"):
+                                # 寄与度上位のLRペア情報をテーブルでも表示（オプション）
+                                if st.checkbox("寄与度上位のLRペア詳細を表示"):
                                     try:
-                                        # contributionDataofget,arrangeshape
+                                        # 寄与度データの取得・整形
                                         lr_data = []
                                         for i, val in enumerate(lr_contribution):
                                             if val > 0:
-                                                # LRpairinfoofgettryrow
+                                                # LRペア情報の取得試行
                                                 lr_info = {"index": i, "contribution": val}
                                                 
-                                                # ResultDatafure-mufromofinfoget
+                                                # 結果データフレームからの情報取得
                                                 if 'results' in result and not result['results'].empty:
-                                                    # intarakutionnameofgettryrow
+                                                    # インタラクション名の取得試行
                                                     if 'net' in result and 'dimnames' in result['net'] and len(result['net']['dimnames']) > 2:
                                                         interaction_names = result['net']['dimnames'][2]
                                                         if i < len(interaction_names):
@@ -3859,60 +3859,60 @@ if __name__ == "__main__":
                                                                     "pathway": row.get('pathway_name', '')
                                                                 })
                                                 
-                                                # infoisgetwithkinakatacaseoffo-rubaku
+                                                # 情報が取得できなかった場合のフォールバック
                                                 if 'interaction_name' not in lr_info:
                                                     lr_info.update({
                                                         "interaction_name": f"LR_{i}",
-                                                        "ligand": "notclear",
-                                                        "receptor": "notclear",
-                                                        "pathway": "notclear"
+                                                        "ligand": "不明",
+                                                        "receptor": "不明",
+                                                        "pathway": "不明"
                                                     })
                                                 
                                                 lr_data.append(lr_info)
                                         
-                                        # contributionwithdescendingsort
+                                        # 寄与度で降順ソート
                                         lr_df = pd.DataFrame(lr_data).sort_values('contribution', ascending=False).head(top_n)
                                         
-                                        # columnnamethedaymainwordtochangefurther
+                                        # 列名を日本語に変更
                                         lr_df.columns = [
-                                            'index' if col == 'index' else
-                                            'contribution' if col == 'contribution' else
-                                            'intarakutionname' if col == 'interaction_name' else
-                                            'Ligand' if col == 'ligand' else
-                                            'Receptor' if col == 'receptor' else
-                                            'pathway' if col == 'pathway' else col
+                                            'インデックス' if col == 'index' else
+                                            '寄与度' if col == 'contribution' else
+                                            'インタラクション名' if col == 'interaction_name' else
+                                            'リガンド' if col == 'ligand' else
+                                            'レセプター' if col == 'receptor' else
+                                            'パスウェイ' if col == 'pathway' else col
                                             for col in lr_df.columns
                                         ]
                                         
-                                        # DisplaycolumnoforderSettings
-                                        display_cols = ['intarakutionname', 'Ligand', 'Receptor', 'pathway', 'contribution']
+                                        # 表示列の順序設定
+                                        display_cols = ['インタラクション名', 'リガンド', 'レセプター', 'パスウェイ', '寄与度']
                                         display_cols = [col for col in display_cols if col in lr_df.columns]
                                         
-                                        # te-buruDisplay
+                                        # テーブル表示
                                         st.dataframe(lr_df[display_cols])
                                     
                                     except Exception as e:
-                                        st.error(f"LRpairdetailsinfoofgetError: {str(e)}")
+                                        st.error(f"LRペア詳細情報の取得エラー: {str(e)}")
                         else:
-                            st.warning("LRcontributionDataisnot exist")
+                            st.warning("LR寄与度データがありません")
                     else:
-                        st.warning("LRcontributioninfoisuseforwithkimasen")
+                        st.warning("LR寄与度情報が利用できません")
                 
                 with tabs[3]:
-                    st.markdown("#### LRInteractiondotoplot")
+                    st.markdown("#### LR相互作用ドットプロット")
                     
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         source_cells = st.multiselect(
-                            'LigandExpressionCellofSelect:',
+                            'リガンド発現細胞の選択:',
                             cell_list,
                             default=[cell_list[0]] if len(cell_list) > 0 else []
                         )
                     
                     with col2:
                         target_cells = st.multiselect(
-                            'ReceptorExpressionCellofSelect:',
+                            'レセプター発現細胞の選択:',
                             cell_list,
                             default=[cell_list[0]] if len(cell_list) > 0 else []
                         )
@@ -3926,11 +3926,11 @@ if __name__ == "__main__":
                         else:
                             sig_lr_count = len(result['results'])
                             
-                        top_n_dot = st.slider("DisplaydotopuLRpaircount (dotoplot):", 
+                        top_n_dot = st.slider("表示するトップLRペア数 (ドットプロット):", 
                                              min_value=1, 
                                              max_value=min(30, sig_lr_count) if sig_lr_count > 0 else 15, 
                                              value=min(15, sig_lr_count) if sig_lr_count > 0 else 15)
-                        pval_threshold = st.slider("PvalueThreshold:", min_value=0.001, max_value=0.1, value=0.05, step=0.001)
+                        pval_threshold = st.slider("P値閾値:", min_value=0.001, max_value=0.1, value=0.05, step=0.001)
 
                         if st.button("Generate dotplot"):
                             
@@ -3945,25 +3945,25 @@ if __name__ == "__main__":
                                 
                                 st.pyplot(fig_dot)
                                 
-                                # PDFSaveandDownload
+                                # PDF保存とダウンロード
                                 pdf_path = f"{cellchat_temp_dir}/dot_plot.pdf"
                                 fig_dot.savefig(pdf_path, bbox_inches='tight')
                                 
                                 with open(pdf_path, "rb") as pdf_file:
                                     pdf_bytes = pdf_file.read()
                                     st.download_button(
-                                        label="dotoplotPDFtheDownload",
+                                        label="ドットプロットPDFをダウンロード",
                                         data=pdf_bytes,
                                         file_name='cellchat_dot_plot.pdf',
                                         mime='application/octet-stream'
                                     )
                             else:
-                                st.warning("sendsideandreceivesideofCell typetheSelectandplease。")
+                                st.warning("送信側と受信側の細胞タイプを選択してください。")
                     else:
-                        st.warning("Resultinfoisuseforwithkimasen")
+                        st.warning("結果情報が利用できません")
                 
                 with tabs[4]:
-                    st.markdown("#### Networkincenternature")
+                    st.markdown("#### ネットワーク中心性")
                     
                     if 'network' in result and 'network_centrality' in result['network']:
                         from pages.cellchat_vis import plot_network_centrality
@@ -3974,7 +3974,7 @@ if __name__ == "__main__":
                             outgoing = result['network']['outgoing']
                             incoming = result['network']['incoming']
                             
-                            # sendreceiveDatathema-ji
+                            # 送受信データをマージ
                             if isinstance(outgoing, pd.Series) and not outgoing.empty:
 
                                 if st.button("Generate activity plot"):
@@ -4006,7 +4006,7 @@ if __name__ == "__main__":
                                     st.pyplot(fig)
 
 
-                                    # PDFSaveandDownload
+                                    # PDF保存とダウンロード
                                     pdf_path = f"{cellchat_temp_dir}/centrality.pdf"
                                     fig.savefig(pdf_path, bbox_inches='tight')
                                     
@@ -4020,37 +4020,37 @@ if __name__ == "__main__":
                                         )
 
                             else:
-                                st.warning("sendreceiveactivenatureDataisemptywithsu")
+                                st.warning("送受信活性データが空です")
                         else:
-                            st.warning("sendreceiveactivenatureinfoisuseforwithkimasen")
+                            st.warning("送受信活性情報が利用できません")
                     else:
-                        st.warning("Networkincenternatureinfoisuseforwithkimasen")
+                        st.warning("ネットワーク中心性情報が利用できません")
                 
                 with tabs[5]:
-                    st.markdown("#### signalroleratioanalysis")
+                    st.markdown("#### シグナル役割分析")
                     
                     st.info("""
-                    signalroleratioanalysisis、communicationNetworktookerueachCell typeof
-                    sendpersonalsoisreceivepersonandandofcontributededicatedegreeandallbodyalnashadoweffectpowertheshowshimasu。
+                    シグナル役割分析は、通信ネットワークにおける各細胞タイプの
+                    送信者または受信者としての貢献度と全体的な影響力を示します。
                     """)
                     
-                    # UIthe2colormutodivratioanddistributeplace
+                    # UIを2カラムに分割して配置
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # pathwaySelect（Aggregate alsoisspecificpathway）
+                        # パスウェイ選択（Aggregate または特定パスウェイ）
                         if 'netP' in result and 'pathways' in result['netP']:
                             pathways = result['netP']['pathways']
                             selected_path = st.selectbox(
-                                "roleratioanalysisofpathwaytheSelect:",
+                                "役割分析のパスウェイを選択:",
                                 options=["Aggregate"] + sorted(list(pathways)),
                                 index=0
                             )
                         else:
-                            st.warning("Resulttopathwayinfoisnot exist。")
+                            st.warning("結果にパスウェイ情報がありません。")
                             selected_path = "Aggregate"
                         
-                        # XaxisandYaxisofincenternaturepointmarktheSelect
+                        # X軸とY軸の中心性指標を選択
                         measure_options = ["outdeg", "indeg", "outdeg_unweighted", "indeg_unweighted"]
                         if 'netP' in result and 'centr' in result['netP'] and len(result['netP']['centr']) > 0:
                             first_key = 0 if isinstance(result['netP']['centr'], list) else list(result['netP']['centr'].keys())[0]
@@ -4063,20 +4063,20 @@ if __name__ == "__main__":
                                                 index=measure_options.index("indeg") if "indeg" in measure_options else 0)
                     
                     with col2:
-                        # DisplaykasutamaizuOption
-                        do_label = st.checkbox("Cell typelabeltheDisplay", value=True)
-                        dot_alpha = st.slider("pointoftransparentcleardegree:", min_value=0.1, max_value=1.0, value=0.7, step=0.1)
+                        # 表示カスタマイズオプション
+                        do_label = st.checkbox("細胞タイプラベルを表示", value=True)
+                        dot_alpha = st.slider("点の透明度:", min_value=0.1, max_value=1.0, value=0.7, step=0.1)
                         use_count = st.checkbox("Dot size reflects link number", value=True)
                         cell_groups = None
-                    # detailsSettingsforofekusupanda-
+                    # 詳細設定用のエクスパンダー
                     with st.expander("Options"):
-                        label_size = st.slider("labelsize:", min_value=4, max_value=16, value=8)
-                        dot_size_min = st.slider("minimumpointsize:", min_value=1, max_value=10, value=2)
-                        dot_size_max = st.slider("maximumpointsize:", min_value=dot_size_min+1, max_value=20, value=6)
+                        label_size = st.slider("ラベルサイズ:", min_value=4, max_value=16, value=8)
+                        dot_size_min = st.slider("最小点サイズ:", min_value=1, max_value=10, value=2)
+                        dot_size_max = st.slider("最大点サイズ:", min_value=dot_size_min+1, max_value=20, value=6)
                         
-                        # Weight Min/MaxSettings
+                        # Weight Min/Max設定
                         weight_minmax_input = st.text_input(
-                            "Weight MinMax (minimumvalue,maximumvalue):",
+                            "Weight MinMax (最小値,最大値):",
                             value=""
                         )
                         weight_MinMax = None
@@ -4085,26 +4085,26 @@ if __name__ == "__main__":
                                 min_val, max_val = map(float, weight_minmax_input.split(","))
                                 weight_MinMax = (min_val, max_val)
                             except:
-                                st.warning("Weight MinMaxofshapeformatiscorrectshikunot exist。'minimumvalue,maximumvalue'ofshapeformatwithInputandplease。")
+                                st.warning("Weight MinMaxの形式が正しくありません。'最小値,最大値'の形式で入力してください。")
                         
-                        # titleandaxislabel
-                        title = st.text_input("title:", value="Signaling Role Analysis")
-                      #  title=" " #natokaenterreruandplotweightnateviewenakubecomeis、NonedaandgdrawfacewithumakuDisplaysarenot
-                        xlabel = st.text_input("Xaxislabel:", value="Outgoing interaction strength" if x_measure == "outdeg" else x_measure)
-                        ylabel = st.text_input("Yaxislabel:", value="Incoming interaction strength" if y_measure == "indeg" else y_measure)
+                        # タイトルと軸ラベル
+                        title = st.text_input("タイトル:", value="Signaling Role Analysis")
+                      #  title=" " #なにか入れるとplot重なって見えなくなるが、Noneだとg画面でうまく表示されない
+                        xlabel = st.text_input("X軸ラベル:", value="Outgoing interaction strength" if x_measure == "outdeg" else x_measure)
+                        ylabel = st.text_input("Y軸ラベル:", value="Incoming interaction strength" if y_measure == "indeg" else y_measure)
                         role_x = st.slider("Fig width:", min_value=1, max_value=20, value=6)
                         role_y = st.slider("Fig height:", min_value=1, max_value=20, value=4)
                     
-                    # analysisRunbutton
+                    # 分析実行ボタン
                     if st.button("Generate signaling role scatter plot"):
                         with st.spinner("Calculating..."):
                             try:
                                 from pages.cellchat_vis import netAnalysis_signalingRole_scatter
                                 
-                                # pathwayParameterSettings
+                                # パスウェイパラメータ設定
                                 pathway_param = None if selected_path == "Aggregate" else [selected_path]
                                 
-                                # scatter plotthegenerate
+                                # 散布図を生成
                                 fig_role = netAnalysis_signalingRole_scatter(
                                     net=result,
                                     signaling=pathway_param,
@@ -4129,73 +4129,73 @@ if __name__ == "__main__":
                                     sorted_order=sorted_order
                                 )
                                 
-                                # figuretheDisplay
+                                # 図を表示
                                 st.pyplot(fig_role)
                                 
-                                # PDFofSaveandDownloadprovideprovide
+                                # PDFの保存とダウンロード提供
                                 pdf_path = f"{cellchat_temp_dir}/signaling_role_{selected_path}.pdf"
                                 fig_role.savefig(pdf_path, bbox_inches='tight')
                                 
                                 with open(pdf_path, "rb") as pdf_file:
                                     pdf_bytes = pdf_file.read()
                                     st.download_button(
-                                        label="signalroleratioscatter plotthePDFwithDownload",
+                                        label="シグナル役割散布図をPDFでダウンロード",
                                         data=pdf_bytes,
                                         file_name=f'cellchat_signaling_role_{selected_path}.pdf',
                                         mime='application/octet-stream'
                                     )
                             except Exception as e:
-                                st.error(f"signalroleratioscatter plotError: {str(e)}")
-                                st.error(traceback.format_exc())  # tore-subakutheDisplayanddebaguthecontenteasyto
+                                st.error(f"シグナル役割散布図エラー: {str(e)}")
+                                st.error(traceback.format_exc())  # トレースバックを表示してデバッグを容易に
                             
 
                 
                 with tabs[6]:
-                    st.markdown("#### signalcontributededicatedegreeanalysis")
+                    st.markdown("#### シグナル貢献度分析")
                     
                     st.info("""
-                    koofhi-tomapwithis、specificofCellGroupofsendalsoisreceivesignaltomostmocontributegivedosignalPathwaytheshowshimasu。
-                    color-ba-is、CellGroupbetweenofsignalingPathwayofmutualpairalnastrengththetableshimasu（note: valueisrowwaydirectionwithsuke-ringusareteimasu）。
-                    uppartofcolor-ba-plotis、hi-tomaptoDisplaysareruallofsignalingPathwaythematchcountshitaCellGroupoftotalsignalingstrengththeshowshimasu。
-                    rightsideofgure-ba-plotis、hi-tomaptoDisplaysareruallofCellGroupthematchcountshitasignalingPathwayoftotalsignalingstrengththeshowshimasu。
+                    このヒートマップでは、特定の細胞グループの送信または受信シグナルに最も寄与するシグナル経路を示します。
+                    カラーバーは、細胞グループ間のシグナリング経路の相対的な強度を表します（注: 値は行方向でスケーリングされています）。
+                    上部のカラーバープロットは、ヒートマップに表示されるすべてのシグナリング経路を合計した細胞グループの総シグナリング強度を示します。
+                    右側のグレーバープロットは、ヒートマップに表示されるすべての細胞グループを合計したシグナリング経路の総シグナリング強度を示します。
                     """)
                     from pages.cellchat_vis import netAnalysis_signalingRole_heatmap
                     
-                    # pata-nSelect（send/receive）
+                    # パターン選択（送信/受信）
                     pattern = st.radio(
-                        "signalpata-n:",
+                        "シグナルパターン:",
                         ["outgoing", "incoming"],
                         horizontal=True,
-                        help="outgoing: Cellfromofsendsignal, incoming: Cellheofreceivesignal"
+                        help="outgoing: 細胞からの送信シグナル, incoming: 細胞への受信シグナル"
                     )
                     
-                    # signalPathwayofSelect
+                    # シグナル経路の選択
                     if 'netP' in result and 'pathways' in result['netP']:
                         pathway_options = result['netP']['pathways']
                         
                         selection_mode = st.radio(
-                            "signalPathwaySelect:",
-                            ["all", "Select"],
+                            "シグナル経路選択:",
+                            ["すべて", "選択"],
                             horizontal=True
                         )
                         
-                        if selection_mode == "Select":
+                        if selection_mode == "選択":
                             selected_pathways = st.multiselect(
-                                "analysisdoPathway:",
+                                "分析する経路:",
                                 options=sorted(pathway_options),
                                 default=sorted(pathway_options)[:min(5, len(pathway_options))],
-                                help="analysisdospecificofsignalPathwaytheSelectandplease。"
+                                help="分析する特定のシグナル経路を選択してください。"
                             )
                             signaling_param = selected_pathways if selected_pathways else None
                         else:
-                            signaling_param = None  # allofPathwaytheanalysis
-                            st.info(f"allofPathwaytheanalysisshimasu ({len(pathway_options)}pieceofPathway)")
+                            signaling_param = None  # すべての経路を分析
+                            st.info(f"すべての経路を分析します ({len(pathway_options)}個の経路)")
                     else:
-                        st.warning("Resulttopathwayinfoisnot exist。")
+                        st.warning("結果にパスウェイ情報がありません。")
                         signaling_param = None
                     
-                    # VisualizationSettings
-                    with st.expander("VisualizationSettings"):
+                    # 可視化設定
+                    with st.expander("可視化設定"):
                         col1, col2 = st.columns(2)
                         
                         with col1:
@@ -4204,45 +4204,45 @@ if __name__ == "__main__":
                             display_numbers = st.checkbox(
                                 "Show values in heatmap",
                                 value=False,
-                                help="hi-tomapofserutocountvaluetheDisplayshimasu"
+                                help="ヒートマップのセルに数値を表示します"
                             )
                         
                         with col2:
                             cluster_rows = st.checkbox(
-                                "rowthekurasutaringu",
+                                "行をクラスタリング",
                                 value=True,
-                                help="floorlayeralkurasutaringutheuseandrowthearrangereasonshimasu"
+                                help="階層的クラスタリングを使用して行を整理します"
                             )
                             
                             cluster_cols = st.checkbox(
-                                "columnthekurasutaringu",
+                                "列をクラスタリング",
                                 value=False,
-                                help="floorlayeralkurasutaringutheuseandcolumnthearrangereasonshimasu"
+                                help="階層的クラスタリングを使用して列を整理します"
                             )
                         
                         thresh = st.slider(
-                            "SignificantnatureThreshold:",
+                            "有意性閾値:",
                             min_value=0.01,
                             max_value=0.5,
                             value=0.05,
                             step=0.01,
-                            help="SignificantandminasuInteractionofpvalueThreshold"
+                            help="有意とみなす相互作用のp値閾値"
                         )
                         
                         title = st.text_input(
-                            "kasutamutitle:",
+                            "カスタムタイトル:",
                             value="",
-                            help="figureofkasutamutitle（emptywhiteofcaseisselfmovegenerate）"
+                            help="図のカスタムタイトル（空白の場合は自動生成）"
                         )
                         
-                        width = st.slider("figureofwidth:", min_value=6, max_value=15, value=10, step=1)
-                        height = st.slider("figureofhighsa:", min_value=4, max_value=12, value=8, step=1)
+                        width = st.slider("図の幅:", min_value=6, max_value=15, value=10, step=1)
+                        height = st.slider("図の高さ:", min_value=4, max_value=12, value=8, step=1)
                     
-                    # hi-tomapgeneratebutton
-                    if st.button("signalcontributededicatedegreehi-tomapthegenerate"):
-                        with st.spinner("hi-tomapthegeneratein..."):
+                    # ヒートマップ生成ボタン
+                    if st.button("シグナル貢献度ヒートマップを生成"):
+                        with st.spinner("ヒートマップを生成中..."):
                             try:
-                                # hi-tomapgenerate
+                                # ヒートマップ生成
                                 # Generate the heatmap
                                 fig_heatmap = netAnalysis_signalingRole_heatmap(
                                     net=result,
@@ -4263,10 +4263,10 @@ if __name__ == "__main__":
                                     targets_use=targets_use
                                 )
                                 
-                                # figuretheDisplay
+                                # 図を表示
                                 st.pyplot(fig_heatmap)
                                 
-                                # PDFandandSave,Downloadprovideprovide
+                                # PDFとして保存・ダウンロード提供
                                 pathway_str = "all_pathways" if signaling_param is None else "_".join(signaling_param[:3]) + (f"_plus{len(signaling_param)-3}" if len(signaling_param) > 3 else "")
                                 pdf_path = f"{cellchat_temp_dir}/signaling_role_heatmap_{pattern}_{pathway_str}.pdf"
                                 fig_heatmap.savefig(pdf_path, bbox_inches='tight')
@@ -4274,27 +4274,27 @@ if __name__ == "__main__":
                                 with open(pdf_path, "rb") as pdf_file:
                                     pdf_bytes = pdf_file.read()
                                     st.download_button(
-                                        label="signalcontributededicatedegreehi-tomapthePDFwithDownload",
+                                        label="シグナル貢献度ヒートマップをPDFでダウンロード",
                                         data=pdf_bytes,
                                         file_name=f'cellchat_signaling_role_heatmap_{pattern}_{pathway_str}.pdf',
                                         mime='application/octet-stream'
                                     )
                             
                             except Exception as e:
-                                st.error(f"hi-tomapofgenerateintoErrorisoccurred: {str(e)}")
+                                st.error(f"ヒートマップの生成中にエラーが発生しました: {str(e)}")
                                 st.error(traceback.format_exc())
 
                 with tabs[7]:
                     st.markdown("#### Network circle plot")
                     
-                    # signalSelect（Aggregate andeachpathway）
+                    # シグナル選択（Aggregate と各パスウェイ）
                     if 'netP' in result and 'pathways' in result['netP']:
 
 
                         col1, col2 = st.columns(2)
 
                         with col1:
-                            # Selectlimb: "Aggregate" alsois pieceseppathwayofmulticountSelect
+                            # 選択肢: "Aggregate" または 個別パスウェイの複数選択
                             option_type = st.radio(
                                 "Pathway type:",
                                 ["Aggregate", "Specific pathways"],
@@ -4303,7 +4303,7 @@ if __name__ == "__main__":
                             
                             if option_type == "Aggregate":
                                 selected_pathway = "Aggregate"
-                                # Interaction measure theSelectdorajiobutton
+                                # Interaction measure を選択するラジオボタン
                                 aggregate_measure = st.radio(
                                     "Select measure:",
                                     ["Interaction Weight", "Interaction Number"],
@@ -4311,15 +4311,15 @@ if __name__ == "__main__":
                                 )
                                 measure_key = "weight" if aggregate_measure == "Interaction Weight" else "count"
                             else:
-                                # multicountofpathwaytheSelectpossibletodo
+                                # 複数のパスウェイを選択可能にする
                                 pathways = list(result['netP']['pathways'])
                                 selected_pathways = st.multiselect(
                                     "Select pathways (selected pathways are summed):",
                                     sorted(pathways),
                                     default=[pathways[0]] if pathways else []
                                 )
-                                selected_pathway = selected_pathways  # listandandtransfersu
-                                measure_key = "weight"  # specificpathwaywithisnormaltoweight
+                                selected_pathway = selected_pathways  # リストとして渡す
+                                measure_key = "weight"  # 特定パスウェイでは常にweight
                             circle_type = st.radio(
                                     "Circle plot type:",
                                     ["Total network", "Individual cell-type"],
@@ -4327,20 +4327,20 @@ if __name__ == "__main__":
                                 )
 
                         with col2:
-                            # DisplaykasutamaizuOption
+                            # 表示カスタマイズオプション
                             edge_width_max = st.slider("Max edge width:", min_value=1, max_value=20, value=8, step=1)
                             circle_alpha_edge = st.slider("Edge transparency:", min_value=0.1, max_value=1.0, value=0.6, step=0.1)
                             vertex_size_max= st.slider("Max node size:", min_value=1, max_value=15, value=6, step=1)
                             show_vertex = st.checkbox("Node size reflects the number of cells", value=False)
 
                     else:
-                        st.warning("pathwayinfoisuseforwithkimasen")
+                        st.warning("パスウェイ情報が利用できません")
                         selected_pathway = None
                         measure_key = "weight"
 
 
                     
-                    # requiredtorespondjite vertex_weight moget（Example：result['adata'].obs fromeachCellofcount）
+                    # 必要に応じて vertex_weight も取得（例：result['adata'].obs から各細胞の数）
                     vertex_weight = None
                     if hasattr(result['adata'].obs, 'value_counts') and show_vertex:
                         try:
@@ -4349,7 +4349,7 @@ if __name__ == "__main__":
                             vertex_weight = [cell_counts.get(ct, 1) for ct in result['net']['dimnames'][0]]
                           #  st.write(vertex_weight)
                         except Exception as e:
-                            st.warning(f"vertex_weight ofgettolosefailshimashita: {str(e)}")
+                            st.warning(f"vertex_weight の取得に失敗しました: {str(e)}")
 
                     if st.button("Generate circle plot"):
                         if option_type == "Specific pathways" and (not selected_pathways or len(selected_pathways) == 0):
@@ -4357,9 +4357,9 @@ if __name__ == "__main__":
                         else:
                             try:
                                 if option_type == "Aggregate":
-                                    # aggregateNetworkofcase
+                                    # 集計ネットワークの場合
                                     title = f"Cell-Cell {aggregate_measure}"
-                                    with st.spinner("aggregatesa-kuruplotthegeneratein..."):
+                                    with st.spinner("集計サークルプロットを生成中..."):
                                         if circle_type == "Total network":
                                             fig_circle = netVisual_circle(
                                                 net=result,
@@ -4371,7 +4371,7 @@ if __name__ == "__main__":
                                                 alpha_edge=circle_alpha_edge,
                                                 vertex_weight=vertex_weight,
                                                 vertex_size_max=vertex_size_max,
-                                                color_use=st.session_state.get('cell_color_map', None),  # colormapingutheadd
+                                                color_use=st.session_state.get('cell_color_map', None),  # 色マッピングを追加
                                                 sources_use=sources_use,
                                                 targets_use=targets_use
                                             )
@@ -4390,7 +4390,7 @@ if __name__ == "__main__":
                                                 color_use=st.session_state.get('cell_color_map', None) 
                                             )
                                 else:
-                                    # piecesepsignalalsoismulticountsignalofcase
+                                    # 個別シグナルまたは複数シグナルの場合
                                     if len(selected_pathways) == 1:
                                         title = f"Cell-Cell Interaction: {selected_pathways[0]}"
                                     else:
@@ -4399,13 +4399,13 @@ if __name__ == "__main__":
                                         else:
                                             title = f"Combined {len(selected_pathways)} Pathways"
                                     
-                                    with st.spinner(f"sa-kuruplotthegeneratein... ({title})"):
+                                    with st.spinner(f"サークルプロットを生成中... ({title})"):
                                         if circle_type == "Total network":
                                             fig_circle = netVisual_circle(
                                                 net=result,
                                                 title_name=title,
                                                 pathway_name=selected_pathway,
-                                                measure="weight",  # piecesepofcaseispassnormal weight theuse
+                                                measure="weight",  # 個別の場合は通常 weight を使用
                                                 cmap_name=cmap_name,
                                                 edge_width_max=edge_width_max,
                                                 sorted_order=sorted_order,
@@ -4421,7 +4421,7 @@ if __name__ == "__main__":
                                             fig_circle = netVisual_circle_individual(
                                                 net=result,
                                                 pathway_name=selected_pathway,
-                                                measure="weight",  # piecesepofcaseispassnormal weight theuse
+                                                measure="weight",  # 個別の場合は通常 weight を使用
                                                 title_name=title,
                                                 cmap_name=cmap_name,
                                                 edge_width_max=edge_width_max,
@@ -4434,17 +4434,17 @@ if __name__ == "__main__":
                                             )
                                 st.pyplot(fig_circle)
                                 
-                                # PDF Save,Download
+                                # PDF 保存・ダウンロード
                                 import io
                                 pdf_buffer = io.BytesIO()
                                 fig_circle.savefig(pdf_buffer, format="pdf", bbox_inches='tight')
                                 pdf_data = pdf_buffer.getvalue()
                                 
-                                # FilenameofSettings
+                                # ファイル名の設定
                                 if option_type == "Aggregate":
                                     filename = 'cellchat_circle_aggregate.pdf'
                                 else:
-                                    # multicountpathwayofcaseispathwaycounttheDisplay
+                                    # 複数パスウェイの場合はパスウェイ数を表示
                                     if len(selected_pathway) <= 2:
                                         pathway_str = '_'.join(selected_pathway)
                                     else:
@@ -4458,20 +4458,20 @@ if __name__ == "__main__":
                                     mime='application/octet-stream'
                                 )
                             except Exception as e:
-                                st.error(f"sa-kuruplotgenerateError: {str(e)}")
+                                st.error(f"サークルプロット生成エラー: {str(e)}")
                                 import traceback
                                 st.error(traceback.format_exc())
 
 
                 with tabs[8]:
-                    st.markdown("#### signalroleratioanalysis")
+                    st.markdown("#### シグナル役割分析")
                     
                     st.info("""
-                    signalroleratioanalysisis、communicationNetworktookerueachCell typeof
-                    sendperson(Sender)、receiveperson(Receiver)、relationmediateperson(Mediator)、shadoweffectperson(Influencer)andandofroleratiotheshowshimasu。
-                    hi-tomapofcoloriseachCell typeofmutualpairalnaweightneeddegreethetableandimasu（eachrowwithmaximumvaluethe1toNormalization）。
+                    シグナル役割分析は、通信ネットワークにおける各細胞タイプの
+                    送信者(Sender)、受信者(Receiver)、仲介者(Mediator)、影響者(Influencer)としての役割を示します。
+                    ヒートマップの色は各細胞タイプの相対的な重要度を表しています（各行で最大値を1に正規化）。
                     """)
-                    # 2colormutodivkeru
+                    # 2カラムに分ける
                     col1, col2 = st.columns(2)
                     
                     with col1:
@@ -4482,7 +4482,7 @@ if __name__ == "__main__":
                                 options=["Aggregate"] + sorted(list(pathways)),
                                 index=0
                             )
-                                                    # debagufortodetailstheOutput
+                                                    # デバッグ用に詳細を出力
                             print("Pathways:", pathways)
                             print("Pathways type:", type(pathways))
                             print("Pathways length:", len(pathways))
@@ -4491,7 +4491,7 @@ if __name__ == "__main__":
                     with col2:
                         font_size = st.slider("Font size:", min_value=8, max_value=14, value=10)
                     
-                        # hi-tomapofsizeSettings
+                        # ヒートマップのサイズ設定
                         width = st.slider("Fig width:", min_value=6, max_value=15, value=10)
                         height = st.slider("Fig height:", min_value=1.0, max_value=8.0, value=3.0, step=0.5)
 
@@ -4503,29 +4503,29 @@ if __name__ == "__main__":
                             try:
                                 from pages.cellchat_vis import netAnalysis_signalingRole_network
                                 
-                                # roleratioanalysisofRun
+                                # 役割分析の実行
                                 fig_role = netAnalysis_signalingRole_network(
-                                    result,  # obujiekutoallbodythetransfersu
+                                    result,  # オブジェクト全体を渡す
                                     signaling=selected_path,
                                     font_size=font_size,
                                     width=width,
                                     height=height,
                                     color_heatmap=color_heatmap,
-                                    sorted_order=sorted_order,  # Cellorderofpointset
+                                    sorted_order=sorted_order,  # 細胞順序の指定
                                     show_value=show_value_role,
                                     cmap_name=cmap_name,
                                     hide_color_bar=hide_color_bar,
                                     color_use=st.session_state.get('cell_color_map', None)
                                 )
                                 
-                                # figuretheDisplay
+                                # 図を表示
                                 st.pyplot(fig_role)
                                 
-                                # PDFandandSave
+                                # PDFとして保存
                                 pdf_path = f"{cellchat_temp_dir}/signaling_role_{selected_path}.pdf"
                                 fig_role.savefig(pdf_path, bbox_inches='tight')
                                 
-                                # PDFDownloadbuttontheprovideprovide
+                                # PDFダウンロードボタンを提供
                                 with open(pdf_path, "rb") as pdf_file:
                                     pdf_bytes = pdf_file.read()
                                     st.download_button(
@@ -4536,15 +4536,15 @@ if __name__ == "__main__":
                                     )
                                     
                             except Exception as e:
-                                st.error(f"signalroleratioanalysisError: {str(e)}")
+                                st.error(f"シグナル役割分析エラー: {str(e)}")
                                 st.error(traceback.format_exc())
 
                 # Add the Gene Expression Analysis tab
                 with tabs[9]:
-                    st.markdown("#### GeneExpressionanalysis")
+                    st.markdown("#### 遺伝子発現分析")
                                     
                     st.info("""
-                    specificofsignalingpathwaytorelatedwaruGeneofExpressiontheCell typebetweenwithVisualizationshimasu。
+                    特定のシグナリングパスウェイに関わる遺伝子の発現を細胞タイプ間で可視化します。
                     """)
 
                     if 'cellchatdb' not in locals() or cellchatdb is None:
@@ -4552,15 +4552,15 @@ if __name__ == "__main__":
                         species_index = check_species_index(gene_list)
                         species = 'human' if species_index == 1 else 'mouse'
                         try:
-                            with st.spinner(f'{species} CellChatDBthegetin...'):
+                            with st.spinner(f'{species} CellChatDBを取得中...'):
                                 cellchatdb = get_cellchatdb_from_r(species=species)
-                                st.success(f"{species} CellChatDBthecorrectnormaltogetshimashita")
+                                st.success(f"{species} CellChatDBを正常に取得しました")
                         except Exception as e:
-                            st.error(f"CellChatDBofgetintoErrorisoccurred: {str(e)}")
+                            st.error(f"CellChatDBの取得中にエラーが発生しました: {str(e)}")
                             cellchatdb = None
 
 
-                    # pathwaySelect（Aggregate alsoisspecificpathway）
+                    # パスウェイ選択（Aggregate または特定パスウェイ）
                     if ('netP' in result) and ('pathways' in result['netP']):
                         pathways = result['netP']['pathways']
                         selected_path_expr = st.selectbox(
@@ -4569,19 +4569,19 @@ if __name__ == "__main__":
                             index=0
                         )
                       
-                        if st.button("GeneExpressiontheanalysis"):
+                        if st.button("遺伝子発現を分析"):
                             from pages.cellchat_vis import plotGeneExpression
-                            with st.spinner("GeneExpressiontheanalysisin..."):
-                                # adataisexistatshinotcaseisWarningtheDisplayandprocesstheincut
+                            with st.spinner("遺伝子発現を分析中..."):
+                                # adataが存在しない場合は警告を表示して処理を中断
                                 if 'adata' not in result or result['adata'] is None:
-                                    st.warning("AnnDataisreadmiintomareteimasen。")
+                                    st.warning("AnnDataが読み込まれていません。")
                                 else:
                                     try:
                                         fig_expr = plotGeneExpression(
                                             result,
                                             signaling=selected_path_expr,
                                           #  adata=adata,
-                                            cellchatdb=cellchatdb,  # CellChatDBthetransfersu
+                                            cellchatdb=cellchatdb,  # CellChatDBを渡す
                                             group_by=groupby,
                                             cmap_name=cmap_name
                                         )
@@ -4595,37 +4595,37 @@ if __name__ == "__main__":
                                         with open(pdf_path, "rb") as pdf_file:
                                             pdf_bytes = pdf_file.read()
                                             st.download_button(
-                                                label="GeneExpressionanalysisPDFtheDownload",
+                                                label="遺伝子発現分析PDFをダウンロード",
                                                 data=pdf_bytes,
                                                 file_name=f'cellchat_gene_expression_{selected_path_expr}.pdf',
                                                 mime='application/octet-stream'
                                             )
                                     except Exception as e:
-                                        st.error(f"GeneExpressionanalysisError: {str(e)}")
+                                        st.error(f"遺伝子発現分析エラー: {str(e)}")
                     else:
-                        st.warning("Resulttopathwayinfoisnot exist。")
+                        st.warning("結果にパスウェイ情報がありません。")
                 
-                # Visualizationsekutionofmostafter、AnalysistheagainRunbuttonofdirectbeforetoorbelowtheadd:
+                # 可視化セクションの最後、解析を再実行ボタンの直前に以下を追加:
                 st.markdown("---")
 
-                # AnalysisResultofSavebutton
+                # 解析結果の保存ボタン
                 if st.session_state.get('cellchat_res') is not None:
                     if st.button('Prepare CellChat analysis result to download'):
                         try:
-                            # Filenameofcreate
+                            # ファイル名の作成
                             if uploaded_file:
                                 base_filename = sanitize_filename(uploaded_file.name, 20)
                             else:
                                 base_filename = "cellchat_result"
                             
-                            # signaltaiputextcharcolumnofcreate
+                            # シグナルタイプ文字列の作成
                             signal_str = "_".join([s[:3] for s in selected_types])
                             
-                            # SaveforDatathelevelprepare
+                            # 保存用データを準備
                             import pickle
                             output = pickle.dumps(st.session_state.get('cellchat_res'))
                             
-                            # DownloadbuttontheDisplay
+                            # ダウンロードボタンを表示
                             st.download_button(
                                 label="Download the result file",
                                 data=output,
@@ -4633,9 +4633,9 @@ if __name__ == "__main__":
                                 mime="application/octet-stream"
                             )
                             
-                            st.success("AnalysisResulttheSaveshimashita。Downloaddotoisbuttonthekurikuandplease。")
+                            st.success("解析結果を保存しました。ダウンロードするにはボタンをクリックしてください。")
                         except Exception as e:
-                            st.error(f"SaveintoErrorisoccurred: {str(e)}")
+                            st.error(f"保存中にエラーが発生しました: {str(e)}")
 
 
                 if st.button('Rerun analysis'):
@@ -4643,5 +4643,5 @@ if __name__ == "__main__":
                     st.rerun()
 
     else:
-        st.info("h5adFilekapklFiletheUploadandstartandplease。h5adisAnalysisfor、pkisDisplayfor。")
+        st.info("h5adファイルかpklファイルをアップロードして開始してください。h5adは解析用、pkは表示用。")
     

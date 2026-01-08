@@ -22,16 +22,16 @@ st.set_page_config(page_title="RNA Velocity Data Filtering", page_icon="🚀", l
 
 st.title("🚀 RNA Velocity Data Filtering")
 st.markdown("""
-koofapuriwithis、velocytowithgenbecomesaretaloomFiletheh5adFileofCelltobaseduiteFilteringshi、
-multinumofloomFilethema-jiwithkimasu。
+このアプリでは、velocytoで生成されたloomファイルをh5adファイルの細胞に基づいてフィルタリングし、
+複数のloomファイルをマージできます。
 
-### wa-kufuro-
-1. **h5adFileLoading**: CellofmetaDatatheincludemuanndatashapeformatofFile
-2. **IdentitySelect**: loomFiletopairresponddoSample/GroupofinfoinfotheholdtsumetaDatacoltheSelect
-3. **LoomFileUpload**: velocytowithgenbecomesaretaloomFile（multinumcan）
-4. **Groupratioricurrentte**: eachloomFileisdoofGrouptopairresponddokaSelect
-5. **Filtering＆ma-ji**: barcodetobaseduiteCelltheFilteringshi、multinumFilethema-ji
-6. **Download**: FilteringafterofloomFiletheDownload
+### ワークフロー
+1. **h5adファイル読み込み**: 細胞のメタデータを含むanndata形式のファイル
+2. **Identity選択**: loomファイルに対応するサンプル/グループの情報を持つメタデータ列を選択
+3. **Loomファイルアップロード**: velocytoで生成されたloomファイル（複数可）
+4. **グループ割り当て**: 各loomファイルがどのグループに対応するか選択
+5. **フィルタリング＆マージ**: barcodeに基づいて細胞をフィルタリングし、複数ファイルをマージ
+6. **ダウンロード**: フィルタリング後のloomファイルをダウンロード
 """)
 
 # Initialize session state
@@ -377,11 +377,11 @@ if uploaded_h5ad is not None:
     use_all_cells = st.checkbox(
         "**Use all cells (no grouping)**",
         value=False,
-        help="allofCelltheone包withmachingushimasu。multinumofloomFileisexistplacematch、allthesameh5adCellsetotopairshitemachingushimasu。"
+        help="すべての細胞を一括でマッチングします。複数のloomファイルがある場合、すべてを同じh5ad細胞セットに対してマッチングします。"
     )
 
     if use_all_cells:
-        st.info("ℹ️ allofh5adCellismachingupairobjtonarimasu。Groupdivratioisrowimasen。")
+        st.info("ℹ️ すべてのh5ad細胞がマッチング対象になります。グループ分割は行いません。")
 
         # Set up for all cells mode
         st.session_state.use_all_cells = True
@@ -397,8 +397,8 @@ if uploaded_h5ad is not None:
 
         with st.form("identity_form"):
             st.markdown("""
-            loomFiletopairresponddoSampleyaGroupofinfoinfotheholdtsumetaDatacoltheSelectshitekudasai。
-            Example: `sample`, `patient`, `condition` etc
+            loomファイルに対応するサンプルやグループの情報を持つメタデータ列を選択してください。
+            例: `sample`, `patient`, `condition` など
             """)
 
             # Set default to 'orig.ident' if it exists
@@ -410,7 +410,7 @@ if uploaded_h5ad is not None:
                 "Identity column:",
                 metadata_cols,
                 index=default_index,
-                help="eachloomFiletopairresponddoGroupinfoinfotheholdtsucol"
+                help="各loomファイルに対応するグループ情報を持つ列"
             )
 
             submit_identity = st.form_submit_button("Confirm identity column")
@@ -453,7 +453,7 @@ if uploaded_h5ad is not None:
             type=['loom'],
             accept_multiple_files=True,
             key="loom_upload",
-            help="velocytowithgenbecomesaretaloomFilethe1tsuorupUpload"
+            help="velocytoで生成されたloomファイルを1つ以上アップロード"
         )
 
         if uploaded_looms:
@@ -465,13 +465,13 @@ if uploaded_h5ad is not None:
             if use_all_cells:
                 # In "all cells" mode, assign all loom files to "all" group
                 st.header("Step 4: Group assignment (skipped)")
-                st.info("ℹ️ allCellmo-dooffor、Groupratioricurrenttethesukipushimasu。allofloomFileissameh5adCellsetotopairshitemachingusaremasu。")
+                st.info("ℹ️ 全細胞モードのため、グループ割り当てをスキップします。すべてのloomファイルが同じh5ad細胞セットに対してマッチングされます。")
 
                 loom_to_group = {loom_file.name: "all" for loom_file in uploaded_looms}
                 st.session_state.loom_to_group = loom_to_group
 
                 # Show files to be processed
-                st.write("**procprocpairobjFile:**")
+                st.write("**処理対象ファイル:**")
                 for loom_name in loom_to_group.keys():
                     st.write(f"- {loom_name}")
 
@@ -480,7 +480,7 @@ if uploaded_h5ad is not None:
 
                 with st.form("loom_assignment_form"):
                     st.markdown("""
-                    eachloomFileisdoofGrouptopairresponddokaSelectshitekudasai。
+                    各loomファイルがどのグループに対応するか選択してください。
                     """)
 
                     loom_to_group = {}
@@ -640,12 +640,12 @@ if uploaded_h5ad is not None:
                     )
 
                     st.info("""
-                    ### nextofsutepu
+                    ### 次のステップ
 
-                    koofFilteringsaretaloomFileandh5adFiletheuseuseshite、
-                    RNA velocityAnalysistheRunwithkimasu（Example: scVelo）。
+                    このフィルタリングされたloomファイルとh5adファイルを使用して、
+                    RNA velocity解析を実行できます（例: scVelo）。
 
-                    PythonwithofuseuseExample:
+                    Pythonでの使用例:
                     ```python
                     import scvelo as scv
                     import scanpy as sc
@@ -667,4 +667,4 @@ if uploaded_h5ad is not None:
                     """)
 
 else:
-    st.info("👆 h5adFiletheUploadshitestartshitekudasai")
+    st.info("👆 h5adファイルをアップロードして開始してください")

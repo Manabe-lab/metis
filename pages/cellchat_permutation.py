@@ -45,7 +45,7 @@ logger.disabled = True
 #import warnings
 #warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
 
-# GPUinitializeuserelnum：gpu_precision is True nara float64、False nara float32 anddo
+# GPU初期化用関数：gpu_precision が True なら float64、False なら float32 とする
 def init_gpu(use_gpu, gpu_precision):
     has_gpu = False
     cp = None
@@ -54,7 +54,7 @@ def init_gpu(use_gpu, gpu_precision):
         try:
             import cupy as cp
             has_gpu = True
-            # gpu_precision is True nara float64、False nara float32
+            # gpu_precision が True なら float64、False なら float32
             gpu_dtype = cp.float64 if gpu_precision else cp.float32
             st.write("GPU available for permutation testing")
         except (ImportError, ModuleNotFoundError):
@@ -64,7 +64,7 @@ def init_gpu(use_gpu, gpu_precision):
     return use_gpu, has_gpu, cp, gpu_dtype
 
 
-# meinofpa-miyute-shiyontesutorelnum
+# メインのパーミュテーションテスト関数
 def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
                         gene_use,
                         complex_input,
@@ -73,11 +73,11 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
                         cell_types, n_perm=100, n_jobs=4, 
                         use_gpu=False, gpu_precision=True, hybrid_mode=True, do_every_deg=True,
                         union_mode="individual",feature_list_g1=None, feature_list_g2=None, r_patcher=False, **kwargs):
-    # GPUinitialize：gpu_precision is bool type
+    # GPU初期化：gpu_precision は bool 型
     use_gpu, has_gpu, cp, gpu_dtype = init_gpu(use_gpu, gpu_precision)
 
 
-    # ２tsuofAnnDatatheresultmatchshi、Groupraberuthemakebecome
+    # ２つのAnnDataを結合し、グループラベルを作成
     adata_combined = adata1_filtered.concatenate(adata2)
     group_labels = np.zeros(adata_combined.n_obs)
     group_labels[:adata1_filtered.n_obs] = 0  # Group 1
@@ -85,10 +85,10 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
 
 
 
-    # realoccofAnalysis（realData）ofRun
+    # 実際の解析（実データ）の実行
     st.write("Calculating actual difference between groups...")
     with st.spinner("Running CellChat analysis for Group 1"):
-        if feature_list_g1 is not None: #moshido_every_degofplacematch
+        if feature_list_g1 is not None: #もしdo_every_degの場合
             kwargs["features"] = feature_list_g1
         result1 = cellchat_minimal_analysis_optimized(
             adata1_filtered, groupby=groupby,
@@ -113,7 +113,7 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
         )
     actual_diff = calculate_actual_diff(result1, result2, cell_types)
 
-    # pa-miyute-shiyongenbecome：orijinaruofrealinstall
+    # パーミュテーション生成：オリジナルの実装
     if use_gpu and has_gpu:
         try:
             permutation_gpu = cp.stack([cp.random.permutation(adata_combined.n_obs) for _ in range(n_perm)], axis=1)
@@ -125,13 +125,13 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
     else:
         permutation = np.array([np.random.permutation(adata_combined.n_obs) for _ in range(n_perm)]).T
 
-    # bachiprocprocofSettings
+    # バッチ処理の設定
     batch_size = determine_optimal_batch_size(n_perm, n_jobs)
     num_batches = (n_perm + batch_size - 1) // batch_size
     st.write(f"Running {n_perm} permutations in {num_batches} batches using {n_jobs} cores...")
     st.write(f"Batch size: {batch_size} permutations per batch")
 
-    # progprogDisplayusepure-suhoruda-
+    # 進捗表示用プレースホルダー
     batch_progress_placeholder = st.empty()
     overall_progress_bar = st.progress(0)
     batch_progress_bar = st.progress(0)
@@ -140,7 +140,7 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
     valid_results_count = 0
     start_time = time.time()
 
-    # eachbachigoandtoaligncolprocprocwithpa-miyute-shiyonAnalysistheRun
+    # 各バッチごとに並列処理でパーミュテーション解析を実行
     for batch_idx in range(num_batches):
         start_idx = batch_idx * batch_size
         end_idx = min((batch_idx + 1) * batch_size, n_perm)
@@ -167,7 +167,7 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
                 kwargs=kwargs
             ) for i in range(batch_count)
         )
-        # bachiResultthefuratoize
+        # バッチ結果をフラット化
         flattened_results = [result for sublist in batch_results for result in sublist if result is not None]
         valid_results_count += len(flattened_results)
         permutation_results.extend(flattened_results)
@@ -202,7 +202,7 @@ def run_permutation_cellchat(adata1_filtered, adata2_filtered, groupby,
         "result2": result2
     }
 
-# bachigoandtopa-miyute-shiyonAnalysistheRundorelnum
+# バッチごとにパーミュテーション解析を実行する関数
 def run_permutation_batch_gpu(
     batch_idx, start_idx, end_idx,
     adata_combined,
@@ -237,7 +237,7 @@ def run_permutation_batch_gpu(
             pid = os.getpid()
             print(f"[Batch {batch_idx}, Permutation {i}] Starting in process {pid}")
 
-            # (1) pa-miyute-shiyonwithdivratio
+            # (1) パーミュテーションで分割
             permuted_indices = permutation[:, i]
             permuted_labels = group_labels[permuted_indices]
             mask1 = (permuted_labels == 0)
@@ -245,15 +245,15 @@ def run_permutation_batch_gpu(
             adata_perm1 = adata_combined[mask1].copy()
             adata_perm2 = adata_combined[mask2].copy()
 
-            # (2) do_every_deg=Truenara、DEGCalculation → Genesetodetset
-            #     soofafter cellchat_minimal_analysis_optimized to features=... thepointsetshitecallbu
-            #     do_every_deg=False nara、outpartkwargsof features thesoofmamaor None andshiteAnalysis
-            if do_every_deg: #manydiv、notneed　iterrireturnshi
-                # moshioutpartwith 'features' istransfersareteitemonoviewdo
+            # (2) do_every_deg=Trueなら、DEG計算 → 遺伝子セット決定
+            #     その後 cellchat_minimal_analysis_optimized に features=... を指定して呼ぶ
+            #     do_every_deg=False なら、外部kwargsの features をそのままor None として解析
+            if do_every_deg: #多分、不要　繰り返し
+                # もし外部で 'features' が渡されていても無視する
                 if "features" in kwargs:
                     del kwargs["features"]
 
-                # DEG Calculation
+                # DEG 計算
                 deg_res1 = identify_overexpressed_genes(adata_perm1, group_by=groupby, **deg_params)
                 deg_res2 = identify_overexpressed_genes(adata_perm2, group_by=groupby, **deg_params)
 
@@ -265,13 +265,13 @@ def run_permutation_batch_gpu(
                 elif union_mode == "intersection":
                     final_feats_1 = final_feats_2 = feats1.intersection(feats2)
                 elif union_mode == "individual":
-                    # sorezoresep々toAnalysisdo
+                    # それぞれ別々に解析する
                     final_feats_1 = feats1
                     final_feats_2 = feats2
                 else:
                     raise ValueError(f"Invalid union_mode: {union_mode}")
                 
-                # kokowith GPU rojikuthejudgesetshitsutsu、1timedakecallbu
+                # ここで GPU ロジックを判定しつつ、1回だけ呼ぶ
                 use_gpu_now = (use_gpu and has_gpu)
                 cellchat_res1 = cellchat_minimal_analysis_optimized(
                     adata_perm1,
@@ -300,7 +300,7 @@ def run_permutation_batch_gpu(
                     **kwargs
                 )
             else:
-                # do_every_deg=False ofplacematch、features isoutpartkwargs 任se（None naraallGene）
+                # do_every_deg=False の場合、features は外部kwargs 任せ（None なら全遺伝子）
                 use_gpu_now = (use_gpu and has_gpu)
                 cellchat_res1 = cellchat_minimal_analysis_optimized(
                     adata_perm1,
@@ -328,15 +328,15 @@ def run_permutation_batch_gpu(
                     **kwargs
                 )
 
-            # (3) diffdivCalculation
+            # (3) 差分計算
             print(f"[Batch {batch_idx}, Permutation {i}] Calculating differences in process {pid}")
             perm_diff = calculate_actual_diff(cellchat_res1, cellchat_res2, cell_types)
             print(f"[Batch {batch_idx}, Permutation {i}] Completed in process {pid}")
 
-            # (4) Resulttheaddadd
+            # (4) 結果を追加
             batch_results.append(perm_diff)
 
-            # GPUmemorisolverel
+            # GPUメモリ解放
             if use_gpu and has_gpu:
                 cp.get_default_memory_pool().free_all_blocks()
 
@@ -354,7 +354,7 @@ def run_permutation_batch_gpu(
 def cellchat_minimal_analysis_optimized(
     adata,
     groupby,
-    gene_use, #koreisLR genesofinfoinfo
+    gene_use, #これはLR genesの情報
     complex_input,
     cofactor_input,
     resource,
@@ -395,7 +395,7 @@ def cellchat_minimal_analysis_optimized(
         CellChatDB dictionary
     use_layer : str, optional
         Data layer to use
-    [otherofalreadyexistParameter]
+    [他の既存パラメータ]
     use_gpu : bool, optional
         Whether to use GPU acceleration. Default is True
     gpu_precision : str, optional
@@ -417,7 +417,7 @@ def cellchat_minimal_analysis_optimized(
     logger = logging.getLogger("CellChat-Minimal-Optimized")
     logger.setLevel(logging.INFO)
     
-    # GPUinitialize
+    # GPU初期化
     has_gpu = False
     cp = None
     
@@ -425,11 +425,11 @@ def cellchat_minimal_analysis_optimized(
         try:
             import cupy as cp
             has_gpu = True
-            # GPUmemoriuseuseamountthecontrollimit
+            # GPUメモリ使用量を制限
             if gpu_memory_limit > 0 and gpu_memory_limit <= 1.0:
                 mempool = cp.get_default_memory_pool()
                 mempool.set_limit(cp.cuda.Device().mem_info[1] * gpu_memory_limit)
-            # 精degreeofSettings
+            # 精度の設定
             gpu_dtype = cp.float64 if gpu_precision else cp.float32
             logger.info(f"GPU acceleration enabled using {gpu_precision} precision")
         except ImportError:
@@ -437,14 +437,14 @@ def cellchat_minimal_analysis_optimized(
             use_gpu = False
     
     try:
-        # randnumofshi-dotheSettings
+        # 乱数のシードを設定
         np.random.seed(seed)
         if has_gpu and use_gpu:
             cp.random.seed(seed)
 
   #      gene_use, resource, complex_input, cofactor_input, gene_info = extractGene(db)
         
-        # GPUuseherupa-relnumofinpo-to（useusepossiblenaplacematch）
+        # GPU用ヘルパー関数のインポート（利用可能な場合）
         if has_gpu and use_gpu:
             try:
                 from pages.gpu_cellchat_helpers import (
@@ -455,11 +455,11 @@ def cellchat_minimal_analysis_optimized(
             except ImportError:
                 st.warning("GPU helper functions not available, falling back to CPU implementations")
         
-        # DataofPreprocessing
+        # データの前処理
         if features is not None:
-            # provideprovidesaretaGenerisutotheuseuse
+            # 提供された遺伝子リストを使用
             logger.info(f"Using provided gene list: {len(features)} genes")
-            # existatdoGeneofmithekeephold
+            # 存在する遺伝子のみを保持
             
             adata_filtered, resource_filtered = preprocess_data(adata, groupby, complex_input, gene_use=gene_use, min_cells=min_cells,
                 thresh_pct=expr_prop, resource=resource, features =features)
@@ -469,7 +469,7 @@ def cellchat_minimal_analysis_optimized(
                                                     tthresh_pct=expr_prop, resource=resource, features =None)
         
         
-        # ExpressionDataofgetget
+        # 発現データの取得
         if use_layer is not None and use_layer in adata_filtered.layers:
             logger.info(f"Using layer '{use_layer}'")
             X = adata_filtered.layers[use_layer]
@@ -477,11 +477,11 @@ def cellchat_minimal_analysis_optimized(
             logger.info("Using default X matrix")
             X = adata_filtered.X
         
-        # supa-surowcolthedenserowcoltochangechange（effectratealnaapuro-chiandGPUOption）
+        # スパース行列を密行列に変換（効率的なアプローチとGPUオプション）
         if scipy.sparse.issparse(X):
             data_size = X.shape[0] * X.shape[1]
             
-            # GPUtheuseusedoplacematch、bigkiisupa-surowcolisdirectconnectGPUwithchangechangethetrymiru
+            # GPUを使用する場合、大きいスパース行列は直接GPUで変換を試みる
             if has_gpu and use_gpu and data_size < cp.cuda.Device().mem_info[0] * 0.3:
                 try:
                     import cupyx.scipy.sparse as cusparse
@@ -492,7 +492,7 @@ def cellchat_minimal_analysis_optimized(
                     cp.get_default_memory_pool().free_all_blocks()
                 except Exception as e:
                     logger.warning(f"GPU sparse conversion failed: {str(e)}, falling back to CPU")
-                    # CPUwithofeffectratealnachangechange
+                    # CPUでの効率的な変換
                     if optimize_memory and X.shape[0] > 5000:
                         chunk_size = 5000
                         result = []
@@ -503,7 +503,7 @@ def cellchat_minimal_analysis_optimized(
                     else:
                         X = X.toarray()
             else:
-                # CPUwithofeffectratealnachangechange
+                # CPUでの効率的な変換
                 if optimize_memory and X.shape[0] > 5000:
                     chunk_size = 5000
                     result = []
@@ -514,7 +514,7 @@ def cellchat_minimal_analysis_optimized(
                 else:
                     X = X.toarray()
         
-        # Cell typeraberuofgetget
+        # 細胞タイプラベルの取得
         cell_labels = adata_filtered.obs[groupby].copy()
         cell_types = np.array(sorted(cell_labels.unique()))
         
@@ -522,19 +522,19 @@ def cellchat_minimal_analysis_optimized(
         if len(cell_types) < 2:
             raise ValueError(f"Only {len(cell_types)} cell type found. At least 2 required.")
         
-        # CPUandGPUofbothwaywithDataNormalization
+        # CPUとGPUの両方でデータ正規化
       #  data_use_cpu = X / np.max(X).astype(np.float64)
         data_use_cpu = X.astype(np.float64)
         
         if has_gpu and use_gpu:
-            # GPUver
+            # GPU版
             X_gpu = cp.array(X, dtype=gpu_dtype)
             max_val_gpu = cp.max(X_gpu).astype(gpu_dtype)
             data_use_gpu = X_gpu / max_val_gpu
             
-            # checkproof
+            # 検証
             if validate_gpu_results:
-                # GPUResultandCPUResultofComparison
+                # GPU結果とCPU結果の比較
                 data_use_gpu_cpu = cp.asnumpy(data_use_gpu)
                 max_diff = np.max(np.abs(data_use_cpu - data_use_gpu_cpu))
                 if max_diff > 1e-5:
@@ -547,12 +547,12 @@ def cellchat_minimal_analysis_optimized(
             else:
                 data_use = data_use_gpu
         else:
-            # CPUverofmi
+            # CPU版のみ
             data_use = data_use_cpu.copy()
         
         nC = data_use.shape[0] if isinstance(data_use, np.ndarray) else data_use.shape[0]
         
-        # memorimostfitizeoffor、sourceDatathesolverel
+        # メモリ最適化のため、元データを解放
         if optimize_memory:
             del X
             gc.collect()
@@ -561,9 +561,9 @@ def cellchat_minimal_analysis_optimized(
                     del X_gpu
                 cp.get_default_memory_pool().free_all_blocks()
         
-        # flatavgrelnumofsetdef
+        # 平均関数の定義
         if type_mean == "triMean":
-            # GPUpairrespondoftrimeean
+            # GPU対応のtrimeean
             def FunMean_gpu(x):
                 if has_gpu and use_gpu and isinstance(x, cp.ndarray):
                     x_no_nan = x[~cp.isnan(x)]
@@ -578,7 +578,7 @@ def cellchat_minimal_analysis_optimized(
                     q = np.quantile(x_no_nan, [0.25, 0.5, 0.5, 0.75], method='linear')
                     return np.mean(q)
             
-            # orijinaruofCPUver
+            # オリジナルのCPU版
             def FunMean(x):
                 x_no_nan = x[~np.isnan(x)]
                 if len(x_no_nan) == 0:
@@ -589,7 +589,7 @@ def cellchat_minimal_analysis_optimized(
             from scipy.stats import trim_mean
             def FunMean(x):
                 return trim_mean(x, proportiontocut=trim)
-            # GPUvermosamemannertosetdefpossible
+            # GPU版も同様に定義可能
         elif type_mean == "median":
             def FunMean(x):
                 return np.median(x)
@@ -597,8 +597,8 @@ def cellchat_minimal_analysis_optimized(
             def FunMean(x):
                 return np.mean(x)
         
-        # Cell typegoandofflatavgExpressionamountofCalculation（mostfitize）
-        # thingbeforetoCellindekusutheCalculationshiteiterrireturnshichecksearchtheavoidkeru
+        # 細胞タイプごとの平均発現量の計算（最適化）
+        # 事前に細胞インデックスを計算して繰り返し検索を避ける
         cell_counts = {}
         cell_type_indices = {}
         for cell_type in cell_types:
@@ -606,21 +606,21 @@ def cellchat_minimal_analysis_optimized(
             cell_counts[cell_type] = len(indices)
             cell_type_indices[cell_type] = indices
         
-        # validnaCell typethespecset
+        # 有効な細胞タイプを特定
     #    cell_types = [ct for ct in cell_types if cell_counts.get(ct, 0) >= min_cells]
     #    if len(cell_types) < 2:
     #        raise ValueError(f"Less than 2 cell types have at least {min_cells} cells.")
         
-        # GPUpairrespondofflatavgExpressionCalculation
+        # GPU対応の平均発現計算
         data_use_avg_dict = {}
         
-        # GPUtheuseusedoplacematchofeffectratealnaflatavgExpressionCalculation
+        # GPUを使用する場合の効率的な平均発現計算
         if has_gpu and use_gpu and cp is not None:
             for cell_type in cell_types:
                 indices = cell_type_indices[cell_type]
                 indices_gpu = cp.array(indices)
                 
-                # bigkinaDatasetoofplacematchisbachiprocproc
+                # 大きなデータセットの場合はバッチ処理
                 if optimize_memory and data_use.shape[1] > 10000:
                     gene_chunk_size = 1000
                     n_genes = data_use.shape[1]
@@ -635,13 +635,13 @@ def cellchat_minimal_analysis_optimized(
                     data_subset = data_use[indices_gpu]
                     avg_expr = cp.apply_along_axis(FunMean_gpu, 0, data_subset)
                 
-                # GPUResultofcheckproof
+                # GPU結果の検証
                 if validate_gpu_results:
                     cpu_indices = np.array(indices)
                     cpu_data_subset = data_use_cpu[cpu_indices]
                     cpu_avg_expr = np.apply_along_axis(FunMean, 0, cpu_data_subset)
                     
-                    # CPUResultandGPUResultofComparison
+                    # CPU結果とGPU結果の比較
                     avg_expr_cpu = cp.asnumpy(avg_expr)
                     max_diff = np.max(np.abs(cpu_avg_expr - avg_expr_cpu))
                     if max_diff > 1e-5:
@@ -652,11 +652,11 @@ def cellchat_minimal_analysis_optimized(
                 else:
                     data_use_avg_dict[cell_type] = cp.asnumpy(avg_expr)
         else:
-            # CPUverofCalculation（mostfitize）
+            # CPU版の計算（最適化）
             for cell_type in cell_types:
                 indices = cell_type_indices[cell_type]
                 
-                # bigkinaDatasetoisdivratioprocproc
+                # 大きなデータセットは分割処理
                 if optimize_memory and data_use_cpu.shape[1] > 10000:
                     gene_chunk_size = 1000
                     n_genes = data_use_cpu.shape[1]
@@ -672,22 +672,22 @@ def cellchat_minimal_analysis_optimized(
                 
                 data_use_avg_dict[cell_type] = avg_expr
         
-        # DataFrametochangechange
+        # DataFrameに変換
         data_use_avg_df = pd.DataFrame(data_use_avg_dict, index=adata_filtered.var_names)
         
-        # Genenamefromindekusuheofmapingu
+        # 遺伝子名からインデックスへのマッピング
         gene_to_index = {gene: i for i, gene in enumerate(adata_filtered.var_names)}
         
-        # Ligand,reseputa-ExpressionreberuofCalculation - orijinarurelnumtheuseuse
+        # リガンド・レセプター発現レベルの計算 - オリジナル関数を使用
         dataLavg = computeExpr_LR(resource['ligand'].values, data_use_avg_df, complex_input)
         dataRavg = computeExpr_LR(resource['receptor'].values, data_use_avg_df, complex_input)
         
-        # coReceptorofCalculation - orijinarurelnumtheuseuse
+        # 共受容体の計算 - オリジナル関数を使用
         dataRavg_co_A_receptor = computeExpr_coreceptor(cofactor_input, data_use_avg_df, resource, "A")
         dataRavg_co_I_receptor = computeExpr_coreceptor(cofactor_input, data_use_avg_df, resource, "I")
         dataRavg = dataRavg * dataRavg_co_A_receptor / dataRavg_co_I_receptor
         
-        # gathergroupsaizueffectresultisvalidnaplacematch - orijinaruandsameCalculation
+        # 集団サイズ効果が有効な場合 - オリジナルと同じ計算
         if population_size:
             cell_proportions = np.array([np.sum(cell_labels == ct) for ct in cell_types]) / nC
             dataLavg2 = np.tile(cell_proportions, (len(resource), 1))
@@ -696,31 +696,31 @@ def cellchat_minimal_analysis_optimized(
             dataLavg2 = np.ones((len(resource), len(cell_types)))
             dataRavg2 = np.ones((len(resource), len(cell_types)))
         
-        # agonisuto/antagonisutoofindekususpecset - orijinaruandsame
+        # アゴニスト/アンタゴニストのインデックス特定 - オリジナルと同じ
         index_agonist = np.where(resource['agonist'].notna() & (resource['agonist'] != ""))[0] if 'agonist' in resource.columns else []
         index_antagonist = np.where(resource['antagonist'].notna() & (resource['antagonist'] != ""))[0] if 'antagonist' in resource.columns else []
         
-        # placechangeDataoflevelprep - GPUpairrespond
+        # 置換データの準備 - GPU対応
         permutation = np.zeros((nC, nboot), dtype=np.int32)
         
-        # orijinaruofrealinstall: shinpurunaNumPy permutation
+        # オリジナルの実装: シンプルなNumPy permutation
         if has_gpu and use_gpu:
-            # GPUwithofgenbecome
+            # GPUでの生成
             for i in range(nboot):
                 perm_gpu = cp.random.permutation(nC)
                 permutation[:, i] = cp.asnumpy(perm_gpu)
         else:
-            # CPUver
+            # CPU版
             for i in range(nboot):
                 permutation[:, i] = np.random.permutation(nC)
         
-        # GeneExpressionofthingbeforeCalculation - GPUpairrespond
+        # 遺伝子発現の事前計算 - GPU対応
         if nboot > 0:
-            # GPUofuseusepossiblenaturetorespondjitefitcutnarelnumtheSelect
+            # GPUの利用可能性に応じて適切な関数を選択
             if has_gpu and use_gpu:
                 try:
                     all_gene_expr = precompute_gene_expressions_gpu(
-                        data_use_cpu,  # normaltoCPUDatathetransfersu
+                        data_use_cpu,  # 常にCPUデータを渡す
                         cell_labels, 
                         permutation, 
                         cell_types, 
@@ -731,7 +731,7 @@ def cellchat_minimal_analysis_optimized(
                     )
                     
                     if validate_gpu_results:
-                        # SampleofonepartwithCPUCalculationandComparisoncheckproof
+                        # サンプルの一部でCPU計算と比較検証
                         sample_size = min(5, nboot)
                         cpu_result = precompute_gene_expressions(
                             data_use_cpu,
@@ -743,7 +743,7 @@ def cellchat_minimal_analysis_optimized(
                             n_jobs
                         )
                         
-                        # mostfirstofikutsukaofResulttheComparison
+                        # 最初のいくつかの結果を比較
                         max_diff = np.max(np.abs(cpu_result[:, :, :3] - all_gene_expr[:, :, :3]))
                         if max_diff > 1e-5:
                             logger.warning(f"GPU and CPU precomputation differ: {max_diff}. Using CPU.")
@@ -768,7 +768,7 @@ def cellchat_minimal_analysis_optimized(
                         n_jobs
                     )
             else:
-                # CPUver
+                # CPU版
                 all_gene_expr = precompute_gene_expressions(
                     data_use_cpu,
                     cell_labels,
@@ -779,20 +779,20 @@ def cellchat_minimal_analysis_optimized(
                     n_jobs
                 )
         
-            # memorimostfitizeofforofsolverel
+            # メモリ最適化のための解放
             if optimize_memory:
-                # Error箇locofmodcorrect: cp is None withnotkoandtheConfirm
+                # エラー箇所の修正: cp が None でないことを確認
                 if has_gpu and use_gpu and cp is not None and isinstance(data_use, cp.ndarray):
                     del data_use
                     cp.get_default_memory_pool().free_all_blocks()
                 else:
-                    # CP is None alsois data_use is cp.ndarray withnotplacematch
+                    # CP が None または data_use が cp.ndarray でない場合
                     if 'data_use' in locals():
                         del data_use
-                # data_use_cpuisotherofCalculationwithmadarequirednaplacematchiskeephold
+                # data_use_cpuは他の計算でまだ必要な場合は保持
                 gc.collect()
         
-        # multimatchbodymapinguofthingbeforeCalculation - Resulttoshadoweffectshinotmostfitize
+        # 複合体マッピングの事前計算 - 結果に影響しない最適化
         complex_mapping = {}
         if not complex_input.empty:
             for complex_name in complex_input.index:
@@ -803,13 +803,13 @@ def cellchat_minimal_analysis_optimized(
                 if subunits:
                     complex_mapping[complex_name] = [gene_to_index[s] for s in subunits]
         
-        # certainrateandSignificantnatureofrowcoltheinitialize
+        # 確率と有意性の行列を初期化
         numCluster = len(cell_types)
         nLR = len(resource)
         Prob = np.zeros((numCluster, numCluster, nLR))
         Pval = np.zeros((numCluster, numCluster, nLR))
         
-        # Ligand,reseputa-GeneofindekusuthingbeforeCalculation - Resulttoshadoweffectshinotmostfitize
+        # リガンド・レセプター遺伝子のインデックス事前計算 - 結果に影響しない最適化
         ligand_indices = []
         receptor_indices = []
         
@@ -817,7 +817,7 @@ def cellchat_minimal_analysis_optimized(
             ligand = resource['ligand'].iloc[i]
             receptor = resource['receptor'].iloc[i]
             
-            # simpleoneGenekamultimatchbodykathejudgeset
+            # 単一遺伝子か複合体かを判定
             if isinstance(ligand, str) and ligand in gene_to_index:
                 ligand_indices.append((i, [gene_to_index[ligand]], False))
             elif isinstance(ligand, str) and ligand in complex_mapping:
@@ -832,19 +832,19 @@ def cellchat_minimal_analysis_optimized(
             else:
                 receptor_indices.append((i, [], None))
         
-        # eachLRpeatheprocproc - GPUmostfitize
+        # 各LRペアを処理 - GPU最適化
         for i in range(nLR):
-            # HillrelnumtoyoruInteractioncertainrateofCalculation - GPU or CPU
+            # Hill関数による相互作用確率の計算 - GPU or CPU
             if has_gpu and use_gpu:
                 try:
-                    # GPUrealinstall
+                    # GPU実装
                     dataLavg_gpu = cp.array(dataLavg[i, :], dtype=gpu_dtype)
                     dataRavg_gpu = cp.array(dataRavg[i, :], dtype=gpu_dtype)
                     
-                    # GPUuseHillrelnumofcallbioutshi
+                    # GPU用Hill関数の呼び出し
                     P1_gpu = compute_hill_outer_gpu(dataLavg_gpu, dataRavg_gpu, k, n, dtype=gpu_dtype)
                     
-                    # CPUResultandComparisoncheckproof（Option）
+                    # CPU結果と比較検証（オプション）
                     if validate_gpu_results:
                         P1_cpu = compute_hill_outer(dataLavg[i, :], dataRavg[i, :], k, n)
                         P1_gpu_cpu = cp.asnumpy(P1_gpu)
@@ -858,97 +858,97 @@ def cellchat_minimal_analysis_optimized(
                     else:
                         P1 = cp.asnumpy(P1_gpu)
                     
-                    # memorisolverel
+                    # メモリ解放
                     del dataLavg_gpu, dataRavg_gpu, P1_gpu
-                    if i % 50 == 0:  # setperiodaltomemorisolverel
+                    if i % 50 == 0:  # 定期的にメモリ解放
                         cp.get_default_memory_pool().free_all_blocks()
                 except Exception as e:
                     logger.warning(f"GPU Hill function failed: {str(e)}. Using CPU.")
                     P1 = compute_hill_outer(dataLavg[i, :], dataRavg[i, :], k, n)
             else:
-                # CPUrealinstall
+                # CPU実装
                 P1 = compute_hill_outer(dataLavg[i, :], dataRavg[i, :], k, n)
             
-            # agonisutoeffectresult - orijinarurelnumtheuseuse
+            # アゴニスト効果 - オリジナル関数を使用
             P2 = np.ones((numCluster, numCluster))
             if i in index_agonist:
                 data_agonist = computeExpr_agonist(data_use_avg_df, resource, cofactor_input, i, k, n)
                 P2 = np.outer(data_agonist, data_agonist)
             
-            # antagonisutoeffectresult - orijinarurelnumtheuseuse
+            # アンタゴニスト効果 - オリジナル関数を使用
             P3 = np.ones((numCluster, numCluster))
             if i in index_antagonist:
                 data_antagonist = computeExpr_antagonist(data_use_avg_df, resource, cofactor_input, i, k, n)
                 P3 = np.outer(data_antagonist, data_antagonist)
             
-            # gathergroupsaizueffectresult - orijinaruandsameCalculation
+            # 集団サイズ効果 - オリジナルと同じ計算
             P4 = np.ones((numCluster, numCluster))
             if population_size:
                 P4 = np.outer(dataLavg2[i, :], dataRavg2[i, :])
             
-            # finalcertainrate - orijinaruandsameCalculation
+            # 最終確率 - オリジナルと同じ計算
             Pnull = P1 * P2 * P3 * P4
             Prob[:, :, i] = Pnull
             
-            # InteractionisnotplacematchispvalCalculationthesukipu
+            # 相互作用がない場合はp値計算をスキップ
             if np.sum(Pnull) == 0 or nboot == 0:
                 Pval[:, :, i] = 1
                 continue
             
             Pnull_vec = Pnull.flatten()
             
-            # Ligand,reseputa-infoinfoofgetget
+            # リガンド・レセプター情報の取得
             ligand_info = ligand_indices[i]
             receptor_info = receptor_indices[i]
             
-            # Expressiongetgetwithkinotplacematchissukipu
+            # 発現取得できない場合はスキップ
             if ligand_info[2] is None or receptor_info[2] is None:
                 Pval[:, :, i] = 1
                 continue
             
-            # bu-tosutorapucertainrateofinitialize
+            # ブートストラップ確率の初期化
             Pboot = np.zeros((numCluster * numCluster, nboot))
             
-            # memorieffectrateizeofforbachisaizutheadjustarrange
+            # メモリ効率化のためバッチサイズを調整
             batch_size = min(20, nboot)  
             
-            # aligncolprocprocwitheffectratealtoCalculation
+            # 並列処理で効率的に計算
             n_jobs_effective = min(n_jobs, os.cpu_count() or 1, nboot)
             
-            # GPUuseusethecontrolctrl
+            # GPU使用を制御
             use_gpu_for_batches = has_gpu and use_gpu
             
-            # bachigoandofprocproc
+            # バッチごとの処理
             from joblib import Parallel, delayed
             
-            # placechangeCalculationbachirelnumofsetdef
+            # 置換計算バッチ関数の定義
             def compute_permutation_batch(batch_indices, ligand_info, receptor_info,
                                          numCluster, n, k, population_size, cell_labels,
                                          permutation, cell_types, nC, use_gpu_compute=False):
                 batch_results = np.zeros((numCluster * numCluster, len(batch_indices)))
                 
                 for idx, j in enumerate(batch_indices):
-                    # LigandExpressionofgetget
+                    # リガンド発現の取得
                     lr_i, ligand_gene_indices, is_ligand_complex = ligand_info
                     
                     if not is_ligand_complex:
-                        # simpleoneGene
+                        # 単一遺伝子
                         if ligand_gene_indices:
                             ligand_idx = ligand_gene_indices[0]
                             dataLavgB = all_gene_expr[ligand_idx, :, j].reshape(1, -1)
                         else:
                             dataLavgB = np.zeros((1, numCluster))
                     else:
-                        # multimatchbody - 幾whatflatavgCalculation
+                        # 複合体 - 幾何平均計算
                         expr_values = np.array([all_gene_expr[idx, :, j] for idx in ligand_gene_indices])
                         if len(expr_values) > 0:
-                            # pairnumchangechange、flatavgcalcout、invchangechange
+                            # 対数変換、平均算出、逆変換
                             log_values = np.log(expr_values + 1e-10)
                             dataLavgB = np.exp(np.mean(log_values, axis=0)).reshape(1, -1)
                         else:
                             dataLavgB = np.zeros((1, numCluster))
                     
-                    # reseputa-Expressionofgetget
+                    # レセプター発現の取得
                     lr_i, receptor_gene_indices, is_receptor_complex = receptor_info
                     
                     if not is_receptor_complex:
@@ -965,57 +965,57 @@ def cellchat_minimal_analysis_optimized(
                         else:
                             dataRavgB = np.zeros((1, numCluster))
                     
-                    # InteractioncertainrateofCalculation - GPUuseuseOption
+                    # 相互作用確率の計算 - GPU使用オプション
                     if use_gpu_compute and has_gpu:
                         try:
                             dataLavgB_gpu = cp.array(dataLavgB[0, :], dtype=gpu_dtype)
                             dataRavgB_gpu = cp.array(dataRavgB[0, :], dtype=gpu_dtype)
                             
-                            # GPUCalculation
+                            # GPU計算
                             dataLRB_gpu = cp.outer(dataLavgB_gpu, dataRavgB_gpu)
                             P1_boot_gpu = dataLRB_gpu**n / (k**n + dataLRB_gpu**n)
                             
-                            # CPUto戻su
+                            # CPUに戻す
                             P1_boot = cp.asnumpy(P1_boot_gpu)
                             
-                            # kuri-napu
+                            # クリーンアップ
                             del dataLavgB_gpu, dataRavgB_gpu, dataLRB_gpu, P1_boot_gpu
-                            # memorisolverel
+                            # メモリ解放
                             if idx % 10 == 0:
                                 cp.get_default_memory_pool().free_all_blocks()
                         except Exception as e:
-                            # ErrortimeisCPUtofuo-rubaku
+                            # エラー時はCPUにフォールバック
                             dataLRB = np.outer(dataLavgB[0, :], dataRavgB[0, :])
                             P1_boot = dataLRB**n / (k**n + dataLRB**n)
                     else:
-                        # CPUCalculation
+                        # CPU計算
                         dataLRB = np.outer(dataLavgB[0, :], dataRavgB[0, :])
                         P1_boot = dataLRB**n / (k**n + dataLRB**n)
                     
-                    # placechangeuseofsimpleabbrevizeapuro-chi（orijinaruandsamemanner）
+                    # 置換用の簡略化アプローチ（オリジナルと同様）
                     P2_boot = np.ones((numCluster, numCluster))
                     P3_boot = np.ones((numCluster, numCluster))
                     
-                    # gathergroupsaizueffectresult
+                    # 集団サイズ効果
                     P4_boot = np.ones((numCluster, numCluster))
                     if population_size:
                         group_boot = cell_labels.values[permutation[:, j]]
                         cell_proportions_boot = np.array([np.sum(group_boot == ct) for ct in cell_types]) / nC
                         P4_boot = np.outer(cell_proportions_boot, cell_proportions_boot)
                     
-                    # finalcertainrate
+                    # 最終確率
                     Pboot_result = P1_boot * P2_boot * P3_boot * P4_boot
                     batch_results[:, idx] = Pboot_result.flatten()
                 
                 return batch_results
             
-            # bachiprocprocRun
+            # バッチ処理実行
             for b_start in range(0, nboot, batch_size):
                 b_end = min(b_start + batch_size, nboot)
                 batch_indices = list(range(b_start, b_end))
                 
                 if n_jobs_effective > 1 and len(batch_indices) > 1:
-                    # aligncolprocproc - eachwa-ka-toGPUuseusefuraguthetransfersu
+                    # 並列処理 - 各ワーカーにGPU使用フラグを渡す
                     batch_results_list = Parallel(n_jobs=n_jobs_effective, backend="loky")(
                         delayed(compute_permutation_batch)(
                             [j], 
@@ -1029,14 +1029,14 @@ def cellchat_minimal_analysis_optimized(
                             permutation,
                             cell_types,
                             nC,
-                            use_gpu_compute=use_gpu_for_batches and (j % 5 == 0)  # 5bachigoandtoGPUuseuse
+                            use_gpu_compute=use_gpu_for_batches and (j % 5 == 0)  # 5バッチごとにGPU使用
                         ) for j in batch_indices
                     )
-                    # Resultofresultmatch
+                    # 結果の結合
                     for j_idx, j in enumerate(batch_indices):
                         Pboot[:, j] = batch_results_list[j_idx][:, 0]
                 else:
-                    # simpleonesuredoprocproc
+                    # 単一スレッド処理
                     batch_results = compute_permutation_batch(
                         batch_indices, 
                         ligand_info, 
@@ -1054,25 +1054,25 @@ def cellchat_minimal_analysis_optimized(
                     for j_idx, j in enumerate(batch_indices):
                         Pboot[:, j] = batch_results[:, j_idx]
                 
-                # GPUmemorisolverel
+                # GPUメモリ解放
                 if has_gpu and use_gpu and b_start % 100 == 0:
                     cp.get_default_memory_pool().free_all_blocks()
             
-            # pvalofCalculation - GPUpairrespond
+            # p値の計算 - GPU対応
             if has_gpu and use_gpu:
                 try:
-                    # GPUCalculation
+                    # GPU計算
                     Pnull_vec_gpu = cp.array(Pnull_vec, dtype=gpu_dtype)
                     Pboot_gpu = cp.array(Pboot, dtype=gpu_dtype)
                     
-                    # Thresholdthesupereruvalofkaunto
+                    # 閾値を超える値のカウント
                     nReject_gpu = cp.sum(Pboot_gpu > cp.expand_dims(Pnull_vec_gpu, 1), axis=1)
                     p_gpu = nReject_gpu / nboot
                     
-                    # CPUturnsend
+                    # CPU転送
                     p = cp.asnumpy(p_gpu)
                     
-                    # checkproof
+                    # 検証
                     if validate_gpu_results:
                         nReject_cpu = np.sum(Pboot > (np.expand_dims(Pnull_vec, 1) + 1.49e-8), axis=1)
                         p_cpu = nReject_cpu / nboot
@@ -1082,7 +1082,7 @@ def cellchat_minimal_analysis_optimized(
                             logger.warning(f"GPU and CPU p-values differ: {max_diff}. Using CPU.")
                             p = p_cpu
                     
-                    # memorisolverel
+                    # メモリ解放
                     del Pnull_vec_gpu, Pboot_gpu, nReject_gpu, p_gpu
                     if i % 50 == 0:
                         cp.get_default_memory_pool().free_all_blocks()
@@ -1091,16 +1091,16 @@ def cellchat_minimal_analysis_optimized(
                     nReject = np.sum(Pboot > np.expand_dims(Pnull_vec, 1), axis=1)
                     p = nReject / nboot
             else:
-                # CPUCalculation
+                # CPU計算
                 nReject = np.sum(Pboot > np.expand_dims(Pnull_vec, 1), axis=1)
                 p = nReject / nboot
             
             Pval[:, :, i] = p.reshape(numCluster, numCluster)
         
-        # certainrateis0ofplacelocispvalthe1toSettings
+        # 確率が0の場所はp値を1に設定
         Pval[Prob == 0] = 1
         
-        # pvalFilteringisvalidnarafituse
+        # p値フィルタリングが有効なら適用
 
         if apply_pval_filter:
             if r_patcher:
@@ -1127,21 +1127,21 @@ def cellchat_minimal_analysis_optimized(
             # Update p-values
             Pval[Prob == 0] = 1
         
-        # nextsourcenameofSettings
+        # 次元名の設定
         dimnames = [list(cell_types), list(cell_types), list(resource.index)]
         
-        # pasuueireberuwithofpasstrustcertainratetheCalculation
+        # パスウェイレベルでの通信確率を計算
         netP = computeCommunProbPathway({"prob": Prob, "pval": Pval}, resource, 
                                        thresh=trim_threshold, apply_pval_filter=apply_pval_filter)
         
-        # gathercalcNetworkofCalculation
+        # 集計ネットワークの計算
         net_summary = aggregateCell_Cell_Communication({"prob": Prob, "pval": Pval}, 
                                                      cell_types, pval_threshold=0.05, 
                                                      apply_pval_filter=apply_pval_filter)
         
         logger.info("CellChat minimal analysis completed")
         
-        # ResultDatafure-muoflevelprep
+        # 結果データフレームの準備
         results_data = {
             'source': [],
             'target': [],
@@ -1166,11 +1166,11 @@ def cellchat_minimal_analysis_optimized(
         
         results_df = pd.DataFrame(results_data)
         
-        # finalalnaGPUmemorisolverel
+        # 最終的なGPUメモリ解放
         if has_gpu and use_gpu:
             cp.get_default_memory_pool().free_all_blocks()
         
-        # Visualizationtorequirednaminimumstructmakethereturnsu
+        # 可視化に必要な最小構造を返す
         return {
             'adata': adata_filtered,
             'results': results_df,
@@ -1178,7 +1178,7 @@ def cellchat_minimal_analysis_optimized(
                 "prob": Prob,
                 "pval": Pval,
                 "dimnames": dimnames,
-                "centr": None  # midcenternatureisCalculationshinot（Visualizationtoisnotneed）
+                "centr": None  # 中心性は計算しない（可視化には不要）
             },
             'netP': netP,
             'network': net_summary,
@@ -1192,7 +1192,7 @@ def cellchat_minimal_analysis_optimized(
         logger.error(f"Error in minimal CellChat analysis: {str(e)}")
         logger.error(traceback.format_exc())
         
-        # ErrortimemoGPUmemorisolverel
+        # エラー時もGPUメモリ解放
         if has_gpu and use_gpu:
             cp.get_default_memory_pool().free_all_blocks()
             
@@ -1266,13 +1266,13 @@ def determine_optimal_batch_size(n_perms, n_jobs):
     # Ensure batch size is at least 1
 #    batch_size = max(1, batch_size)
 
-    # mazuis n_perms the 5〜10bachitodivkeruextentdegreethebasemainway針to
-    # kokowithis 8 withratiotebachinumtheoutsu
+    # まずは n_perms を 5〜10バッチに分ける程度を基本方針に
+    # ここでは 8 で割ってバッチ数を出す
     batch_size = n_perms // 8
     
-    # sarato n_jobs therefthinkto、極edgetosmallsanabachiyabigkinabachithetimeavoid
-    # Example: bachisaizuis n_jobs * 2 thansmallsaiplacematchis n_jobs * 2 tomatchwaseru
-    # （jiyobuthedivdistshiyasuibaransu）
+    # さらに n_jobs を参考に、極端に小さなバッチや大きなバッチを回避
+    # 例: バッチサイズが n_jobs * 2 より小さい場合は n_jobs * 2 に合わせる
+    # （ジョブを分配しやすいバランス）
     batch_size = max(batch_size, n_jobs * 2)
     
     return max(1, batch_size)    
@@ -1419,31 +1419,31 @@ def calculate_actual_diff(result1, result2, cell_types):
 
 def calculate_p_values_vectorized(actual_diff, perm_results):
     """
-    rowcolperformcalctheuseuseshite p valtheCalculationdomostfitizever (sourceofrelnumandsameResultthekeepproof)
+    行列演算を使用して p 値を計算する最適化版 (元の関数と同じ結果を保証)
     
     Parameters
     ----------
     actual_diff : dict
-        realoccofdiffdivtheincludemuwordwrite
+        実際の差分を含む辞書
     perm_results : list
-        ordercolResultofrisuto
+        順列結果のリスト
         
     Returns
     -------
     dict
-        certainrateandweightmiof p valtheincludemuwordwrite
+        確率と重みの p 値を含む辞書
     """
-    # levelprep: ordercolnumthegetget
+    # 準備: 順列数を取得
     n_perms = len(perm_results)
     if n_perms == 0:
         return {'p_values_prob': actual_diff['prob_diff'].copy(), 
                 'p_values_weight': actual_diff['weight_diff'].copy()}
     
-    # certainratediffofpvalCalculation
+    # 確率差のp値計算
     prob_p_values = actual_diff['prob_diff'].copy()
     weight_p_values = actual_diff['weight_diff'].copy()
     
-    # kauntouseofwordwritetheinitialize (sourceofrelnumandsamemannerto)
+    # カウント用の辞書を初期化 (元の関数と同様に)
     prob_counts = {}
     for _, row in prob_p_values.iterrows():
         key = (row['source'], row['target'], row['pathway'])
@@ -1460,43 +1460,43 @@ def calculate_p_values_vectorized(actual_diff, perm_results):
             'less_equal': 0
         }
     
-    # ordercolResultofkaunto (rowcolperformcalcwithhighspeedize)
-    # 1. eachki-goandtoordercolvalthecollgather
+    # 順列結果のカウント (行列演算で高速化)
+    # 1. 各キーごとに順列値を収集
     prob_keys = list(prob_counts.keys())
     weight_keys = list(weight_counts.keys())
     
-    # ordercolResultfromvaltheextractoutshi、rowcolshapeformattochangechange
+    # 順列結果から値を抽出し、行列形式に変換
     prob_perm_values = {key: np.zeros(n_perms) for key in prob_keys}
     weight_perm_values = {key: np.zeros(n_perms) for key in weight_keys}
     
-    # eachordercolResultfromvaltheextractout
+    # 各順列結果から値を抽出
     for p_idx, perm_result in enumerate(perm_results):
-        # certainratediff
+        # 確率差
         for _, row in perm_result['prob_diff'].iterrows():
             key = (row['source'], row['target'], row['pathway'])
             if key in prob_perm_values:
                 prob_perm_values[key][p_idx] = row['actual_prob_diff']
         
-        # weightmidiff
+        # 重み差
         for _, row in perm_result['weight_diff'].iterrows():
             key = (row['source'], row['target'])
             if key in weight_perm_values:
                 weight_perm_values[key][p_idx] = row['actual_weight_diff']
  
-    # 2. eachki-totsuiteConditionthefulltasuordercolvalthekaunto (rowcolperformcalc)
+    # 2. 各キーについて条件を満たす順列値をカウント (行列演算)
     for key in prob_keys:
         perm_values = prob_perm_values[key]
-        # realoccofdiffdivvalthegetget
+        # 実際の差分値を取得
         actual_diff_val = next((row['actual_prob_diff'] for _, row in prob_p_values.iterrows() 
                             if (row['source'], row['target'], row['pathway']) == key), 0)
         
-        # realoccofdiffdivvalandofComparisontochangefurther
+        # 実際の差分値との比較に変更
         if actual_diff_val >= 0:
             prob_counts[key]['greater_equal'] = np.sum(perm_values >= actual_diff_val)
         else:
             prob_counts[key]['less_equal'] = np.sum(perm_values <= actual_diff_val)
     
-    # weightmidifftotsuitemosamemannertomodcorrect
+    # 重み差についても同様に修正
     for key in weight_keys:
         perm_values = weight_perm_values[key]
         actual_diff_val = next((row['actual_weight_diff'] for _, row in weight_p_values.iterrows() 
@@ -1508,8 +1508,8 @@ def calculate_p_values_vectorized(actual_diff, perm_results):
             weight_counts[key]['less_equal'] = np.sum(perm_values <= actual_diff_val)
     
     
-    # 3. pvalofCalculation (sourceofrelnumandcompalltosamerojiku)
-    # certainrateofpval
+    # 3. p値の計算 (元の関数と完全に同じロジック)
+    # 確率のp値
     for i, row in prob_p_values.iterrows():
         key = (row['source'], row['target'], row['pathway'])
         actual_diff_val = row['actual_prob_diff']
@@ -1521,7 +1521,7 @@ def calculate_p_values_vectorized(actual_diff, perm_results):
         
         prob_p_values.at[i, 'p_value_prob'] = p_val
     
-    # weightmiofpval
+    # 重みのp値
     for i, row in weight_p_values.iterrows():
         key = (row['source'], row['target'])
         actual_diff_val = row['actual_weight_diff']
@@ -1648,12 +1648,12 @@ def adjust_p_values(p_values):
     print("p_values keys:", p_values.keys())
     print("p_values_prob shape:", p_values['p_values_prob'].shape)
     print("p_values_prob head:", p_values['p_values_prob'].head())
-    # Errorprocproctheaddadd
+    # エラー処理を追加
     if 'p_value_prob' in p_values['p_values_prob'].columns:
         print("p_value_prob unique values:", p_values['p_values_prob']['p_value_prob'].unique())
     else:
         print("Warning: p_value_prob column not found. Available columns:", p_values['p_values_prob'].columns.tolist())
-        # p_value_probcolisexistatshinotplacematch、defuorutovalwithmakebecome
+        # p_value_prob列が存在しない場合、デフォルト値で作成
         p_values['p_values_prob']['p_value_prob'] = 1.0
 
     # Adjust probability p-values
@@ -1677,7 +1677,7 @@ def adjust_p_values(p_values):
     # Do the same for weight p-values
     weight_adjusted = p_values['p_values_weight'].copy()
     
-    # Errorprocproctheaddadd: p_value_weightcolisexistatshinotplacematch
+    # エラー処理を追加: p_value_weight列が存在しない場合
     if 'p_value_weight' not in weight_adjusted.columns:
         print("Warning: p_value_weight column not found. Creating with default values.")
         weight_adjusted['p_value_weight'] = 1.0
@@ -2182,14 +2182,14 @@ def display_visualizations(perm_results, cell_types, group1, group2, significanc
     
     # Tab 3: Weight Heatmap
 
-    # Weight Heatmap tabuinwithmosamemannerofmodcorrecttherowu
+    # Weight Heatmap タブ内でも同様の修正を行う
     with results_tabs[2]:
         st.header("Weight Difference Heatmap")
         
-        # BHadjustarrangedonemiPvaltheuseusedowhetherofchiekubokusu
-        use_adjusted_p_weight = st.checkbox("BHadjustarrangedonemiPvaltheuseuse", value=False, key="use_adjusted_p_weight")
+        # BH調整済みP値を使用するかどうかのチェックボックス
+        use_adjusted_p_weight = st.checkbox("BH調整済みP値を使用", value=False, key="use_adjusted_p_weight")
         
-        # useusedoPvalcoltheSettings
+        # 使用するP値列を設定
         p_val_col_weight = 'p_value_weight'
         adj_p_val_col_weight = 'p_adj_BH_weight'
 
@@ -2255,8 +2255,8 @@ def display_visualizations(perm_results, cell_types, group1, group2, significanc
             if 'selected_pathway' not in st.session_state:
                 st.session_state.selected_pathway = all_pathways[0]
                 
-            # PvalDisplaycutriswapeofforofchiekubokusutheaddadd
-            use_adjusted_p = st.checkbox("BHadjustarrangedonemiPvaltheuseuse", value=False, key="use_adjusted_p_pathway")
+            # P値表示切り替えのためのチェックボックスを追加
+            use_adjusted_p = st.checkbox("BH調整済みP値を使用", value=False, key="use_adjusted_p_pathway")
                 
             # Pathway selection with callback function to update session state
             def on_pathway_change():
@@ -2280,7 +2280,7 @@ def display_visualizations(perm_results, cell_types, group1, group2, significanc
                 perm_results['adjusted_p_values']['p_values_prob_adjusted']['pathway'] == current_pathway
             ]
             
-            # useusedoPvalcoltheSettings
+            # 使用するP値列を設定
             p_val_col = 'p_value_prob'
             adj_p_val_col = 'p_adj_BH_prob'
             reverse_direction = st.checkbox("Change control group", value=False, 
@@ -2569,10 +2569,10 @@ if __name__ == "__main__":
                             help="Minimum number of cells required in each group"
                         )
 
-                        population_size = st.checkbox("population.size", value=False, help="CellnumismanyiClustersame士ofpasstrusthodoforceku（certainrateishighmeto）evalvalsareru。")
+                        population_size = st.checkbox("population.size", value=False, help="細胞数が多いクラスター同士の通信ほど強く（確率が高めに）評価される。")
 
                         st.markdown("---")
-                        fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="EstimationsareruLigand-Receptorpeaofnumis、CellGroupgoandofflatavgGeneExpressionamounttheCalculationdowaymethodtodependexistdo。trimeanisotherofwaymethodthanmofewnotInteractionthegenbecome。CellChatisthanforceiInteractiontheadvmeasdonatureableispriorreteexistkoandiswakateori、realtestalcheckproofoffortoInteractionthe絞riintomuupwithnonnormaltohaveuse。trimeanis25%cutcutflatavgtonearlikeshiteori、koreis1tsuofGroupwithExpressionshiteexistCellofratiomatchis25%not yetfullofplacematch、flatavgGeneExpressionamountiszerotobecomekoandthemeanmeando。truncatedMeanwithis5%and10%cutcutflatavgeqtheSettingswithkiru")
+                        fun_type = st.radio("Method to calculate average expression per cell group", ['triMean','truncatedMean'], index = 0, help="推定されるリガンド-受容体ペアの数は、細胞グループごとの平均遺伝子発現量を計算する方法に依存する。trimeanは他の方法よりも少ない相互作用を生成。CellChatはより強い相互作用を予測する性能が優れていることがわかっており、実験的検証のために相互作用を絞り込む上で非常に有用。trimeanは25%切断平均に近似しており、これは1つのグループで発現している細胞の割合が25%未満の場合、平均遺伝子発現量がゼロになることを意味する。truncatedMeanでは5%および10%切断平均等を設定できる")
 
                         st.markdown("*To reduce stringency for pathway selection, use truncatedMean.*")
                         trim = st.number_input("Trimming for truncated mean:", min_value=0.00, max_value=0.25, value=0.10)
@@ -2584,7 +2584,7 @@ if __name__ == "__main__":
                                                    min_value=0.01, max_value=0.20, step=0.01, value=0.05)
 
                        # r_patcher = st.checkbox("Fine-tune to match R calc results", value=False,
-                        #    help="RandofCalculationResultofdiffitheexistextentdegree吸colldo。weighttotsuiteischiekushinakutemonearlikedo。")
+                        #    help="Rとの計算結果の違いをある程度吸収する。weightについてはチェックしなくても近似する。")
                         r_patcher = False
 
 
@@ -2599,21 +2599,21 @@ if __name__ == "__main__":
                         )
                         
                         do_every_deg = st.checkbox("Calc DEG every premutation step?", value = True,
-                            help="permutationgoandtoDEGtherequestmeteAnalysisdo。chiekutheoutshitaplacematchis、mostfirstofDEGAnalysiswithrequestmetaGenetorelshiteallofCalculationtherowu。celchatofpermutationtheloyalrealtorowuobservepointfromis毎timeDEGtherequestmeru。")
+                            help="permutationごとにDEGを求めて解析する。チェックを外した場合は、最初のDEG解析で求めた遺伝子に関してすべての計算を行う。celchatのpermutationを忠実に行う観点からは毎回DEGを求める。")
 
                         if do_every_deg:
                             union_mode  = st.radio(
                                 "Use individual overexpressed genes, or union or intersection from both groups",
                                 ['individual','union','intersection'],
                                 index=0,
-                                help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis.CellChatoftutorialwithispiece々toDEGeqwithFilteringshitaDatatheAnalysisshi、soreraofGenetotsuiteLRofAnalysistherowimasu。sooffor、onewaywithcheckdiscusspairobjandnaranotGeneisgenjiru。also、piece々ofAnalysiswithSignificantandnaranotLRpeaisinteraction scoreis0tobecome。"
+                                help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis.CellChatのtutorialでは個々にDEG等でフィルタリングしたデータを解析し、それらの遺伝子についてLRの解析を行います。そのため、一方で検討対象とならない遺伝子が生じる。また、個々の解析で有意とならないLRペアはinteraction scoreが0になる。"
                             )
                         else:
                             union_mode  = st.radio(
                                 "Use individual overexpressed genes, or union or intersection from both groups",
                                 ['union','intersection'],
                                 index=0,
-                                help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis.CellChatoftutorialwithispiece々toDEGeqwithFilteringshitaDatatheAnalysisshi、soreraofGenetotsuiteLRofAnalysistherowimasu。sooffor、onewaywithcheckdiscusspairobjandnaranotGeneisgenjimasu。also、piece々ofAnalysiswithSignificantandnaranotLRpeaisinteraction scoreis0tonarimasu。"
+                                help="Identifies overexpressed genes individually or from both groups and uses their union/intersect for analysis.CellChatのtutorialでは個々にDEG等でフィルタリングしたデータを解析し、それらの遺伝子についてLRの解析を行います。そのため、一方で検討対象とならない遺伝子が生じます。また、個々の解析で有意とならないLRペアはinteraction scoreが0になります。"
                             )
 
                         optimal_n_jobs = suggest_optimal_n_jobs()
@@ -2630,7 +2630,7 @@ if __name__ == "__main__":
                         gpu_hybrid = False
                         gpu_precision = False
                      #   gpu_hybrid = st.checkbox("Use GPU?", value=False)
-                     #   if gpu_hybrid: #manydivnotneeddais、recloadshiteoku
+                     #   if gpu_hybrid: #多分不要だが、記載しておく
                      #       use_gpu = True
                      #   else:
                      #       use_gpu = False
@@ -2712,47 +2712,47 @@ if __name__ == "__main__":
                             
                             st.write(f"Using {len(cellchatdb['interaction'])} ligand-receptor pairs")
 
-                            #kokowithdbtheexpandopenshiteoku
+                            #ここでdbを展開しておく
                             gene_use, resource, complex_input, cofactor_input, gene_info = extractGene(cellchatdb)
 
-                            # Databe-suofcheckproof
+                            # データベースの検証
                             if resource.empty:
-                                raise ValueError("DBofInteractioninfoinfo(interaction)isemptywithsu。validnaCellChatDBkaConfirmshitekudasai。")
+                                raise ValueError("DBの相互作用情報(interaction)が空です。有効なCellChatDBか確認してください。")
                                 
-                            # requirednacolofexistattheConfirm
+                            # 必要な列の存在を確認
                             for required_col in ['ligand', 'receptor']:
                                 if required_col not in resource.columns:
-                                    raise ValueError(f"riso-suDatafure-mutois '{required_col}' colisrequiredwithsu")
+                                    raise ValueError(f"リソースデータフレームには '{required_col}' 列が必要です")
 
-                        # 1. CellGroupofCellnumchieku
+                        # 1. 細胞グループの細胞数チェック
                         cell_counts = adata1.obs[celltype_key].value_counts()
                         valid_groups = cell_counts[cell_counts >= min_cells].index.tolist()
                         if len(valid_groups) < len(cell_counts):
-                            st.warning(f"{len(cell_counts) - len(valid_groups)}pieceofCellGroupis{min_cells}Cellnot yetfullofforremoveoutsaremashita")                   
-                        # validnaGroupofCelldakethekeephold
+                            st.warning(f"{len(cell_counts) - len(valid_groups)}個の細胞グループが{min_cells}細胞未満のため除外されました")                   
+                        # 有効なグループの細胞だけを保持
                         adata1_filtered = adata1[adata1.obs[celltype_key].isin(valid_groups)].copy()
                         valid_signaling_genes = [g for g in gene_use if g in adata1_filtered.var_names]
-                        # shigunaringuGeneofmithekeephold（RverofsubsetDatamutualcurrentofprocproc）
+                        # シグナリング遺伝子のみを保持（R版のsubsetData相当の処理）
                         adata1_filtered = adata1_filtered[:, valid_signaling_genes].copy()
                         st.write(f"LR gene data of data1: {adata1_filtered.shape[0]} cells x {adata1_filtered.shape[1]} genes")
 
                         cell_counts = adata2.obs[celltype_key].value_counts()
                         valid_groups = cell_counts[cell_counts >= min_cells].index.tolist()
                         if len(valid_groups) < len(cell_counts):
-                            st.warning(f"{len(cell_counts) - len(valid_groups)}pieceofCellGroupis{min_cells}Cellnot yetfullofforremoveoutsaremashita")                   
-                        # validnaGroupofCelldakethekeephold
+                            st.warning(f"{len(cell_counts) - len(valid_groups)}個の細胞グループが{min_cells}細胞未満のため除外されました")                   
+                        # 有効なグループの細胞だけを保持
                         adata2_filtered = adata2[adata2.obs[celltype_key].isin(valid_groups)].copy()
                         valid_signaling_genes = [g for g in gene_use if g in adata2_filtered.var_names]
-                        # shigunaringuGeneofmithekeephold（RverofsubsetDatamutualcurrentofprocproc）
+                        # シグナリング遺伝子のみを保持（R版のsubsetData相当の処理）
                         adata2_filtered = adata2_filtered[:, valid_signaling_genes].copy()
                         st.write(f"LR gene data of data2: {adata2_filtered.shape[0]} cells x {adata2_filtered.shape[1]} genes")
 
 
-                        # (1) adata1 with DEAnalysis kokofromallfilterzumiwith-tatodo
+                        # (1) adata1 で DE解析 ここからすべてfilterずみでーたにする
                         with st.spinner("Performing DE analysis for Group1..."):
                             de_result_g1 = identify_overexpressed_genes(
                                 adata1_filtered,
-                                group_by=celltype_key,  # Example: adata1ofmidofcelltype(existiissamesplitby_key)
+                                group_by=celltype_key,  # 例: adata1の中のcelltype(あるいは同じsplitby_key)
                                 do_de=True,
                                 do_fast=True,
                                 thresh_p=thresh_p,
@@ -2762,11 +2762,11 @@ if __name__ == "__main__":
                             feature_list_g1 = set(de_result_g1["features"])
                             st.write(f"Group1 DE: found {len(feature_list_g1)} genes")
 
-                        # (2) adata2 with DEAnalysis
+                        # (2) adata2 で DE解析
                         with st.spinner("Performing DE analysis for Group2..."):
                             de_result_g2 = identify_overexpressed_genes(
                                 adata2_filtered,
-                                group_by=celltype_key,  # Example: adata2ofmidwithmosameki-theuseuse
+                                group_by=celltype_key,  # 例: adata2の中でも同じキーを利用
                                 do_de=True,
                                 do_fast=True,
                                 thresh_p=thresh_p,
@@ -2776,7 +2776,7 @@ if __name__ == "__main__":
                             feature_list_g2 = set(de_result_g2["features"])
                             st.write(f"Group2 DE: found {len(feature_list_g2)} genes")
 
-                        # (3) unionthegetru
+                        # (3) unionを取る
 
                         if union_mode=="union":
                             feature_union = list(feature_list_g1.union(feature_list_g2))
@@ -2810,7 +2810,7 @@ if __name__ == "__main__":
                                 'key_added': "cellchat_res",
                                 'trim': trim,
                                 'apply_pval_filter': apply_pval_filter,
-                                'features': feature_list,  # uniontheSettings
+                                'features': feature_list,  # unionを設定
                             }
                             
                             # Get the list of cell types
@@ -2924,11 +2924,11 @@ if __name__ == "__main__":
                                         'n_perms': st.session_state.analysis_parameters['n_perms'],
                                         'actual_diff': perm_results['actual_diff'],
                                         'adjusted_p_values': perm_results['adjusted_p_values'],
-                                        'parameters': st.session_state.analysis_parameters,  # cellchat_paramsofsubwaritoanalysis_parameterstheuseuse
+                                        'parameters': st.session_state.analysis_parameters,  # cellchat_paramsの代わりにanalysis_parametersを使用
                                         'timestamp': time.time(),
                                         'file_name': uploaded_file.name
                                     }
-                                        # pathway infoinfothecertainkeepdoforto result1 and result2 of netP partdivtheSave
+                                        # pathway 情報を確保するために result1 と result2 の netP 部分を保存
                                     if 'result1' in perm_results and 'netP' in perm_results['result1']:
                                         result_data['result1'] = {'netP': perm_results['result1']['netP']}
                                     

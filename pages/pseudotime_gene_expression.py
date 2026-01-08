@@ -22,58 +22,58 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 @st.cache_data
 def create_cell_color_mapping(cell_list, palette_name):
     """
-    Cluster/Cell typeandcolorofonethroughshitamapinguthemakebecomedorelnum
+    クラスター/細胞タイプと色の一貫したマッピングを作成する関数
 
     Parameters
     ----------
     cell_list : list
-        Clustername/Cell typenameofrisuto
+        クラスター名/細胞タイプ名のリスト
     palette_name : str
-        useusedosepscatterkara-paretoname
+        使用する離散カラーパレット名
 
     Returns
     -------
     dict
-        Cluster/Cell typenametheki-、RGBtapuruthevalanddowordwrite
+        クラスター/細胞タイプ名をキー、RGBタプルを値とする辞書
     """
     n_cells = len(cell_list)
 
-    # pointsetsaretaparetofromcolorthegetget
+    # 指定されたパレットから色を取得
     base_palette = sns.color_palette(palette_name)
 
-    # paretoofcolornumisenoughrinotplacematchisexpandextend
+    # パレットの色数が足りない場合は拡張
     if n_cells <= len(base_palette):
         colors = base_palette[:n_cells]
     else:
         colors = sns.color_palette(palette_name, n_colors=n_cells)
 
-    # wordwritethemakebecome
+    # 辞書を作成
     color_dict = {cell: color for cell, color in zip(cell_list, colors)}
 
     return color_dict
 
 def add_cluster_annotation_bar(ax, pseudotime_sorted, cluster_sorted, bins, cluster_color_dict, reverse_pseudotime=False, height_inches=0.15):
     """
-    purotobelowpart（xaxisraberuofbelow）toClusteranote-shiyonba-theaddadddorelnum
+    プロット下部（x軸ラベルの下）にクラスターアノテーションバーを追加する関数
 
-    axes_dividertheuseuseshitexaxisofbelowtoanote-shiyonba-thedistplacedo
+    axes_dividerを使用してx軸の下にアノテーションバーを配置する
 
     Parameters
     ----------
     ax : matplotlib.axes.Axes
-        purotoofaxesobujiekuto
+        プロットのaxesオブジェクト
     pseudotime_sorted : np.ndarray
-        so-todonemipseudotimeval
+        ソート済みpseudotime値
     cluster_sorted : np.ndarray
-        so-todonemiClusterratioricurrentte
+        ソート済みクラスター割り当て
     bins : np.ndarray
-        binofboundworld
+        ビンの境界
     cluster_color_dict : dict
-        Clusternametheki-、colorthevalanddowordwrite
+        クラスター名をキー、色を値とする辞書
     reverse_pseudotime : bool
-        pseudotimeofwaydirtheantiturndoka
+        pseudotimeの方向を反転するか
     height_inches : float
-        anote-shiyonba-ofhighsa（inchisimplerank）
+        アノテーションバーの高さ（インチ単位）
     """
     # Calculate dominant cluster for each bin
     bin_indices = np.digitize(pseudotime_sorted, bins)
@@ -126,28 +126,28 @@ st.set_page_config(page_title="Pseudotime Gene Expression", page_icon="📈", la
 
 st.title("📈 Pseudotime Gene Expression Visualization")
 st.markdown("""
-PseudotimetoalongtaGeneExpressiontorendotheVisualizationshimasu。
+Pseudotimeに沿った遺伝子発現トレンドを可視化します。
 
-### Visualizationofkindtype
-1. **Gene expression - Line plot**: PseudotimetoalongtaGeneExpressionofchangeizethelinegurafuwithDisplay
-   - **Individual genes**: eachGenegoandtopiecesepofpuroto
-   - **Overlay genes**: allGenethe1tsuofgurafutoweightnematchwase
-2. **Gene expression - Heatmap**: multinumGeneofExpressionpata-nthehi-tomapuwithDisplay
-3. **Cluster density**: PseudotimetoalongtaClusterstructbecomeofchangeizetheVisualization
-   - **Line plot**: eachClusterofdensedegreechangeize
-   - **Stacked area**: Clusterstructbecomeofinfermove（100%accumulatemiupge）
-   - **Heatmap**: Clusterdensedegreeof2nextsourceDisplay
+### 可視化の種類
+1. **Gene expression - Line plot**: Pseudotimeに沿った遺伝子発現の変化を線グラフで表示
+   - **Individual genes**: 各遺伝子ごとに個別のプロット
+   - **Overlay genes**: 全遺伝子を1つのグラフに重ね合わせ
+2. **Gene expression - Heatmap**: 複数遺伝子の発現パターンをヒートマップで表示
+3. **Cluster density**: Pseudotimeに沿ったクラスター構成の変化を可視化
+   - **Line plot**: 各クラスターの密度変化
+   - **Stacked area**: クラスター構成の推移（100%積み上げ）
+   - **Heatmap**: クラスター密度の2次元表示
 
-### useusewithkiruPseudotime
-- **Velocity pseudotime** (scVelo) - RNA velocityAnalysisfromCalculationsarerudoubtliketimebetween
-- **Latent time** (scVelo dynamical model) - movealmoderutobaseduku潜attimebetween
-- **DPT pseudotime** (Diffusion pseudotime) - expandscatterdoubtliketimebetween
-- **Fate probabilities** (CellRank) - eachendendstatestateheofruncmdcertainrate（`fate_prob_{state}`col）
-  - horizaxis = 0（certainratelow）〜 1（certainratehigh）
-  - specsetofCellruncmdheofdivizeoverextentofGeneExpressionchangeizetheVisualization
-- soofotherofkasutamupseudotimecol
+### 使用できるPseudotime
+- **Velocity pseudotime** (scVelo) - RNA velocity解析から計算される疑似時間
+- **Latent time** (scVelo dynamical model) - 動的モデルに基づく潜在時間
+- **DPT pseudotime** (Diffusion pseudotime) - 拡散疑似時間
+- **Fate probabilities** (CellRank) - 各終末状態への運命確率（`fate_prob_{state}`列）
+  - 横軸 = 0（確率低）〜 1（確率高）
+  - 特定の細胞運命への分化過程の遺伝子発現変化を可視化
+- その他のカスタムpseudotime列
 
-### refthink
+### 参考
 - [CellRank Gene Trends](https://cellrank.readthedocs.io/en/stable/api.html#plotting)
 """)
 
@@ -171,7 +171,7 @@ uploaded_h5ad = st.file_uploader(
     "Upload h5ad file",
     type=['h5ad'],
     key="pseudotime_vis_h5ad_upload",
-    help="scVelo/CellRankAnalysisdonemiofh5adFile"
+    help="scVelo/CellRank解析済みのh5adファイル"
 )
 
 if uploaded_h5ad is not None:
@@ -267,7 +267,7 @@ if uploaded_h5ad is not None:
     analysis_type = st.radio(
         "Analysis type",
         ["Gene expression", "Cluster density"],
-        help="GeneExpression or ClusterdensedegreetheSelect"
+        help="遺伝子発現 or クラスター密度を選択"
     )
 
     st.markdown("---")
@@ -277,13 +277,13 @@ if uploaded_h5ad is not None:
         viz_type = st.radio(
             "Visualization type",
             ["Line plot", "Heatmap"],
-            help="linegurafu or hi-tomaputheSelect"
+            help="線グラフ or ヒートマップを選択"
         )
     else:  # Cluster density
         viz_type = st.radio(
             "Visualization type",
             ["Line plot", "Stacked area", "Heatmap"],
-            help="linegurafu、accumulatemiupgeeria、alsoishi-tomaputheSelect"
+            help="線グラフ、積み上げエリア、またはヒートマップを選択"
         )
 
     st.markdown("---")
@@ -294,7 +294,7 @@ if uploaded_h5ad is not None:
     selected_pseudotime = st.selectbox(
         "Select pseudotime",
         pseudotime_cols,
-        help="useusedopseudotimetheSelect"
+        help="使用するpseudotimeを選択"
     )
 
     # Show pseudotime statistics
@@ -315,13 +315,13 @@ if uploaded_h5ad is not None:
     reverse_pseudotime = st.sidebar.checkbox(
         "Reverse pseudotime direction",
         value=False,
-        help="Pseudotimeofwaydirtheinvturn（endpoint→startpoint）"
+        help="Pseudotimeの方向を逆転（終点→始点）"
     )
 
     log1p_pseudotime = st.sidebar.checkbox(
         "Log1p transform pseudotime (x-axis)",
         value=False,
-        help="Pseudotimethelog1pchangechangeshitexaxistoDisplay（log(1+x)）。Pseudotimeofdivdistisskewnwithexistplacematchtovalid"
+        help="Pseudotimeをlog1p変換してx軸に表示（log(1+x)）。Pseudotimeの分布が歪んでいる場合に有効"
     )
 
     st.markdown("---")
@@ -333,7 +333,7 @@ if uploaded_h5ad is not None:
         gene_input_method = st.radio(
             "Gene input method",
             ["Multi-select", "Text input"],
-            help="GeneofSelectwaymethod"
+            help="遺伝子の選択方法"
         )
 
         if gene_input_method == "Multi-select":
@@ -341,13 +341,13 @@ if uploaded_h5ad is not None:
                 "Select genes",
                 gene_list,
                 max_selections=50,
-                help="DisplaydoGenetheSelect（maximum50piece）"
+                help="表示する遺伝子を選択（最大50個）"
             )
         else:
             gene_text_input = st.text_area(
                 "Enter gene names",
                 height=150,
-                help="Genenamethesupe-su、konma、tabu、alsoisreformrowwithareacutteInput"
+                help="遺伝子名をスペース、コンマ、タブ、または改行で区切って入力"
             )
 
             if gene_text_input:
@@ -391,7 +391,7 @@ if uploaded_h5ad is not None:
         cluster_key = st.selectbox(
             "Select cluster column",
             categorical_columns,
-            help="ClusterinfoinfotheincludemumetadatacoltheSelect"
+            help="クラスター情報を含むmetadata列を選択"
         )
 
         # Get unique clusters
@@ -416,7 +416,7 @@ if uploaded_h5ad is not None:
         line_plot_mode = st.radio(
             "Plot mode",
             ["Individual genes", "Overlay genes"],
-            help="Individual: eachGenegoandtopiecesepofpuroto\nOverlay: allGenethe1tsuofgurafutoweightnematchwase"
+            help="Individual: 各遺伝子ごとに個別のプロット\nOverlay: 全遺伝子を1つのグラフに重ね合わせ"
         )
 
         col1, col2, col3 = st.columns(3)
@@ -424,20 +424,20 @@ if uploaded_h5ad is not None:
             n_bins = st.slider(
                 "Number of bins",
                 5, 100, 10, 5,
-                help="Pseudotimethebindivratiodonum（fewnotwayissmoothrakatonarimasu）"
+                help="Pseudotimeをビン分割する数（少ない方が滑らかになります）"
             )
         with col2:
             show_scatter = st.checkbox(
                 "Show scatter points",
                 value=False,
-                help="piece々ofCellthescatterdistfigandshiteDisplay"
+                help="個々の細胞を散布図として表示"
             )
         with col3:
             smoothing_mode = st.selectbox(
                 "Smoothing mode",
                 ["Strong (smooth)", "Interpolation (detailed)"],
                 index=0,
-                help="sumu-jinguforcedegree\nStrong: flatavgvalandtrustrelyareabetweentheforcepowertosumu-jingu（inferrec）\nInterpolation: binflatavgthecompalltosuppbetween（detailfinedaisnoiji-）"
+                help="スムージング強度\nStrong: 平均値と信頼区間を強力にスムージング（推奨）\nInterpolation: ビン平均を完全に補間（詳細だがノイジー）"
             )
 
         col4, col5, col6 = st.columns(3)
@@ -445,20 +445,20 @@ if uploaded_h5ad is not None:
             show_ci = st.checkbox(
                 "Show confidence interval",
                 value=True,
-                help="95%trustrelyareabetweentheDisplay"
+                help="95%信頼区間を表示"
             )
         with col5:
             use_zscore_line = st.checkbox(
                 "Z-score normalization",
                 value=False,
-                help="eachGenetheZ-scoreNormalization（flatavg0、marklevelbiasdiff1）"
+                help="各遺伝子をZ-score正規化（平均0、標準偏差1）"
             )
         with col6:
             line_color = st.selectbox(
                 "Color scheme",
                 ["Red (#E64B35)", "Blue (#4DBBD5)", "Green (#00A087)", "Purple (#3C5488)", "Orange (#F39B7F)"],
                 index=0,
-                help="lineofcolor（Individual genesuse）"
+                help="線の色（Individual genes用）"
             )
 
         # Cluster split option
@@ -466,7 +466,7 @@ if uploaded_h5ad is not None:
         split_by_cluster = st.checkbox(
             "Split by cluster",
             value=False,
-            help="ClusterseptoGeneExpressiontorendothedivketeDisplay"
+            help="クラスター別に遺伝子発現トレンドを分けて表示"
         )
 
         if split_by_cluster:
@@ -479,14 +479,14 @@ if uploaded_h5ad is not None:
                     split_cluster_key = st.selectbox(
                         "Select cluster column",
                         categorical_columns,
-                        help="ClusterinfoinfotheincludemumetadatacoltheSelect"
+                        help="クラスター情報を含むmetadata列を選択"
                     )
                 with col_palette:
                     split_cluster_palette = st.selectbox(
                         "Cluster color palette",
                         ["husl", "tab10", "Set2", "Set3", "Paired", "Dark2"],
                         index=0,
-                        help="Clusterofcolordivkepareto"
+                        help="クラスターの色分けパレット"
                     )
 
         # Cluster annotation bar option
@@ -495,7 +495,7 @@ if uploaded_h5ad is not None:
         show_cluster_annotation_line = st.checkbox(
             "Show cluster annotation bar",
             value=False,
-            help="gurafubelowparttoeachpseudotimerangesurrofmainneedClusterthekara-ba-withDisplay",
+            help="グラフ下部に各pseudotime範囲の主要クラスターをカラーバーで表示",
             key="line_plot_cluster_annotation"
         )
 
@@ -509,7 +509,7 @@ if uploaded_h5ad is not None:
                     annotation_cluster_key = st.selectbox(
                         "Cluster identity for annotation",
                         categorical_columns,
-                        help="anote-shiyonuseofClustercoltheSelect",
+                        help="アノテーション用のクラスター列を選択",
                         key="line_annotation_cluster_key"
                     )
                 with col_ann_palette:
@@ -517,7 +517,7 @@ if uploaded_h5ad is not None:
                         "Annotation color palette",
                         ["tab20", "tab20b", "tab20c", "Set1", "Set2", "Set3", "Paired"],
                         index=0,
-                        help="Clusteranote-shiyonofcolordivkepareto",
+                        help="クラスターアノテーションの色分けパレット",
                         key="line_annotation_palette"
                     )
 
@@ -536,7 +536,7 @@ if uploaded_h5ad is not None:
             ncols = st.slider(
                 "Number of columns",
                 1, 5, 3, 1,
-                help="sabupurotoofcolnum"
+                help="サブプロットの列数"
             )
         else:
             col_legend, col_palette = st.columns(2)
@@ -544,14 +544,14 @@ if uploaded_h5ad is not None:
                 show_legend = st.checkbox(
                     "Show legend",
                     value=True,
-                    help="GenenameoflegendExampletheDisplay"
+                    help="遺伝子名の凡例を表示"
                 )
             with col_palette:
                 overlay_palette = st.selectbox(
                     "Color palette",
                     ["husl", "tab10", "Set2", "Set3", "Paired", "Dark2"],
                     index=0,
-                    help="Geneofcolordivkepareto"
+                    help="遺伝子の色分けパレット"
                 )
 
     elif analysis_type == "Gene expression" and viz_type == "Heatmap":
@@ -562,19 +562,19 @@ if uploaded_h5ad is not None:
             n_bins = st.slider(
                 "Number of bins",
                 10, 200, 100, 10,
-                help="Pseudotimethebindivratiodonum"
+                help="Pseudotimeをビン分割する数"
             )
         with col2:
             use_clustermap = st.checkbox(
                 "Hierarchical clustering",
                 value=True,
-                help="DendrogramtheDisplaydotierlayeralkurasutaringutheuseuse"
+                help="Dendrogramを表示する階層的クラスタリングを使用"
             )
         with col3:
             use_interpolation = st.checkbox(
                 "Smooth interpolation",
                 value=False,
-                help="binbetweentheview覚altosuppbetween（bilinear）"
+                help="ビン間を視覚的に補間（bilinear）"
             )
 
         if use_clustermap:
@@ -583,14 +583,14 @@ if uploaded_h5ad is not None:
                 cluster_rows = st.checkbox(
                     "Cluster genes (rows)",
                     value=True,
-                    help="Gene（row）thetierlayeralkurasutaringu"
+                    help="遺伝子（行）を階層的クラスタリング"
                 )
             with col5:
                 linkage_method = st.selectbox(
                     "Linkage method",
                     ["ward", "average", "complete", "single"],
                     index=0,
-                    help="tierlayeralkurasutaringuofconnectresultmethod"
+                    help="階層的クラスタリングの連結法"
                 )
 
             # Pseudotime columns are never clustered (time order must be preserved)
@@ -599,7 +599,7 @@ if uploaded_h5ad is not None:
             cluster_genes = st.checkbox(
                 "Cluster genes",
                 value=True,
-                help="GenetheExpressionpata-nwithtierlayeralkurasutaringu（dendrogramnashi）"
+                help="遺伝子を発現パターンで階層的クラスタリング（dendrogramなし）"
             )
 
         col6, col7, col8 = st.columns(3)
@@ -607,28 +607,28 @@ if uploaded_h5ad is not None:
             use_zscore = st.checkbox(
                 "Z-score normalization",
                 value=True,
-                help="eachGenetheZ-scoreNormalization（flatavg0、marklevelbiasdiff1）"
+                help="各遺伝子をZ-score正規化（平均0、標準偏差1）"
             )
         with col7:
             heatmap_cmap = st.selectbox(
                 "Colormap",
                 ["viridis", "plasma", "inferno", "magma", "RdYlBu_r", "coolwarm", "bwr"],
                 index=0,
-                help="hi-tomapuofkara-mapu"
+                help="ヒートマップのカラーマップ"
             )
         with col8:
             show_gene_names = st.checkbox(
                 "Show gene names",
                 value=True,
-                help="GenenametheYaxistoDisplay"
+                help="遺伝子名をY軸に表示"
             )
 
         # Cluster annotation
-        st.markdown("### Cluster Annotation (uppartkara-ba-)")
+        st.markdown("### Cluster Annotation (上部カラーバー)")
         show_cluster_annotation = st.checkbox(
             "Show cluster annotation",
             value=False,
-            help="HeatmapupparttoeachbinofmainneedClustertheDisplay"
+            help="Heatmap上部に各binの主要クラスターを表示"
         )
 
         if show_cluster_annotation:
@@ -637,14 +637,14 @@ if uploaded_h5ad is not None:
                 cluster_annotation_key = st.selectbox(
                     "Cluster identity",
                     categorical_columns,
-                    help="anote-shiyonuseofClustercoltheSelect"
+                    help="アノテーション用のクラスター列を選択"
                 )
             with col8:
                 cluster_palette = st.selectbox(
                     "Cluster colormap",
                     ["tab20", "tab20b", "tab20c", "Set1", "Set2", "Set3", "Paired"],
                     index=0,
-                    help="Clusterofcolordivkepareto"
+                    help="クラスターの色分けパレット"
                 )
 
             # Get unique clusters for annotation
@@ -707,20 +707,20 @@ if uploaded_h5ad is not None:
             n_bins = st.slider(
                 "Number of bins",
                 5, 100, 10, 5,
-                help="Pseudotimethebindivratiodonum（fewnotwayissmoothrakatonarimasu）"
+                help="Pseudotimeをビン分割する数（少ない方が滑らかになります）"
             )
         with col2:
             density_type = st.selectbox(
                 "Density calculation",
                 ["Proportion (%)", "Cell count"],
-                help="Proportion: eachbintookerueachClusterofratiomatch\nCell count: eachbintookeruCellnum"
+                help="Proportion: 各ビンにおける各クラスターの割合\nCell count: 各ビンにおける細胞数"
             )
 
         # Normalization option for cluster size
         normalize_cluster_size = st.checkbox(
             "Normalize by cluster size",
             value=False,
-            help="eachClusterofCelltotalnumthesametoshiteComparison。Clustersaizuofdiffitoyorushadoweffecttheremoveoutshi、mutualpairalnadensedegreechangeizetheVisualizationshimasu。"
+            help="各クラスターの細胞総数を同じにして比較。クラスターサイズの違いによる影響を除外し、相対的な密度変化を可視化します。"
         )
 
         if viz_type == "Heatmap":
@@ -728,7 +728,7 @@ if uploaded_h5ad is not None:
                 "Colormap",
                 ["viridis", "plasma", "inferno", "magma", "YlOrRd", "Blues", "Greens"],
                 index=0,
-                help="hi-tomapuofkara-mapu"
+                help="ヒートマップのカラーマップ"
             )
 
         # Cluster annotation bar option for Line plot and Stacked area
@@ -738,7 +738,7 @@ if uploaded_h5ad is not None:
             show_cluster_annotation_density = st.checkbox(
                 "Show cluster annotation bar",
                 value=False,
-                help="gurafubelowparttoeachpseudotimerangesurrofmainneedClusterthekara-ba-withDisplay",
+                help="グラフ下部に各pseudotime範囲の主要クラスターをカラーバーで表示",
                 key="density_plot_cluster_annotation"
             )
 
@@ -748,7 +748,7 @@ if uploaded_h5ad is not None:
                     annotation_cluster_key_density = st.selectbox(
                         "Cluster identity for annotation",
                         categorical_columns,
-                        help="anote-shiyonuseofClustercoltheSelect（Cluster densitywithuseusemidofmoofanddiffbecomecolmoSelectpossible）",
+                        help="アノテーション用のクラスター列を選択（Cluster densityで使用中のものと異なる列も選択可能）",
                         key="density_annotation_cluster_key"
                     )
                 with col_ann_palette:
@@ -756,7 +756,7 @@ if uploaded_h5ad is not None:
                         "Annotation color palette",
                         ["tab20", "tab20b", "tab20c", "Set1", "Set2", "Set3", "Paired"],
                         index=0,
-                        help="Clusteranote-shiyonofcolordivkepareto",
+                        help="クラスターアノテーションの色分けパレット",
                         key="density_annotation_palette"
                     )
 
@@ -1686,4 +1686,4 @@ if uploaded_h5ad is not None:
                 st.exception(e)
 
 else:
-    st.info("👆 h5adFiletheUploadshitestartshitekudasai")
+    st.info("👆 h5adファイルをアップロードして開始してください")

@@ -60,16 +60,16 @@ st.set_page_config(page_title="scVelo Analysis", page_icon="🚀", layout="wide"
 
 st.title("🚀 RNA Velocity Analysis")
 st.markdown("""
-scVeloalsoisDeepVelotheuseiteRNA velocityAnalysistheRunshimasu。
+scVeloまたはDeepVeloを用いてRNA velocity解析を実行します。
 
-### wa-kufuro-
-1. **FileLoading**: h5ad + loom File
-2. **ma-ji**: scvelo.utils.merge withDataunifymatch
-3. **Preprocessing**: Filtering、Normalization、momentsCalculation
-4. **VelocityCalculation**: scVelo (Stochastic/Dynamical/Deterministic) alsois DeepVelo
-5. **ResultSave**: AnalysisResulttheh5adFilewithDownload
+### ワークフロー
+1. **ファイル読み込み**: h5ad + loom ファイル
+2. **マージ**: scvelo.utils.merge でデータ統合
+3. **前処理**: フィルタリング、正規化、moments計算
+4. **Velocity計算**: scVelo (Stochastic/Dynamical/Deterministic) または DeepVelo
+5. **結果保存**: 解析結果をh5adファイルでダウンロード
 
-### refthink
+### 参考
 - [Bergen et al. (2020) "Generalizing RNA velocity to transient cell states through dynamical modeling" Nature Biotechnology](https://www.nature.com/articles/s41587-020-0591-3)
 - [Gao et al. (2024) "DeepVelo: Deep learning enables accurate estimation of single-cell RNA velocity" Nature Communications](https://www.nature.com/articles/s41467-024-51278-6)
 """)
@@ -100,7 +100,7 @@ with col1:
         "Upload h5ad file",
         type=['h5ad'],
         key="scvelo_h5ad_upload",
-        help="Seurat/ScanpyAnalysisdonemiofh5adFile"
+        help="Seurat/Scanpy解析済みのh5adファイル"
     )
 
 with col2:
@@ -108,7 +108,7 @@ with col2:
         "Upload loom file",
         type=['loom'],
         key="scvelo_loom_upload",
-        help="velocytoalsoisData filtering appwithgenbecomesaretaloomFile"
+        help="velocytoまたはData filtering appで生成されたloomファイル"
     )
 
 if uploaded_h5ad is not None and uploaded_loom is not None:
@@ -144,28 +144,28 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
     with st.expander("📚 Parameter Guide", expanded=False):
         st.markdown("""
         ### filter_and_normalize
-        - **min_shared_counts**: minimumcohavekauntonum（defuoruto: 20）
-        - **n_top_genes**: useusedohighchangemoveGenenum（defuoruto: 2000）
+        - **min_shared_counts**: 最小共有カウント数（デフォルト: 20）
+        - **n_top_genes**: 使用する高変動遺伝子数（デフォルト: 2000）
 
         ### moments
-        - **n_pcs**: useusedomainbecomedivnum（defuoruto: 30）
-        - **n_neighbors**: nearsideCellnum（defuoruto: 30）
+        - **n_pcs**: 使用する主成分数（デフォルト: 30）
+        - **n_neighbors**: 近傍細胞数（デフォルト: 30）
 
         ### velocity
-        - **mode**: Calculationmo-do
-          - **dynamical** (inferrec): mostmocorrectcertain、turncopymovestateofcompallnamoderingu。plainauthlogictextwithinferrec
-          - **stochastic**: mostspeed、simpleeasyalnaAnalysis
-          - **deterministic**: midbetweenal
+        - **mode**: 計算モード
+          - **dynamical** (推奨): 最も正確、転写動態の完全なモデリング。原著論文で推奨
+          - **stochastic**: 最速、簡易的な解析
+          - **deterministic**: 中間的
 
-        - **n_jobs**: aligncolCalculationtouseusedoCPUkoanum（dynamicalmo-doofmivalid）
-          - 32koashisutemuwithis24koaextentdegreeisinferrec（memoriuseuseamountandofbaransu）
+        - **n_jobs**: 並列計算に使用するCPUコア数（dynamicalモードのみ有効）
+          - 32コアシステムでは24コア程度が推奨（メモリ使用量とのバランス）
 
         ### PAGA (Partition-based graph abstraction)
-        - ClusterbetweenofconnectcontinuenaturetheCalculationshi、divizetracktracetheextractobjize
-        - velocity graphandsetmimatchwaserukoandwith、directed PAGAisCalculationsaremasu
-        - Clusterinfoinfo（adata.obsofkategorikaruchangenum）isrequired
+        - クラスター間の接続性を計算し、分化軌跡を抽象化
+        - velocity graphと組み合わせることで、directed PAGAが計算されます
+        - クラスター情報（adata.obsのカテゴリカル変数）が必要
 
-        Bergen et al. (2020) Nature Biotechnology withis dynamical mo-doisinferrecsareteimasu。
+        Bergen et al. (2020) Nature Biotechnology では dynamical モードが推奨されています。
         """)
 
     with st.form("analysis_params_form"):
@@ -178,7 +178,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 min_value=1,
                 max_value=100,
                 value=20,
-                help="GeneandCellofbothwaywithFilteringtouseusedominimumkauntonum"
+                help="遺伝子と細胞の両方でフィルタリングに使用する最小カウント数"
             )
 
             n_top_genes = st.number_input(
@@ -187,7 +187,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 max_value=5000,
                 value=2000,
                 step=100,
-                help="highchangemoveGeneofnum"
+                help="高変動遺伝子の数"
             )
 
             # Retain specific genes (like scVelo's retain_genes parameter)
@@ -197,7 +197,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 value="",
                 height=100,
                 label_visibility='collapsed',
-                help="HVGSelecttorelrelatenakumustzukeepholddoGenename（multinumofareacutritextcharpairrespond: , space tab CR）"
+                help="HVG選択に関係なく必ず保持する遺伝子名（複数の区切り文字対応: , space tab CR）"
             )
 
         with col2:
@@ -206,7 +206,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 min_value=10,
                 max_value=100,
                 value=30,
-                help="mainbecomedivdivanalyzewithuseusedobecomedivnum"
+                help="主成分分析で使用する成分数"
             )
 
             n_neighbors = st.number_input(
@@ -214,7 +214,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 min_value=5,
                 max_value=100,
                 value=30,
-                help="nearsidegurafustructbuildtouseusedonearsideCellnum"
+                help="近傍グラフ構築に使用する近傍細胞数"
             )
 
         st.subheader("Velocity calculation")
@@ -229,13 +229,13 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 "scVelo mode",
                 velocity_options,
                 index=0,
-                help="scVeloCalculationmo-do。dynamicalisinferrec（Bergen et al. 2020）"
+                help="scVelo計算モード。dynamicalが推奨（Bergen et al. 2020）"
             )
 
             if velocity_mode == "dynamical":
                 st.info("✨ **Dynamical mode** (Default / Recommended)")
 
-            st.caption("💡 DeepVeloissepapuri (DeepVelo analysis) withuseusewithkimasu")
+            st.caption("💡 DeepVeloは別アプリ (DeepVelo analysis) で使用できます")
 
         with col2:
             # Get number of available CPUs
@@ -250,7 +250,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                 min_value=1,
                 max_value=n_cpus,
                 value=default_jobs,
-                help=f"aligncolCalculationofkoanum（dynamicalmo-doofmivalid）。useusepossible: {n_cpus}koa"
+                help=f"並列計算のコア数（dynamicalモードのみ有効）。利用可能: {n_cpus}コア"
             )
 
         st.subheader("PAGA (optional)")
@@ -258,7 +258,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
         compute_paga = st.checkbox(
             "Compute PAGA",
             value=True,
-            help="Partition-based graph abstractiontheCalculation（Clusterinfoinfoisrequired）"
+            help="Partition-based graph abstractionを計算（クラスター情報が必要）"
         )
 
         if compute_paga:
@@ -288,7 +288,7 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                     "Cluster column for PAGA",
                     categorical_cols,
                     index=default_index,
-                    help="PAGAofCalculationtouseusedoClusterinfoinfotheSelect"
+                    help="PAGAの計算に使用するクラスター情報を選択"
                 )
 
                 st.info(f"💡 Using '{paga_cluster_key}' for PAGA computation")
@@ -530,34 +530,34 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                             # Check if this is the known scvelo bug
                             if "mismatching number of index arrays" in error_msg:
                                 st.warning("""
-                                **⚠️ alreadyknowofscvelobaguischeckoutsaremashita**
+                                **⚠️ 既知のscveloバグが検出されました**
 
-                                koofErroris scvelo v0.3.4 beforetoexistatdoalreadyknowofbaguwithsu。
+                                このエラーは scvelo v0.3.4 以前に存在する既知のバグです。
                                 GitHub Issue: https://github.com/theislab/scvelo/issues/1241
-                                Fix PR: https://github.com/theislab/scvelo/pull/1308 (madama-jisareteimasen)
+                                Fix PR: https://github.com/theislab/scvelo/pull/1308 (まだマージされていません)
                                 """)
 
                                 st.info("""
-                                **🔧 modcorrectwaymethod:**
+                                **🔧 修正方法:**
 
-                                orbelowofFiletheeditgathershitebaguthemodcorrectwithkimasu：
+                                以下のファイルを編集してバグを修正できます：
 
-                                **File:** `scvelo/tools/paga.py` (about50-52rowidx)
+                                **ファイル:** `scvelo/tools/paga.py` (約50-52行目)
 
-                                **modcorrectbefore:**
+                                **修正前:**
                                 ```python
                                 if len(edges) > 0:
                                     return csr_matrix((weights, zip(*edges)), shape=shape)
                                 ```
 
-                                **modcorrectafter:**
+                                **修正後:**
                                 ```python
                                 if len(edges) > 0:
                                     rows, cols = zip(*edges)
                                     return csr_matrix((weights, (rows, cols)), shape=shape)
                                 ```
 
-                                modcorrectafter、koofapuritheretriggermoveshitekudasai。
+                                修正後、このアプリを再起動してください。
                                 """)
 
                                 # Show file location
@@ -565,12 +565,12 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
                                     import scvelo
                                     import os
                                     paga_file = os.path.join(os.path.dirname(scvelo.__file__), 'tools', 'paga.py')
-                                    st.code(f"Fileofplaceloc:\n{paga_file}", language="text")
+                                    st.code(f"ファイルの場所:\n{paga_file}", language="text")
                                 except:
                                     pass
 
                             # Show full traceback in expander
-                            with st.expander("🔍 detailfinenaErrortore-subaku"):
+                            with st.expander("🔍 詳細なエラートレースバック"):
                                 import traceback
                                 st.text(traceback.format_exc())
 
@@ -675,25 +675,25 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
         )
 
         st.info("""
-        ### nextofsutepu
+        ### 次のステップ
 
-        Downloadshitah5adFiletoisorbelowisincludemareteimasu：
+        ダウンロードしたh5adファイルには以下が含まれています：
         - Velocity vectors (`adata.layers['velocity']`)
         - Velocity graph (`adata.uns['velocity_graph']`)
         - Velocity confidence (`adata.obs['velocity_confidence']`)
         - Velocity pseudotime (`adata.obs['velocity_pseudotime']`)
 
-        #### inferrec: scVelo VisualizationapuriwithVisualization
+        #### 推奨: scVelo Visualizationアプリで可視化
 
-        1. **scVelo Visualization** pe-jitomovemove
-        2. koofh5adFiletheUpload
-        3. orbelowofVisualizationispossible：
+        1. **scVelo Visualization** ページに移動
+        2. このh5adファイルをアップロード
+        3. 以下の可視化が可能：
            - Velocity stream plots
            - Velocity grid plots
            - Phase portraits
            - Velocity embedding plots
 
-        #### PythonwithofvisualizationExample:
+        #### Pythonでのvisualization例:
         ```python
         import scvelo as scv
         import scanpy as sc
@@ -708,10 +708,10 @@ if uploaded_h5ad is not None and uploaded_loom is not None:
         scv.pl.velocity(adata, var_names=['gene1', 'gene2'])
         ```
 
-        #### soofotherofOption:
-        - **CellRank analysis**: CellruncmdandsysunifyAnalysis
-        - **Pseudotime gene expression**: GeneExpressiontorendoofVisualization
+        #### その他のオプション:
+        - **CellRank analysis**: 細胞運命と系統解析
+        - **Pseudotime gene expression**: 遺伝子発現トレンドの可視化
         """)
 
 else:
-    st.info("👆 h5adFileandloomFilethebothwayUploadshitestartshitekudasai")
+    st.info("👆 h5adファイルとloomファイルを両方アップロードして開始してください")

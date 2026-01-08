@@ -77,7 +77,7 @@ def has_nan_like(lst):
 	return any(str(item).strip().lower() in nan_values for item in lst)
 
 @st.cache_data
-def convert_human_to_mouse_symbols(symbols, version=1): # nichenetrofRsukuriputotheClaude3.5withchangechange
+def convert_human_to_mouse_symbols(symbols, version=1): # nichenetrのRスクリプトをClaude3.5で変換
 	if not isinstance(symbols, (list, pd.Series)):
 		raise ValueError("symbols should be a list or pandas Series of human gene symbols")
 	if version == 1:
@@ -280,7 +280,7 @@ lr_means_list = ['lr_means','expr_prod','None','expr_prod','lrscore','magnitude_
 pval_col = ['cellphone_pvals','scaled_weight','lr_logfc','spec_weight','None','specificity_rank','gmean_pvals','None','cellchat_pvals']
 
 
-#============ newshiiFiletheUploadshitaandkiis、cachethecleardo
+#============ 新しいファイルをアップロードしたときは、cacheをclearする
 
 def get_file_identifier(file):
 	if file is not None:
@@ -300,7 +300,7 @@ if uploaded_file  is not None:
 		st.cache_data.clear()
 		st.cache_resource.clear()
 		st.session_state.last_file_id = current_file_id
-		st.success("newshiiFileischeckoutsaremashita。kiyashiyuthekuriashimashita。")
+		st.success("新しいファイルが検出されました。キャッシュをクリアしました。")
 
 #---------------
 
@@ -345,7 +345,7 @@ if uploaded_file  is not None:
 	if submitted_basic:
 		st.session_state.liana_res = []
 
-	if db == 'cellchat_secreted_signaling': #cellchat secreted signalingtheaddadd
+	if db == 'cellchat_secreted_signaling': #cellchat secreted signalingを追加
 		if species == 'mouse':
 			resource = pd.read_csv("db/cellchat_secreted_signaling_mouse.tsv", sep = '\t')
 		else:
@@ -355,7 +355,7 @@ if uploaded_file  is not None:
 			resource = pd.read_csv("db/nichenet.tsv", sep = '\t')
 		else:
 			resorce = pd.read_csv("db/nichenet_human.tsv", sep = '\t')
-	elif db == 'cellchatdb': #cellchat secreted signalingtheaddadd
+	elif db == 'cellchatdb': #cellchat secreted signalingを追加
 		if species == 'mouse':
 			resource = pd.read_csv("db/cellchat_mouse.tsv", sep = '\t')
 		else:
@@ -377,7 +377,7 @@ if uploaded_file  is not None:
 	
 	st.write("LR numbers: " + str(len(resource)))
 
-	resource = resource.astype({'ligand': str, 'receptor': str}) #typethemodcorrect
+	resource = resource.astype({'ligand': str, 'receptor': str}) #型を修正
 
 	if remove_complex:
 		resource = resource[~resource['ligand'].str.contains('_') & ~resource['receptor'].str.contains('_')]
@@ -393,13 +393,13 @@ if uploaded_file  is not None:
 	st.write(" ")
 
 	if st.button('Run analysis') or (len(st.session_state.liana_res) > 0):
-		#optionthechangeetaandkiiswaittsuliketodo
+		#optionを変えたときは待つようにする
 
 		if method in ['Rank_Aggregate','CellChat','CellPhoneDB','Connectome','log2FC','NATMI','SingleCellSignalR','Geometric Mean','scSeqComm']:
 			rankaggregate_options = {'groupby': groupby, 'resource': resource, "expr_prop": expr_prop,
 			"use_raw": False, "key_added": res_name, "n_jobs": 8}
 
-			try: #alreadyexistDatatheremoveku
+			try: #既存データを除く
 				del adata.uns[res_name]
 			except:
 				pass
@@ -506,7 +506,7 @@ if uploaded_file  is not None:
 
 		if st.button('Draw dotplot'):
 
-			if method in ["NATMI","Connectome"]: #NATMIofspecificity weightishighihouisyoi。
+			if method in ["NATMI","Connectome"]: #NATMIのspecificity weightは高いほうがよい。
 				dot_inverse_size = False
 			else:
 				dot_inverse_size = True
@@ -547,14 +547,14 @@ if uploaded_file  is not None:
 				elif dot_color == "green_purple":
 					dotplot = dotplot + p9.scale_color_gradient(low="#00CC00", high="#CC00CC")
 
-				# ligandeqtheSettingsdoplacematchisY axistheinvturndo　compalltoinvturndoandiuthanbigkisaordertobecomeprintobj
+				# ligand等を設定する場合はY axisを逆転する　完全に逆転するというより大きさ順になる印象
 #				if (dot_source is not None) or (dot_target is not None):
 				# Get unique values of the 'interaction' column
 				interactions = dotplot.data['interaction'].unique()
 				# Reverse the order
 				reversed_interactions = list(reversed(interactions))
 				dotplot = dotplot + scale_y_discrete(limits=reversed_interactions)
-#				dotplot = dotplot + scale_y_discrete(reverse=True)　#　koreismovekanot
+#				dotplot = dotplot + scale_y_discrete(reverse=True)　#　これは動かない
 				fig = dotplot.draw()
 				st.pyplot(fig)
 				if method not in ["NATMI","Connectome"]:

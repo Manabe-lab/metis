@@ -183,7 +183,7 @@ with st.sidebar:
                 file_name=lr_pair_filename,
                 mime="text/tab-separated-values"
             )
-# tempintoSavedo
+# temp内に保存する
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
@@ -206,12 +206,12 @@ if 'deseq2' in st.session_state:
         else:
             file_name_head = "res"
         input_file_type = 'tsv'
-        if "Row_name" in df.columns.to_list(): # Row_nametheincludemuandki
+        if "Row_name" in df.columns.to_list(): # Row_nameを含むとき
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
 if "inv" not in st.session_state:
-    st.session_state.inv = False #inverseofsuichi invsareteexistbetweenisTrue
+    st.session_state.inv = False #inverseのスイッチ invされている間はTrue
 
 input_file_type = st.radio(
     "Data format:",
@@ -246,7 +246,7 @@ if df is not None:
     P_column = st.selectbox(
         'Select adjusted P-value column',
         pvalue)
-    # jiyaro,uinkura-distsepmethod
+    # ジャロ・ウィンクラー距離法
     JW_dist = [Levenshtein.jaro_winkler(P_column, x) for x in fc]
     try:
         FC_column = st.selectbox(
@@ -309,7 +309,7 @@ if df is not None:
 
 
     if use_upload == 'Yes':
-        # indextheGenetodo
+        # indexをGeneにする
         df.index = df[Gene_column].tolist()
         # Save a copy with index set for subset creation later
         st.session_state.deseq2_original = df.copy()
@@ -333,7 +333,7 @@ if df is not None:
                 df["Y_data"] = df[P_column]
                 ylabel = 'P'
 
-# pis0ofandkiofpairrespond
+# pが0のときの対応
     zero_adj = "No"
     if min(df[P_column]) == 0:
         st.markdown("##### There are zeros in P values.")
@@ -343,7 +343,7 @@ if df is not None:
 
     if zero_adj == "Yes":
         if (P_column is not None) & (FC_column is not None):
-            # maxtodoandinfisResulttobecomefor、mazunantochangechangeshitaafter、np.nanmaxtheuseu
+            # maxにするとinfが結果になるため、まずnanに変換した後、np.nanmaxを使う
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
             min_val = np.nanmax(df["Y_data"])
             if transform == "-Log10" or "-Log2":
@@ -469,17 +469,17 @@ if df is not None:
             Font_color = "#000000"
             Font_alpha = 1
             Font_position = 'top center'
-            Font_italic = False  # defuorutoisnonitariku
+            Font_italic = False  # デフォルトは非イタリック
             Mod_label = st.checkbox('Modify gene label attributes?')
             if Mod_label:
                 Font_size = int(st.text_input("Gene label size:", value = 12))
                 Font_alpha = st.slider('Gene label transparency (alpha) 0-1:', 0.0, 1.0, 1.0, 0.05)
                 Font_color = st.color_picker('Gene label color', '#000000')
-                Font_italic = st.checkbox('Italic font?', value=False)  # itarikuofOptiontheaddadd
+                Font_italic = st.checkbox('Italic font?', value=False)  # イタリックのオプションを追加
                 Font_position = st.radio("Label position:", ('top center','top left', 'top right'))
                 st.markdown("---")
             Font_rgb = hex2rgb(Font_color, Font_alpha)
-            # fuontofuamiri-ofSettings
+            # フォントファミリーの設定
      #       Font_family = "Arial Italic, Times New Roman Italic" if Font_italic else "Arial, Times New Roman"
 
 
@@ -487,7 +487,7 @@ if df is not None:
             df['Color2'][(df[P_column] < P_threshold) & (df[FC_column] > FC_threshold)] = up_rgb
             df['Color2'][(df[P_column] < P_threshold) & (df[FC_column] < -FC_threshold)] = down_rgb
 
-            # colortomatchwaseteDataofordernumtheso-to
+            # colorに合わせてデータの順番をソート
             df2 = df.copy()
          #   st.write("Before sort:" + str(len(df2)))
             up_rows = df2.loc[df2['Color2'] == up_rgb]
@@ -528,11 +528,11 @@ if df is not None:
            ((L_FC_threshold > 0) & (np.abs(df[FC_column]) <= L_FC_threshold))] = None
 
 
-    # adj_pisNAofmoofismanyi
+    # adj_pがNAのものが多い
     text_label[ np.isnan(df[P_column])] = None
     gene_list = [x for x in text_label if x is not None]
 
-    if use_goi and goi is not None: # goiwithcontrollimit
+    if use_goi and goi is not None: # goiで制限
         gene_list = list(set(gene_list) & set(goi))
         # Update text_label to match gene_list
         text_label_filtered = df[Gene_column].copy()
@@ -554,7 +554,7 @@ if df is not None:
             st.markdown("*Final size for significant specified genes will be: Base size × First multiplier × Second multiplier*")
 
 
-            # pointsetsaretaGeneofrisutomakebecomepartdivthemodcorrect
+            # 指定された遺伝子のリスト作成部分を修正
             gene_list_sp = []
             if len(genes) > 0:
                 text_label = df[Gene_column].copy(deep=True)
@@ -590,16 +590,16 @@ if df is not None:
                         text_label_dat.append(None)
                         
                 text_label.iloc[:] = text_label_dat
-                gene_list_all = [x for x in text_label if x is not None]  # kokowith gene_list_all thesetdef
+                gene_list_all = [x for x in text_label if x is not None]  # ここで gene_list_all を定義
                 df['Point_Size'] = point_sizes
 
-                text_label_color = text_label.copy() #colorattachkeuse
+                text_label_color = text_label.copy() #色付け用
                 text_label_color[(df[P_column] >= P_threshold) | (np.abs(df[FC_column]) <= FC_threshold)] = None
                 gene_list_color = [x for x in text_label_color if x is not None]
 
 
                 text_label[(df[P_column] >= L_P_threshold) | (np.abs(df[FC_column]) <= L_FC_threshold)] = None
-                # adj_pisNAofmoofismanyi
+                # adj_pがNAのものが多い
                 text_label[ np.isnan(df[P_column])] = None
                 gene_list = [x for x in text_label if x is not None]
 
@@ -613,25 +613,25 @@ if df is not None:
                         gene_list_color = gene_list_all
                     Sp_c = st.color_picker('Color:', '#4C0013', label_visibility="collapsed")
                     Sp_alpha = st.slider('NS point transparency:', 0.0, 1.0, 1.0, 0.05)
-                    Sp_sig_alpha = 1.0  # SignificantnaGeneuseoftranscleardegreethe1.0（compalltonottransclear）tofixset
+                    Sp_sig_alpha = 1.0  # 有意な遺伝子用の透明度を1.0（完全に不透明）に固定
 
-                    # nonSignificantnapointsetGeneuseofRGBAcolor
+                    # 非有意な指定遺伝子用のRGBA色
                     Sp_rgb_ns = hex2rgb(Sp_c, Sp_alpha)
-                    # SignificantnapointsetGeneuseofRGBAcolor
+                    # 有意な指定遺伝子用のRGBA色
                     Sp_rgb_sig = hex2rgb(Sp_c, Sp_sig_alpha)
 
                     for i in gene_list_color:
-                        # SignificantnaturetobaseduitefitcutnatranscleardegreetheSelect
+                        # 有意性に基づいて適切な透明度を選択
                         is_significant = (df.loc[i, P_column] < P_threshold) and (abs(df.loc[i, FC_column]) > FC_threshold)
                         df.loc[df[Gene_column] == i, 'Color2'] = Sp_rgb_sig if is_significant else Sp_rgb_ns
 
                     df2 = df.copy()
-                    # SignificantnapointsetGenethemostbeforefaceto
+                    # 有意な指定遺伝子を最前面に
                     sig_rows = df2.loc[(df2['Color2'] == Sp_rgb_sig)]
                     df2.drop(sig_rows.index, inplace=True)
                     df2 = pd.concat([df2, sig_rows])
                     
-                    # nonSignificantnapointsetGenethenextto
+                    # 非有意な指定遺伝子を次に
                     ns_rows = df2.loc[(df2['Color2'] == Sp_rgb_ns)]
                     df2.drop(ns_rows.index, inplace=True)
                     df2 = pd.concat([df2, ns_rows])
@@ -648,7 +648,7 @@ if df is not None:
                             text_label_dat.append(None)
                     text_label.iloc[:] = text_label_dat
                     text_label[(df[P_column] >= L_P_threshold) | (np.abs(df[FC_column]) <= L_FC_threshold)] = None
-                    # adj_pisNAofmoofismanyi
+                    # adj_pがNAのものが多い
                     text_label[ np.isnan(df[P_column])] = None
                     gene_list = [x for x in text_label if x is not None]
                     df = df2.copy()
@@ -666,17 +666,17 @@ if df is not None:
                     Hl_genes = Hl_genes.replace("'","")
                     Hl_genes = Hl_genes.replace('"',"")
                     st.write(Hl_genes)
-                    Hl_gene_list_sp = Hl_genes.split(' ') #mazuemptywhitewithdivsep
-                    Hl_gene_list_sp = list(filter(lambda a: a != '', Hl_gene_list_sp)) #emptywhiteofmitheremoveku
+                    Hl_gene_list_sp = Hl_genes.split(' ') #まず空白で分離
+                    Hl_gene_list_sp = list(filter(lambda a: a != '', Hl_gene_list_sp)) #空白のみを除く
                     if ',' in Hl_genes:
-                        Hl_gene_list_sp = sum([x.split(',') for x in Hl_gene_list_sp],[]) #sumwithflatflatize sum(x, [])
+                        Hl_gene_list_sp = sum([x.split(',') for x in Hl_gene_list_sp],[]) #sumで平坦化 sum(x, [])
                     if '\t' in Hl_genes:
                         Hl_gene_list_sp = sum([x.split('\t') for x in Hl_gene_list_sp],[])
                     if '\n' in Hl_genes:
                         Hl_gene_list_sp = sum([x.split('\n') for x in Hl_gene_list_sp],[])
               #      st.write(text_label)
          #           text_label[-text_label.isin(gene_list)] = None
-                    Hl_gene_set_lower = [x.lower() for x in set(Hl_gene_list_sp)] #bigtextcharsmalltextcharrelrelatenakusa-chi
+                    Hl_gene_set_lower = [x.lower() for x in set(Hl_gene_list_sp)] #大文字小文字関係なくサーチ
                     Hl_text_label_dat = []
                     for x in df[Gene_column]:
                         if x != None:
@@ -740,7 +740,7 @@ if df is not None:
             if P_line != 0:
                 fig.add_hline(y=P_line, line_width=PFC_width, line_color = PFC_color)
 
-            fig.update_layout(height=Y_size) #saizuofSettings
+            fig.update_layout(height=Y_size) #サイズの設定
             fig.update_layout(xaxis=dict(title=FC_column, titlefont = dict(size = Axis_size, color=Axis_color), tickfont=dict(size=Tick_size, color=Tick_color)),yaxis = dict(title =ylabel , titlefont = dict(size = Axis_size, color=Axis_color), tickfont=dict(size=Tick_size, color=Tick_color)))
             if x_axis_mod:
                 fig.update_layout(xaxis_range = [x_min,x_max])
@@ -752,7 +752,7 @@ if df is not None:
 
             fig3 = go.Figure()
 
-            # fuontofuamiri-ofSettings（Arialofmitochangefurther）andstyle-italictheaddadd
+            # フォントファミリーの設定（Arialのみに変更）とstyle-italicを追加
             if Font_italic:
                 text_label = [f'<i>{label}</i>' if label is not None else None for label in text_label]
 
@@ -782,7 +782,7 @@ if df is not None:
                 fig3.add_hline(y=P_line, line_width=PFC_width, line_color = PFC_color)
 
 
-            fig3.update_layout(height=Y_size) #saizuofSettings
+            fig3.update_layout(height=Y_size) #サイズの設定
             fig3.update_layout(xaxis=dict(title=FC_column, titlefont = dict(size = Axis_size, color=Axis_color), tickfont=dict(size=Tick_size, color=Tick_color)),yaxis = dict(title =ylabel , titlefont = dict(size = Axis_size, color=Axis_color), tickfont=dict(size=Tick_size, color=Tick_color)))
             if x_axis_mod:
                 fig3.update_layout(xaxis_range = [x_min,x_max])
@@ -797,7 +797,7 @@ if df is not None:
             if repel:
                 import matplotlib.pyplot as plt
                 from adjustText import adjust_text
-                # NSandSigofDatathemakeru
+                # NSとSigのデータを作る
                 NS_df = df.copy()
                 S_df = df.copy()
                 NS_df = NS_df[ (NS_df[P_column]>=P_threshold) | (np.abs(NS_df[FC_column]) <= FC_threshold) ]
@@ -908,12 +908,12 @@ if df is not None:
             r_enhanced_command = r_enhanced_command_head + xlab + pCutoff + FCCutoff + pointSize + labSize + colAlpha + legendLabSize + legendIconSize + drawConnectors + widthConnectors + EV_options + ")"
             r(r_enhanced_command)
 
-            # mazuPNGtheSaveshiteDisplay
+            # まずPNGを保存して表示
             png_command = "ggsave(filename = '" + res_dir + "/" + file_name + "_EnhancedVolcano.png', plot = p, device = 'png', width = " + EV_X_size + ", height = " + EV_Y_size + ", dpi = 300)"
             r(png_command)
             st.image(res_dir + "/" + file_name + "_EnhancedVolcano.png")
 
-            # PDFmoSave
+            # PDFも保存
             pdf_command = "ggsave(filename = '" + res_dir + "/" + file_name + "_EnhancedVolcano.pdf', plot = p, device = 'pdf', width = " + EV_X_size + ", height = " + EV_Y_size + ")"
             r(pdf_command)
 
@@ -929,7 +929,7 @@ if df is not None:
             subset_df.to_csv(res_dir + "/" + subset_filename, sep='\t')
             st.write(f"Labeled genes subset: {len(gene_list)} genes")
 
-        # zipFileofmakebecomeandSave
+        # zipファイルの作成と保存
         shutil.make_archive(temp_dir + "/Volcano", format='zip', root_dir=res_dir)
         with open(temp_dir + "/Volcano.zip", "rb") as fp:
             btn = st.download_button(
@@ -939,6 +939,6 @@ if df is not None:
                 mime="zip"
             )
 
-        # onetimedeirekutoriof掃remove
+        # 一時ディレクトリの掃除
         shutil.rmtree(temp_dir)
         os.mkdir(temp_dir)

@@ -25,7 +25,7 @@ st.set_page_config(page_title="Permutation_Test", page_icon="🔀", layout="wide
 st.title("🔀 Permutation Test Analysis")
 st.markdown("### Freedman-Lane & Simple Permutation Tests")
 
-# Loadingrelnum（Calc_DESeq2.pyfromflowuse）
+# Loading functions (reused from Calc_DESeq2.py)
 @st.cache_data
 def read_csv(file, index_col=None, sep=','):
     df_c = pd.read_csv(file, index_col = index_col, header = 0, sep = sep, engine='python')
@@ -101,7 +101,7 @@ def simple_permutation_test(y, x, n_permutations=1000, stat_type='t_stat'):
     permuted_stats = []
     
     for _ in range(n_permutations):
-        # raberutheshiyafuru
+        # Shuffle labels
         x_permuted = np.random.permutation(x)
         perm_stat = calculate_statistic(y, x_permuted, stat_type)
         permuted_stats.append(perm_stat)
@@ -120,27 +120,27 @@ def freedman_lane_test(y, x_full, x_reduced, n_permutations=1000, stat_type='t_s
     """
     Freedman-Lane permutation test
     """
-    # Reduced modelwithtimereturn
+    # Fit reduced model
     reg_reduced = LinearRegression()
     reg_reduced.fit(x_reduced, y)
     y_pred_reduced = reg_reduced.predict(x_reduced)
     
-    # remaindiffCalculation
+    # Calculate residuals
     residuals = y - y_pred_reduced
     
-    # Full modelwithobservemeasStatisticalamountCalculation
+    # Calculate observed statistic with full model
     observed_stat = calculate_full_model_statistic(y, x_full, stat_type)
     
     permuted_stats = []
     
     for _ in range(n_permutations):
-        # remaindifftheshiyafuru
+        # Shuffle residuals
         residuals_permuted = np.random.permutation(residuals)
         
-        # newshiirespondanschangenum
+        # New response variable
         y_star = y_pred_reduced + residuals_permuted
         
-        # Full modelwithStatisticalamountCalculation
+        # Calculate statistic with full model
         perm_stat = calculate_full_model_statistic(y_star, x_full, stat_type)
         permuted_stats.append(perm_stat)
     
@@ -258,15 +258,15 @@ def calculate_statistic(y, x, stat_type):
 def calculate_full_model_statistic(y, x_full, stat_type):
     """Calculate statistics for full model with proper standard errors"""
     if stat_type == 't_stat' and x_full.shape[1] >= 2:
-        # correctshiitStatisticalamountofCalculation
+        # Calculate correct statistic
         reg = LinearRegression()
         reg.fit(x_full, y)
         
-        # advmeasvalandremaindiff
+        # Predicted values and residuals
         y_pred = reg.predict(x_full)
         residuals = y - y_pred
         
-        # remaindiffflatwaysumandselfreasondegree
+        # Residual sum of squares and degrees of freedom
         n = len(y)
         p = x_full.shape[1]
         df_resid = n - p
@@ -274,24 +274,24 @@ def calculate_full_model_statistic(y, x_full, stat_type):
         if df_resid <= 0:
             return 0
         
-        # remaindiffmarklevelerrdiff
+        # Mean squared error of residuals
         mse = np.sum(residuals**2) / df_resid
         
-        # dezainrowcolofinvrowcolofCalculation（numvalsafesetnatureofforpinvtheuseuse）
+        # Calculate inverse of design matrix (using pinv for numerical stability)
         try:
             xtx_inv = np.linalg.pinv(x_full.T @ x_full)
-            # mostafterofrelatenum（興meanofexistchangenum）ofmarklevelerrdiff
+            # Standard error of the last coefficient (variable of interest)
             se_coef = np.sqrt(mse * xtx_inv[-1, -1])
             
             if se_coef == 0:
                 return 0
             
-            # tStatisticalamount = relatenum / marklevelerrdiff
+            # t statistic = coefficient / standard error
             t_stat = reg.coef_[-1] / se_coef
             return t_stat
             
         except (np.linalg.LinAlgError, ValueError):
-            # numvalaltonotsafesetnaplacematchis0thereturnsu
+            # Return 0 if numerically unstable
             return 0
             
     elif stat_type == 'correlation' and x_full.shape[1] >= 2:
@@ -303,7 +303,7 @@ def calculate_full_model_statistic(y, x_full, stat_type):
     else:
         return calculate_statistic(y, x_full[:, -1] if x_full.shape[1] > 0 else x_full, stat_type)
 
-# UIpartdiv
+# UI section
 st.sidebar.title("Analysis Options")
 
 # Analysis method selection
@@ -320,7 +320,7 @@ n_permutations = st.sidebar.number_input(
     min_value=100, max_value=10000, value=1000, step=100
 )
 
-# representnatureofforofshi-doSettings
+# Seed setting for reproducibility
 random_seed = st.sidebar.number_input(
     "Random seed (for reproducibility)",
     min_value=0, max_value=99999, value=42, step=1
@@ -335,35 +335,35 @@ stat_type = st.sidebar.radio(
 with st.sidebar.expander("ℹ️ About test methods"):
     st.markdown("""
     **Simple Permutation Test:**
-    - raberu（groupdivke）therandamutoplacechange
-    - groupbetweenofdiffis偶naturaltoyorumoofkathecheckset
-    - cochangeamountthethinkconsidershinot
-    
+    - Randomly permutes labels (group assignments)
+    - Tests if differences between groups could occur by chance
+    - Does not consider covariates
+
     **Freedman-Lane Method:**
-    - cochangeamount（bachieffectresulteq）thekeepholdshitamamacheckset
-    - Reduced model（cochangeamountofmi）ofremaindifftheplacechange
-    - thanstrictdensenaStatisticalalinferlogicispossible
-    - Samplenumisfewnotplacematchtospectovalid
-    
+    - Tests while preserving covariates (batch effects, etc.)
+    - Permutes residuals from reduced model (covariates only)
+    - Allows for stricter statistical inference
+    - Particularly effective when sample size is small
+
     **Freedman-Lane (permuco):**
-    - certainestabsaretaRpake-jipermucotheuseuse
-    - 我々ofrealinstallandofComparison,checkproofuse
-    - logictextwithofmarklevelalnarefrefrealinstall
-    - thanmanykuofStatisticalinfoinfotheprovideprovide
-    
+    - Uses the established R package permuco
+    - Used for comparison and verification with our implementation
+    - Standard-level reference implementation in literature
+    - Provides more statistical information
+
     **Test Statistics:**
-    - t_stat: correctcertainnatStatisticalamount（relatenum/marklevelerrdiff）
-    - mean_diff: flatavgvaldiff
-    - correlation: mutualrelrelatenum（connectcontinuechangenumuse）
-    
-    **Statisticalalkeepproof:**
-    - Type I Errorrateofcorrectcertainnacontrolctrl
-    - havelimitSamplewithofcorrectcertainnature
-    - divdisttempsettodependexistshinot頑健nature
+    - t_stat: Correct t-statistic (coefficient/standard error)
+    - mean_diff: Mean difference
+    - correlation: Correlation coefficient (for continuous variables)
+
+    **Statistical guarantees:**
+    - Correct control of Type I Error rate
+    - Accuracy with limited samples
+    - Robustness not dependent on distribution assumptions
     """)
 
 
-# DataUploadpartdiv（Calc_DESeq2.pyfromflowuse）
+# Data upload section (reused from Calc_DESeq2.py)
 df = None
 use_upload = 'Yes'
 if 'df' in st.session_state:
@@ -405,11 +405,11 @@ if df is not None:
     st.write('Data shape:', df.shape)
     st.write(df.head())
     
-    # DataofPreprocessing
+    # Data preprocessing
     df = df.astype(float)
     df = rename_duplicates(df)
     
-    # basemainStatistical
+    # Basic statistics
     st.write("### Basic Statistics")
     col1, col2 = st.columns(2)
     with col1:
@@ -419,7 +419,7 @@ if df is not None:
         st.write(f"Missing values: {df.isnull().sum().sum()}")
         st.write(f"Zero values: {(df == 0).sum().sum()}")
     
-    # GroupandbachiofSettings（Calc_DESeq2.pyfromflowuse）
+    # Group and batch settings (reused from Calc_DESeq2.py)
     condition = [str(i) for i in df.columns.tolist()]
     group_condition = remove_common_suffix(condition)
     group_condition = [remove_sample_num(x) for x in group_condition]
@@ -447,12 +447,12 @@ if df is not None:
             edited_df_b = st.data_editor(df_b)
             batch_groups = [str(x) for x in edited_df_b['Batch'].tolist()]
 
-    # AnalysisRun
+    # Run analysis
     if st.button("🚀 Run Permutation Test"):
-        # representnatureofforofshi-doSettings
+        # Seed setting for reproducibility
         np.random.seed(random_seed)
         
-        # groupofnumthechieku
+        # Check number of groups
         unique_groups = list(set(condition_groups))
         if len(unique_groups) < 2:
             st.error("At least 2 groups are required for analysis")
@@ -462,14 +462,14 @@ if df is not None:
         st.write(f"Group assignment: {dict(zip(condition, condition_groups))}")
         st.write(f"Using random seed: {random_seed} for reproducibility")
         
-        # eachGenetotsuiteAnalysisRun
+        # Run analysis for each gene
         results_list = []
         
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # Samplenumcontrollimit（Calculationtimebetweenthethinkconsider）
-        n_genes = min(df.shape[0], 100)  # maximum100Genemawith
+        # Limit sample count (considering computation time)
+        n_genes = min(df.shape[0], 100)  # maximum 100 genes
         if df.shape[0] > 100:
             st.warning(f"Analysis limited to first {n_genes} genes for computational efficiency")
         
@@ -480,7 +480,7 @@ if df is not None:
             y = df.loc[gene].values
             
             if test_method == "Simple Permutation":
-                # groupraberuthenumvaltochangechange
+                # Convert group labels to numeric values
                 x = np.array([unique_groups.index(g) for g in condition_groups])
                 
                 try:
@@ -499,14 +499,14 @@ if df is not None:
                     continue
                     
             elif test_method == "Freedman-Lane":  # Our Freedman-Lane implementation
-                # cochangeamountmatorikusumakebecome
+                # Create covariate matrix
                 unique_batches = list(set(batch_groups))
                 
                 # Full model: intercept + batch + group
                 x_full = np.ones((len(condition_groups), 1))  # intercept
                 
                 # Batch variables (one-hot encoding)
-                for batch in unique_batches[:-1]:  # mostafterofbachiisrefrefgroup
+                for batch in unique_batches[:-1]:  # Last batch is reference group
                     batch_col = np.array([1 if b == batch else 0 for b in batch_groups]).reshape(-1, 1)
                     x_full = np.hstack([x_full, batch_col])
                 
@@ -515,7 +515,7 @@ if df is not None:
                 x_full = np.hstack([x_full, group_col])
                 
                 # Reduced model: intercept + batch only
-                x_reduced = x_full[:, :-1]  # groupchangenumtheremoveku
+                x_reduced = x_full[:, :-1]  # Remove group variable
                 
                 try:
                     obs_stat, perm_stats, p_val = freedman_lane_test(
@@ -533,7 +533,7 @@ if df is not None:
                     continue
                     
             else:  # Freedman-Lane (permuco)
-                # permucotheuseuse
+                # Use permuco
                 group_numeric = np.array([unique_groups.index(g) for g in condition_groups])
                 unique_batches = list(set(batch_groups))
                 batch_numeric = np.array([unique_batches.index(b) for b in batch_groups])
@@ -562,29 +562,29 @@ if df is not None:
         status_text.empty()
         
         if results_list:
-            # ResulttheDataFrametochangechange
+            # Convert results to DataFrame
             results_df = pd.DataFrame(results_list)
             
-            # FDRsuppcorrect
+            # FDR correction
             from statsmodels.stats.multitest import fdrcorrection
             
-            # debaguinfoinfo
+            # Debug information
             st.write(f"P-value range: {results_df['P_value'].min():.6f} - {results_df['P_value'].max():.6f}")
             st.write(f"Unique P-values: {results_df['P_value'].nunique()}")
             
-            # FDRsuppcorrecttheRun
+            # Run FDR correction
             rejected, fdr_corrected = fdrcorrection(results_df['P_value'], method='indep')
             results_df['FDR'] = fdr_corrected
             
-            # FDRsuppcorrectafterofConfirm
+            # Confirm after FDR correction
             st.write(f"FDR range: {results_df['FDR'].min():.6f} - {results_df['FDR'].max():.6f}")
             st.write(f"Unique FDR values: {results_df['FDR'].nunique()}")
             
-            # ResultDisplay
+            # Display results
             st.markdown("### Results")
             st.write(f"Analyzed {len(results_df)} genes")
             
-            # Statisticalsamari-
+            # Statistical summary
             col1, col2, col3 = st.columns(3)
             with col1:
                 sig_genes = (results_df['P_value'] < 0.05).sum()
@@ -596,7 +596,7 @@ if df is not None:
                 median_p = results_df['P_value'].median()
                 st.metric("Median p-value", f"{median_p:.4f}")
             
-            # Resultte-buru
+            # Results table
             st.dataframe(
                 results_df.sort_values('P_value').head(20),
                 use_container_width=True

@@ -18,41 +18,41 @@ st.set_page_config(page_title="Memento", page_icon="💬")
 
 def convert_covariates_to_numeric(adata, covariate_cols):
     """
-    指定されたカラムを数値に変換します。
-    
+    Converts specified columns to numeric values.
+
     Args:
         adata: AnnData object
-        covariate_cols: 数値に変換したいカラムのリスト
-    
+        covariate_cols: List of columns to convert to numeric
+
     Returns:
-        変換後のAnnData object
+        AnnData object after conversion
     """
     adata = adata.copy()
     
     for col in covariate_cols:
-        # カラムの型を確認
+        # Check column type
         if adata.obs[col].dtype == 'object' or adata.obs[col].dtype == 'category':
             unique_values = adata.obs[col].unique()
             if len(unique_values) <= 100:
-                # カテゴリ数が10以下の場合はラベルエンコーディング
+                # Use label encoding if number of categories is 100 or less
                 categories = pd.Categorical(adata.obs[col]).categories
                 adata.obs[col] = pd.Categorical(adata.obs[col]).codes
-                # マッピングを表示
+                # Display mapping
                 st.write(f"Mapping for {col}:")
                 for i, cat in enumerate(categories):
                     st.write(f"{cat} -> {i}")
             else:
                 try:
-                    # 10分位数に分割（重複を許可）
+                    # Split into 10 quantiles (allowing duplicates)
                     adata.obs[col] = pd.qcut(
                         pd.factorize(adata.obs[col])[0], 
                         q=10, 
                         labels=False,
-                        duplicates='drop'  # 重複する値は削除
+                        duplicates='drop'  # Drop duplicate values
                     )
                     st.write(f"{col} was divided into quantiles")
                 except:
-                    # qcutが失敗した場合は単純なラベルエンコーディング
+                    # Fall back to simple label encoding if qcut fails
                     categories = pd.Categorical(adata.obs[col]).categories
                     adata.obs[col] = pd.Categorical(adata.obs[col]).codes
                     st.write(f"Fallback to label encoding for {col}")
@@ -64,25 +64,25 @@ def convert_covariates_to_numeric(adata, covariate_cols):
     return adata
 
 def run_memento_by_group(adata, groupby,  num_cpus=12, num_boot=5000, min_perc_group=0.7):
-    # グループごとの結果を格納する辞書
+    # Dictionary to store results for each group
     results_dict = {}
     
-    # グループごとにループ
+    # Loop through each group
     for group in adata.obs[groupby].unique():
-        # グループでデータをサブセット
+        # Subset data by group
         group_adata = adata[adata.obs[groupby] == group].copy()
         
         try:
-            # mementoの解析を実行
+            # Run memento analysis
 
             if len(cov_column) > 0:
 
             #    adata.obs['capture_rate'] = capture_rate
                 memento.setup_memento(adata, q_column='capture_rate')
                 memento.create_groups(adata, label_columns=label_columns) 
-                # 3. モーメント計算
+                # 3. Compute moments
                 memento.compute_1d_moments(adata, min_perc_group=min_perc_group)           
-                # 4. メタデータ準備
+                # 4. Prepare metadata
                 sample_meta = memento.get_groups(adata)
                 # The covariate DataFrame - pick the covariate columns
                 cov_df = sample_meta[cov_column]
@@ -101,7 +101,7 @@ def run_memento_by_group(adata, groupby,  num_cpus=12, num_boot=5000, min_perc_g
                 result = memento.get_1d_ht_result(adata)   
             
             else:
-                #wrapper functionをそのまま書く
+                # Write wrapper function as is
                 adata = adata.copy().copy()
              #   adata.obs['capture_rate'] = capture_rate
                 memento.setup_memento(adata, q_column='capture_rate')
@@ -115,7 +115,7 @@ def run_memento_by_group(adata, groupby,  num_cpus=12, num_boot=5000, min_perc_g
                     num_cpus=num_cpus)
                 result = memento.get_1d_ht_result(adata)
 
-            # 結果を辞書に保存
+            # Save results to dictionary
             results_dict[group] = result
             st.write(f"Completed analysis for {group}")
             
@@ -137,40 +137,40 @@ def save_results_to_tsv(results_dict, memento_temp_dir, comparison_str, control_
 
 def prepare_covariates(adata, covariate_cols):
     """
-    adata.obsから指定された列を取得し、必要に応じてダミー変数化します。
-    
+    Retrieves specified columns from adata.obs and converts to dummy variables if necessary.
+
     Args:
         adata: AnnData object
-        covariate_cols: covariateとして使用する列名のリスト
-    
+        covariate_cols: List of column names to use as covariates
+
     Returns:
-        pd.DataFrame: 処理済みのcovariate dataframe
+        pd.DataFrame: Processed covariate dataframe
     """
     cov_df = pd.DataFrame(index=adata.obs.index)
     
     for col in covariate_cols:
-        # 列のデータ型を確認
+        # Check column data type
         dtype = adata.obs[col].dtype
         
-        # カテゴリカル変数（objectまたはcategory）の場合
+        # For categorical variables (object or category)
         if dtype == 'object' or dtype == 'category':
-            # ユニークな値の数を確認
+            # Check number of unique values
             n_unique = len(adata.obs[col].unique())
             
             if n_unique == 2:
-                # 2値カテゴリの場合は0/1に変換
+                # Convert binary categories to 0/1
                 cov_df[col] = (adata.obs[col] == adata.obs[col].unique()[1]).astype(int)
             else:
-                # 3値以上のカテゴリはダミー変数化
+                # Convert categories with 3+ values to dummy variables
                 dummy = pd.get_dummies(adata.obs[col], prefix=col)
-                # 多重共線性を避けるため、最後の列を除外
+                # Exclude last column to avoid multicollinearity
                 cov_df = pd.concat([cov_df, dummy.iloc[:, :-1]], axis=1)
         
-        # 数値型の場合はそのまま使用
+        # Use numeric types as is
         else:
             cov_df[col] = adata.obs[col]
     
-    # interceptを追加
+    # Add intercept
     cov_df['intercept'] = 1
     
     return cov_df
@@ -178,24 +178,24 @@ def prepare_covariates(adata, covariate_cols):
 @st.cache_data
 def show_gene_counts_by_min_perc(_adata, min_perc_values=[0.5, 0.7, 0.9]):
    """
-   異なるmin_perc_groupの値での残る遺伝子数を表示
+   Display remaining gene counts for different min_perc_group values
    """
-   # 元のデータの遺伝子数
+   # Number of genes in original data
    total_genes = adata.shape[1]
    st.write(f"Total genes before filtering: {total_genes}")
    
    for min_perc in min_perc_values:
-       # テスト用のadataをコピー
+       # Copy adata for testing
        test_adata = adata.copy()
        
-       # mementoのセットアップ
+       # Setup memento
        memento.setup_memento(test_adata, q_column='capture_rate')
        memento.create_groups(test_adata, label_columns=['condition_encoded'])
        
-       # モーメント計算
+       # Compute moments
        memento.compute_1d_moments(test_adata, min_perc_group=min_perc)
        
-       # 残った遺伝子数を取得
+       # Get number of remaining genes
        remaining_genes = len(test_adata.uns['memento']['test_genes'])
        percent_remaining = (remaining_genes / total_genes) * 100
        
@@ -226,7 +226,7 @@ def find_first_index_or_zero(lst, elements):
 
 
 
-#============ 新しいファイルをアップロードしたときは、cacheをclearする
+#============ Clear cache when a new file is uploaded
 
 def get_file_identifier(file):
     if file is not None:
@@ -234,7 +234,7 @@ def get_file_identifier(file):
     return None
 
 
-# temp内に保存する
+# Save to temp directory
 # --- Initialising SessionState ---
 if "memento_temp_dir" not in st.session_state:
     memento_temp_dir = "temp/" + str(round(time.time()))
@@ -264,7 +264,7 @@ if uploaded_file  is not None:
         st.cache_data.clear()
         st.cache_resource.clear()
         st.session_state.last_file_id = current_file_id
-        st.success("新しいファイルが検出されました。キャッシュをクリアしました。")
+        st.success("New file detected. Cache has been cleared.")
 
 #---------------
 
@@ -285,26 +285,26 @@ if uploaded_file  is not None:
     sample_list = sorted(adata.obs[sampleby].cat.categories.to_list())
 
     if len(sample_list) > 2:
-        # 複数の条件から2つを選択するマルチセレクト
+        # Multiselect to choose 2 conditions from multiple options
         selected_conditions = st.multiselect(
             "Select 2 conditions to compare:",
             sample_list,
-            max_selections=2  # 最大2つまで選択可能
+            max_selections=2  # Maximum 2 selections allowed
         )
         
-        # 2つ選択されるまで待機
+        # Wait until 2 conditions are selected
         if len(selected_conditions) != 2:
             st.warning("Please select exactly 2 conditions to compare.")
             st.stop()
             
-        # 選択された2条件でデータをサブセット化
+        # Subset data with the 2 selected conditions
         mask = adata.obs[sampleby].isin(selected_conditions)
         adata = adata[mask].copy()
         
-        # condition_encodedカラムの作成（1つ目の条件を0、2つ目を1とする）
+        # Create condition_encoded column (first condition = 0, second = 1)
         adata.obs['condition_encoded'] = (adata.obs[sampleby] == selected_conditions[1]).astype(int)
         
-        # 選択された条件を表示
+        # Display selected conditions
         st.write(f"Comparing: {selected_conditions[0]} and {selected_conditions[1]}")
 
         sample_list = selected_conditions
@@ -338,7 +338,7 @@ if uploaded_file  is not None:
         
         label_columns.extend(cov_column)
 
-        # カテゴリカルをcovariatesように変換
+        # Convert categorical variables for covariates
         adata = convert_covariates_to_numeric(adata, covariate_cols=cov_column)
  
     adata_genes = adata.var.index.tolist()
@@ -351,7 +351,7 @@ if uploaded_file  is not None:
         # Remove spaces from each gene name and filter out empty strings
         gene_list = [re.sub(r'\s', '', gene) for gene in raw_genes if gene.strip()]
 
-        genes = list(filter(lambda x: x != "", genes)) #空白を除く
+        genes = list(filter(lambda x: x != "", genes)) # Remove empty strings
         gene_list =sorted(set(gene_list), key=gene_list.index)
         gene_list = [x for x in gene_list if x in adata_genes]
         st.write(gene_list[:3])
@@ -367,7 +367,7 @@ if uploaded_file  is not None:
             # Remove spaces from each gene name and filter out empty strings
             gene_list2 = [re.sub(r'\s', '', gene) for gene in raw_genes2 if gene.strip()]
 
-            genes2 = list(filter(lambda x: x != "", genes2)) #空白を除く
+            genes2 = list(filter(lambda x: x != "", genes2)) # Remove empty strings
             gene_list2 =sorted(set(gene_list2), key=gene_list2.index)
             gene_list2 = [x for x in gene_list2 if x in adata_genes]
             st.write(gene_list2[:3])
@@ -400,7 +400,7 @@ if uploaded_file  is not None:
         comparison_str = "_" + test_group + "_vs_" + control_group + "_"
         adata.obs['condition_encoded'] = (adata.obs[sampleby] == test_group).astype(int)
         adata.X = adata.raw.X
-        # adata.Xの形式を確認し、CSRでない場合のみ変換
+        # Check adata.X format and convert only if not CSR
         if not isspmatrix_csr(adata.X):
             adata.X = csr_matrix(adata.X)
 
@@ -409,7 +409,7 @@ if uploaded_file  is not None:
         num_boot=5000
 
 
-        # 実行例（例えばcell.ident2でグループ分け）
+        # Execution example (e.g., grouping by cell.ident2)
         if not bycell:
             memento.setup_memento(adata, q_column='capture_rate')
             memento.create_groups(adata, label_columns=label_columns)
@@ -439,9 +439,9 @@ if uploaded_file  is not None:
         else:
             results_dict = {}
         
-            # グループごとにループ
+            # Loop through each group
             for group in cell_list:
-                # グループでデータをサブセット
+                # Subset data by group
                 group_adata = adata[adata.obs[groupby] == group].copy()
                 
                 try:
@@ -471,7 +471,7 @@ if uploaded_file  is not None:
 
                     results_dict[group]= memento.get_2d_ht_result(adata)
 
-                    # 結果を辞書に保存
+                    # Save results to dictionary
                     results_dict[group] = result
                     st.write(f"Completed analysis for {group}")
                     st.write(results_dict[group].head())
@@ -481,7 +481,7 @@ if uploaded_file  is not None:
                     continue
             
         for celltype, result in results_dict.items():
-            # DM genes の補正
+            # Correction for DM genes
             result['corr_padj'] = multipletests(result.corr_pval, method='fdr_bh')[1]
             result.sort_values('corr_pval', ascending=True, inplace=True)
 
@@ -496,7 +496,7 @@ if uploaded_file  is not None:
 
         st.write(groupby)
         
-        # 結果をTSVとして保存
+        # Save results as TSV
         save_results_to_tsv(
             results_dict=results_dict,
             memento_temp_dir=memento_temp_dir,
@@ -506,22 +506,22 @@ if uploaded_file  is not None:
             adata=adata,
             groupby=groupby
         )
-        # ZIPファイルのパス
+        # ZIP file path
         zip_path = os.path.join(memento_temp_dir, "memento.zip")
         
 
-        # ZIPファイルの作成
+        # Create ZIP file
         shutil.make_archive(
             os.path.join(memento_temp_dir, "memento"), 
             'zip',
             root_dir=output_dir
         )
         
-        # ZIPファイルの読み込み
+        # Read ZIP file
         with open(zip_path, "rb") as fp:
             zip_data = fp.read()
         
-        # ダウンロードボタンの表示
+        # Display download button
         st.download_button(
             label="Download Results",
             data=zip_data,

@@ -1,11 +1,11 @@
 """
-分布比較統計解析ツール
-Kolmogorov-Smirnov検定 & Anderson-Darling検定
+Distribution Comparison Statistical Analysis Tool
+Kolmogorov-Smirnov Test & Anderson-Darling Test
 
-使用方法:
+Usage:
 streamlit run distribution_analysis.py
 
-必要なパッケージ:
+Required packages:
 pip install streamlit plotly scipy pandas numpy
 """
 
@@ -21,15 +21,15 @@ import io
 import warnings
 warnings.filterwarnings('ignore')
 
-# ページ設定
+# Page configuration
 st.set_page_config(
-    page_title="分布比較解析ツール",
+    page_title="Distribution Comparison Analysis Tool",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# カスタムCSS
+# Custom CSS
 st.markdown("""
 <style>
     .main {
@@ -62,78 +62,78 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# タイトルとサブタイトル
-st.title("📊 分布比較統計解析ツール")
-st.markdown("**Kolmogorov-Smirnov検定 & Anderson-Darling検定による2群間分布比較**")
+# Title and subtitle
+st.title("📊 Distribution Comparison Statistical Analysis Tool")
+st.markdown("**Two-group distribution comparison using Kolmogorov-Smirnov Test & Anderson-Darling Test**")
 
-# サイドバー
+# Sidebar
 with st.sidebar:
-    st.header("⚙️ 設定")
-    
-    st.subheader("データ入力方法")
+    st.header("⚙️ Settings")
+
+    st.subheader("Data Input Method")
     input_method = st.radio(
-        "入力方法を選択",
-        ["テキスト入力", "CSVアップロード", "サンプルデータ"]
+        "Select input method",
+        ["Text Input", "CSV Upload", "Sample Data"]
     )
-    
-    st.subheader("データ変換")
-    use_log = st.checkbox("Log変換を適用", value=False)
+
+    st.subheader("Data Transformation")
+    use_log = st.checkbox("Apply Log transformation", value=False)
     if use_log:
-        log_base = st.selectbox("対数の底", ["自然対数 (e)", "常用対数 (10)", "二進対数 (2)"])
-    
-    st.subheader("表示設定")
-    show_raw_data = st.checkbox("生データを表示", value=False)
-    show_qq = st.checkbox("Q-Qプロットを表示", value=True)
-    show_violin = st.checkbox("バイオリンプロットを表示", value=True)
-    bin_size = st.slider("ヒストグラムのビン数", 10, 50, 30)
-    
-    st.subheader("統計設定")
-    alpha = st.slider("有意水準 (α)", 0.01, 0.10, 0.05, 0.01)
-    
-    # 情報ボックス
-    with st.expander("ℹ️ 検定について"):
+        log_base = st.selectbox("Logarithm base", ["Natural log (e)", "Common log (10)", "Binary log (2)"])
+
+    st.subheader("Display Settings")
+    show_raw_data = st.checkbox("Show raw data", value=False)
+    show_qq = st.checkbox("Show Q-Q plot", value=True)
+    show_violin = st.checkbox("Show violin plot", value=True)
+    bin_size = st.slider("Number of histogram bins", 10, 50, 30)
+
+    st.subheader("Statistical Settings")
+    alpha = st.slider("Significance level (α)", 0.01, 0.10, 0.05, 0.01)
+
+    # Information box
+    with st.expander("ℹ️ About the tests"):
         st.markdown("""
-        **Kolmogorov-Smirnov検定**
-        - 2つの累積分布関数の最大差を評価
-        - 分布の位置、スケール、形状の違いを検出
-        - 中央部の違いに敏感
-        
-        **Anderson-Darling検定**
-        - 分布全体を重み付けして評価
-        - 裾部（両端）の違いに特に敏感
-        - 一般的にKS検定より検出力が高い
+        **Kolmogorov-Smirnov Test**
+        - Evaluates the maximum difference between two cumulative distribution functions
+        - Detects differences in location, scale, and shape of distributions
+        - Sensitive to differences in the central part
+
+        **Anderson-Darling Test**
+        - Evaluates the entire distribution with weighting
+        - Particularly sensitive to differences in the tails (both ends)
+        - Generally has higher detection power than KS test
         """)
 
-# メインコンテンツ
-# データ入力セクション
-st.header("1. データ入力")
+# Main content
+# Data input section
+st.header("1. Data Input")
 
 col1, col2 = st.columns(2)
 
-# 関数定義
+# Function definitions
 def parse_data(text):
-    """テキストデータをパース"""
+    """Parse text data"""
     if not text or text.strip() == "":
         return np.array([])
     try:
-        # カンマ、スペース、改行、タブで分割
+        # Split by comma, space, newline, or tab
         values = text.replace(',', ' ').replace('\n', ' ').replace('\t', ' ').split()
         data = np.array([float(v) for v in values if v.strip()])
-        return data[data > 0]  # 正の値のみ
+        return data[data > 0]  # Only positive values
     except:
         return np.array([])
 
 def generate_sample_data():
-    """サンプルデータ生成（対数正規分布）"""
+    """Generate sample data (log-normal distribution)"""
     np.random.seed(42)
-    # グループ1: 平均1000付近の対数正規分布
+    # Group 1: Log-normal distribution around mean 1000
     group1 = np.random.lognormal(mean=6.9, sigma=0.5, size=500)
-    # グループ2: やや大きめ（平均1300付近）
+    # Group 2: Slightly larger (around mean 1300)
     group2 = np.random.lognormal(mean=7.1, sigma=0.5, size=480)
     return group1, group2
 
 def calculate_stats(data):
-    """記述統計量の計算"""
+    """Calculate descriptive statistics"""
     if len(data) == 0:
         return None
     return {
@@ -152,18 +152,18 @@ def calculate_stats(data):
     }
 
 def ks_test_manual(data1, data2):
-    """Kolmogorov-Smirnov検定の実装"""
+    """Implementation of Kolmogorov-Smirnov test"""
     result = stats.ks_2samp(data1, data2)
-    # 効果量の解釈
+    # Effect size interpretation
     d = result.statistic
     if d < 0.15:
-        effect = "無視できる"
+        effect = "Negligible"
     elif d < 0.33:
-        effect = "小"
+        effect = "Small"
     elif d < 0.47:
-        effect = "中"
+        effect = "Medium"
     else:
-        effect = "大"
+        effect = "Large"
     return {
         'statistic': d,
         'p_value': result.pvalue,
@@ -171,11 +171,11 @@ def ks_test_manual(data1, data2):
     }
 
 def anderson_darling_test(data1, data2):
-    """Anderson-Darling検定"""
+    """Anderson-Darling test"""
     try:
         result = anderson_ksamp([data1, data2])
-        # 臨界値との比較
-        critical_5 = 1.961  # 5%有意水準
+        # Comparison with critical value
+        critical_5 = 1.961  # 5% significance level
         is_significant = result.statistic > critical_5
         return {
             'statistic': result.statistic,
@@ -187,399 +187,399 @@ def anderson_darling_test(data1, data2):
         return None
 
 def apply_log_transform(data, base="e"):
-    """対数変換"""
-    if base == "自然対数 (e)":
+    """Log transformation"""
+    if base == "Natural log (e)":
         return np.log(data)
-    elif base == "常用対数 (10)":
+    elif base == "Common log (10)":
         return np.log10(data)
-    else:  # 二進対数
+    else:  # Binary log
         return np.log2(data)
 
-# データ入力処理
+# Data input processing
 group1_data = np.array([])
 group2_data = np.array([])
 
-if input_method == "テキスト入力":
+if input_method == "Text Input":
     with col1:
-        st.subheader("グループ1")
+        st.subheader("Group 1")
         group1_text = st.text_area(
-            "データを入力（スペース、カンマ、改行区切り）",
+            "Enter data (space, comma, or newline separated)",
             height=150,
-            placeholder="例: 123.4 234.5 345.6\nまたは: 123.4, 234.5, 345.6"
+            placeholder="Example: 123.4 234.5 345.6\nor: 123.4, 234.5, 345.6"
         )
         group1_data = parse_data(group1_text)
         if len(group1_data) > 0:
-            st.success(f"✅ {len(group1_data)}個のデータ")
-    
+            st.success(f"✅ {len(group1_data)} data points")
+
     with col2:
-        st.subheader("グループ2")
+        st.subheader("Group 2")
         group2_text = st.text_area(
-            "データを入力（スペース、カンマ、改行区切り）",
+            "Enter data (space, comma, or newline separated)",
             height=150,
-            placeholder="例: 234.5 345.6 456.7"
+            placeholder="Example: 234.5 345.6 456.7"
         )
         group2_data = parse_data(group2_text)
         if len(group2_data) > 0:
-            st.success(f"✅ {len(group2_data)}個のデータ")
+            st.success(f"✅ {len(group2_data)} data points")
 
-elif input_method == "CSVアップロード":
-    st.info("CSVファイルは2列（Group1, Group2）または1列（Group列とValue列）の形式に対応")
-    uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
-    
+elif input_method == "CSV Upload":
+    st.info("CSV file supports 2 columns (Group1, Group2) or single column format (Group and Value columns)")
+    uploaded_file = st.file_uploader("Select CSV file", type=['csv'])
+
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        st.write("データプレビュー:", df.head())
-        
-        # 列名を取得
+        st.write("Data preview:", df.head())
+
+        # Get column names
         columns = df.columns.tolist()
-        
+
         if len(columns) >= 2:
-            col1_name = st.selectbox("グループ1の列", columns, index=0)
-            col2_name = st.selectbox("グループ2の列", columns, index=1 if len(columns) > 1 else 0)
-            
+            col1_name = st.selectbox("Group 1 column", columns, index=0)
+            col2_name = st.selectbox("Group 2 column", columns, index=1 if len(columns) > 1 else 0)
+
             group1_data = df[col1_name].dropna().values
             group2_data = df[col2_name].dropna().values
 
-else:  # サンプルデータ
-    if st.button("サンプルデータを生成"):
+else:  # Sample Data
+    if st.button("Generate sample data"):
         group1_data, group2_data = generate_sample_data()
-        st.success("サンプルデータを生成しました（対数正規分布）")
+        st.success("Sample data generated (log-normal distribution)")
 
-# データがある場合のみ解析実行
+# Run analysis only if data is available
 if len(group1_data) > 0 and len(group2_data) > 0:
-    
-    # Log変換の適用
+
+    # Apply Log transformation
     if use_log:
         group1_transformed = apply_log_transform(group1_data, log_base if 'log_base' in locals() else "e")
         group2_transformed = apply_log_transform(group2_data, log_base if 'log_base' in locals() else "e")
-        st.warning(f"⚠️ {log_base if 'log_base' in locals() else '自然対数'}変換を適用中")
+        st.warning(f"⚠️ Applying {log_base if 'log_base' in locals() else 'natural log'} transformation")
     else:
         group1_transformed = group1_data
         group2_transformed = group2_data
-    
-    # 記述統計
-    st.header("2. 記述統計量")
+
+    # Descriptive statistics
+    st.header("2. Descriptive Statistics")
     
     stats1 = calculate_stats(group1_data)
     stats2 = calculate_stats(group2_data)
     
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        st.markdown("**グループ1**")
+        st.markdown("**Group 1**")
         met_cols = st.columns(3)
         met_cols[0].metric("n", f"{stats1['n']}")
-        met_cols[1].metric("平均", f"{stats1['mean']:.2f}")
-        met_cols[2].metric("中央値", f"{stats1['median']:.2f}")
-        
+        met_cols[1].metric("Mean", f"{stats1['mean']:.2f}")
+        met_cols[2].metric("Median", f"{stats1['median']:.2f}")
+
         met_cols2 = st.columns(3)
-        met_cols2[0].metric("標準偏差", f"{stats1['std']:.2f}")
+        met_cols2[0].metric("Std Dev", f"{stats1['std']:.2f}")
         met_cols2[1].metric("CV%", f"{stats1['cv']:.1f}%")
-        met_cols2[2].metric("歪度", f"{stats1['skew']:.2f}")
-    
+        met_cols2[2].metric("Skewness", f"{stats1['skew']:.2f}")
+
     with col2:
-        st.markdown("**グループ2**")
+        st.markdown("**Group 2**")
         met_cols = st.columns(3)
         met_cols[0].metric("n", f"{stats2['n']}")
-        met_cols[1].metric("平均", f"{stats2['mean']:.2f}")
-        met_cols[2].metric("中央値", f"{stats2['median']:.2f}")
-        
+        met_cols[1].metric("Mean", f"{stats2['mean']:.2f}")
+        met_cols[2].metric("Median", f"{stats2['median']:.2f}")
+
         met_cols2 = st.columns(3)
-        met_cols2[0].metric("標準偏差", f"{stats2['std']:.2f}")
+        met_cols2[0].metric("Std Dev", f"{stats2['std']:.2f}")
         met_cols2[1].metric("CV%", f"{stats2['cv']:.1f}%")
-        met_cols2[2].metric("歪度", f"{stats2['skew']:.2f}")
-    
-    # 生データ表示
+        met_cols2[2].metric("Skewness", f"{stats2['skew']:.2f}")
+
+    # Raw data display
     if show_raw_data:
-        st.header("3. 生データ")
+        st.header("3. Raw Data")
         col1, col2 = st.columns(2)
         with col1:
-            st.write("グループ1 (最初の100個)")
+            st.write("Group 1 (first 100)")
             st.dataframe(pd.DataFrame(group1_data[:100], columns=["Value"]))
         with col2:
-            st.write("グループ2 (最初の100個)")
+            st.write("Group 2 (first 100)")
             st.dataframe(pd.DataFrame(group2_data[:100], columns=["Value"]))
+
+    # Statistical tests
+    st.header("3. Statistical Test Results")
     
-    # 統計検定
-    st.header("3. 統計検定結果")
-    
-    # KS検定
+    # KS test
     ks_result = ks_test_manual(group1_transformed, group2_transformed)
-    
-    # AD検定
+
+    # AD test
     ad_result = anderson_darling_test(group1_transformed, group2_transformed)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### Kolmogorov-Smirnov検定")
+        st.markdown("### Kolmogorov-Smirnov Test")
         st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-        
-        # D統計量
-        st.write(f"**D統計量**: {ks_result['statistic']:.4f}")
-        st.write(f"**効果量**: {ks_result['effect_size']}")
-        
-        # p値
+
+        # D statistic
+        st.write(f"**D Statistic**: {ks_result['statistic']:.4f}")
+        st.write(f"**Effect Size**: {ks_result['effect_size']}")
+
+        # p-value
         if ks_result['p_value'] < alpha:
-            st.markdown(f"**p値**: <span class='p-significant'>{ks_result['p_value']:.4f} ✗</span>", 
+            st.markdown(f"**p-value**: <span class='p-significant'>{ks_result['p_value']:.4f} ✗</span>",
                        unsafe_allow_html=True)
-            st.error(f"有意差あり（α = {alpha}）")
+            st.error(f"Significant difference (α = {alpha})")
         else:
-            st.markdown(f"**p値**: <span class='p-not-significant'>{ks_result['p_value']:.4f} ✓</span>", 
+            st.markdown(f"**p-value**: <span class='p-not-significant'>{ks_result['p_value']:.4f} ✓</span>",
                        unsafe_allow_html=True)
-            st.success(f"有意差なし（α = {alpha}）")
-        
+            st.success(f"No significant difference (α = {alpha})")
+
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # 解釈
-        with st.expander("解釈"):
+
+        # Interpretation
+        with st.expander("Interpretation"):
             if ks_result['p_value'] < alpha:
-                st.write(f"2群の分布は統計的に有意に異なります。")
-                st.write(f"最大累積分布差（D = {ks_result['statistic']:.3f}）は{ks_result['effect_size']}効果を示しています。")
+                st.write(f"The distributions of the two groups are statistically significantly different.")
+                st.write(f"The maximum cumulative distribution difference (D = {ks_result['statistic']:.3f}) indicates a {ks_result['effect_size'].lower()} effect.")
             else:
-                st.write(f"2群の分布に統計的有意差は認められません。")
+                st.write(f"No statistically significant difference was found between the distributions of the two groups.")
     
     with col2:
-        st.markdown("### Anderson-Darling検定")
+        st.markdown("### Anderson-Darling Test")
         st.markdown('<div class="stat-box">', unsafe_allow_html=True)
-        
+
         if ad_result:
-            st.write(f"**A²統計量**: {ad_result['statistic']:.4f}")
-            st.write(f"**臨界値 (5%)**: {ad_result['critical_value']:.3f}")
-            
+            st.write(f"**A² Statistic**: {ad_result['statistic']:.4f}")
+            st.write(f"**Critical Value (5%)**: {ad_result['critical_value']:.3f}")
+
             if ad_result['significant']:
-                st.markdown(f"**結果**: <span class='p-significant'>有意差あり ✗</span>", 
+                st.markdown(f"**Result**: <span class='p-significant'>Significant difference ✗</span>",
                            unsafe_allow_html=True)
-                st.error("分布は有意に異なる")
+                st.error("Distributions are significantly different")
             else:
-                st.markdown(f"**結果**: <span class='p-not-significant'>有意差なし ✓</span>", 
+                st.markdown(f"**Result**: <span class='p-not-significant'>No significant difference ✓</span>",
                            unsafe_allow_html=True)
-                st.success("分布は類似している")
+                st.success("Distributions are similar")
         else:
-            st.warning("AD検定の実行に失敗しました")
-        
+            st.warning("Failed to run AD test")
+
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # 解釈
-        with st.expander("解釈"):
+
+        # Interpretation
+        with st.expander("Interpretation"):
             if ad_result and ad_result['significant']:
-                st.write("A²統計量が臨界値を超えており、2群の分布は有意に異なります。")
-                st.write("Anderson-Darling検定は分布の裾部の違いに特に敏感です。")
+                st.write("The A² statistic exceeds the critical value, indicating the distributions of the two groups are significantly different.")
+                st.write("The Anderson-Darling test is particularly sensitive to differences in the tails of distributions.")
             else:
-                st.write("A²統計量が臨界値以下であり、2群の分布に有意差は認められません。")
+                st.write("The A² statistic is below the critical value, indicating no significant difference between the distributions of the two groups.")
     
-    # グラフ表示
-    st.header("4. 可視化")
-    
-    # ヒストグラム
-    st.subheader("ヒストグラム")
+    # Graph display
+    st.header("4. Visualization")
+
+    # Histogram
+    st.subheader("Histogram")
     
     fig_hist = go.Figure()
-    
-    # グループ1
+
+    # Group 1
     fig_hist.add_trace(go.Histogram(
         x=group1_transformed,
-        name='グループ1',
+        name='Group 1',
         nbinsx=bin_size,
         opacity=0.6,
         marker_color='#3498db'
     ))
-    
-    # グループ2
+
+    # Group 2
     fig_hist.add_trace(go.Histogram(
         x=group2_transformed,
-        name='グループ2',
+        name='Group 2',
         nbinsx=bin_size,
         opacity=0.6,
         marker_color='#e74c3c'
     ))
-    
+
     fig_hist.update_layout(
         barmode='overlay',
-        title='分布の比較' + (' (Log変換後)' if use_log else ''),
-        xaxis_title='値' + (' (Log変換)' if use_log else ''),
-        yaxis_title='頻度',
+        title='Distribution Comparison' + (' (After Log Transformation)' if use_log else ''),
+        xaxis_title='Value' + (' (Log Transformed)' if use_log else ''),
+        yaxis_title='Frequency',
         height=400,
         showlegend=True
     )
     
     st.plotly_chart(fig_hist, use_container_width=True)
-    
-    # 累積分布関数
-    st.subheader("累積分布関数 (CDF)")
-    
+
+    # Cumulative distribution function
+    st.subheader("Cumulative Distribution Function (CDF)")
+
     sorted1 = np.sort(group1_transformed)
     sorted2 = np.sort(group2_transformed)
-    
+
     fig_cdf = go.Figure()
-    
+
     fig_cdf.add_trace(go.Scatter(
         x=sorted1,
         y=np.arange(1, len(sorted1) + 1) / len(sorted1),
         mode='lines',
-        name='グループ1',
+        name='Group 1',
         line=dict(color='#3498db', width=2)
     ))
-    
+
     fig_cdf.add_trace(go.Scatter(
         x=sorted2,
         y=np.arange(1, len(sorted2) + 1) / len(sorted2),
         mode='lines',
-        name='グループ2',
+        name='Group 2',
         line=dict(color='#e74c3c', width=2)
     ))
-    
-    # KS統計量の可視化（最大差の位置）
-    # 簡略化のため省略
-    
+
+    # Visualization of KS statistic (maximum difference location)
+    # Omitted for simplification
+
     fig_cdf.update_layout(
-        title='累積分布関数の比較' + (' (Log変換後)' if use_log else ''),
-        xaxis_title='値' + (' (Log変換)' if use_log else ''),
-        yaxis_title='累積確率',
+        title='CDF Comparison' + (' (After Log Transformation)' if use_log else ''),
+        xaxis_title='Value' + (' (Log Transformed)' if use_log else ''),
+        yaxis_title='Cumulative Probability',
         height=400,
         showlegend=True
     )
     
     st.plotly_chart(fig_cdf, use_container_width=True)
-    
-    # Q-Qプロット
+
+    # Q-Q plot
     if show_qq:
-        st.subheader("Q-Qプロット")
-        
-        # 共通の分位点で比較
+        st.subheader("Q-Q Plot")
+
+        # Compare at common quantiles
         n_quantiles = min(len(group1_transformed), len(group2_transformed))
         quantiles = np.linspace(0, 1, min(100, n_quantiles))
-        
+
         q1 = np.quantile(group1_transformed, quantiles)
         q2 = np.quantile(group2_transformed, quantiles)
-        
+
         fig_qq = go.Figure()
-        
-        # データ点
+
+        # Data points
         fig_qq.add_trace(go.Scatter(
             x=q1,
             y=q2,
             mode='markers',
-            name='データ',
+            name='Data',
             marker=dict(size=8, color='#764ba2', opacity=0.6)
         ))
-        
-        # 45度線
+
+        # 45-degree line
         min_val = min(q1.min(), q2.min())
         max_val = max(q1.max(), q2.max())
         fig_qq.add_trace(go.Scatter(
             x=[min_val, max_val],
             y=[min_val, max_val],
             mode='lines',
-            name='45度線（同一分布）',
+            name='45-degree line (identical distribution)',
             line=dict(dash='dash', color='gray')
         ))
-        
+
         fig_qq.update_layout(
-            title='Q-Qプロット' + (' (Log変換後)' if use_log else ''),
-            xaxis_title='グループ1の分位点',
-            yaxis_title='グループ2の分位点',
+            title='Q-Q Plot' + (' (After Log Transformation)' if use_log else ''),
+            xaxis_title='Group 1 Quantiles',
+            yaxis_title='Group 2 Quantiles',
             height=400
         )
-        
+
         st.plotly_chart(fig_qq, use_container_width=True)
     
-    # バイオリンプロット
+    # Violin plot
     if show_violin:
-        st.subheader("バイオリンプロット")
-        
-        # データフレーム作成
+        st.subheader("Violin Plot")
+
+        # Create dataframe
         df_violin = pd.DataFrame({
             'Value': np.concatenate([group1_transformed, group2_transformed]),
-            'Group': ['グループ1'] * len(group1_transformed) + ['グループ2'] * len(group2_transformed)
+            'Group': ['Group 1'] * len(group1_transformed) + ['Group 2'] * len(group2_transformed)
         })
-        
+
         fig_violin = px.violin(
-            df_violin, 
-            y='Value', 
-            x='Group', 
+            df_violin,
+            y='Value',
+            x='Group',
             color='Group',
             box=True,
-            title='分布の形状比較' + (' (Log変換後)' if use_log else ''),
-            color_discrete_map={'グループ1': '#3498db', 'グループ2': '#e74c3c'}
+            title='Distribution Shape Comparison' + (' (After Log Transformation)' if use_log else ''),
+            color_discrete_map={'Group 1': '#3498db', 'Group 2': '#e74c3c'}
         )
-        
+
         fig_violin.update_layout(height=400)
         st.plotly_chart(fig_violin, use_container_width=True)
     
-    # 結果のエクスポート
-    st.header("5. 結果のエクスポート")
-    
-    # 結果をデータフレームにまとめる
+    # Export results
+    st.header("5. Export Results")
+
+    # Summarize results in dataframe
     results_df = pd.DataFrame({
-        '検定': ['Kolmogorov-Smirnov', 'Anderson-Darling'],
-        '統計量': [ks_result['statistic'], ad_result['statistic'] if ad_result else None],
-        'p値': [ks_result['p_value'], None],
-        '有意性': [
-            '有意' if ks_result['p_value'] < alpha else '非有意',
-            '有意' if ad_result and ad_result['significant'] else '非有意'
+        'Test': ['Kolmogorov-Smirnov', 'Anderson-Darling'],
+        'Statistic': [ks_result['statistic'], ad_result['statistic'] if ad_result else None],
+        'p-value': [ks_result['p_value'], None],
+        'Significance': [
+            'Significant' if ks_result['p_value'] < alpha else 'Not significant',
+            'Significant' if ad_result and ad_result['significant'] else 'Not significant'
         ]
     })
-    
-    # CSVダウンロード
+
+    # CSV download
     csv = results_df.to_csv(index=False)
     st.download_button(
-        label="📥 結果をCSVでダウンロード",
+        label="📥 Download results as CSV",
         data=csv,
         file_name="distribution_test_results.csv",
         mime="text/csv"
     )
     
-    # レポート生成
-    if st.button("📄 レポートを生成"):
+    # Generate report
+    if st.button("📄 Generate Report"):
         report = f"""
-# 分布比較解析レポート
+# Distribution Comparison Analysis Report
 
-## データ概要
-- グループ1: n = {stats1['n']}, 平均 = {stats1['mean']:.2f}, 中央値 = {stats1['median']:.2f}
-- グループ2: n = {stats2['n']}, 平均 = {stats2['mean']:.2f}, 中央値 = {stats2['median']:.2f}
-- 変換: {'Log変換 (' + log_base + ')' if use_log else 'なし'}
+## Data Overview
+- Group 1: n = {stats1['n']}, Mean = {stats1['mean']:.2f}, Median = {stats1['median']:.2f}
+- Group 2: n = {stats2['n']}, Mean = {stats2['mean']:.2f}, Median = {stats2['median']:.2f}
+- Transformation: {'Log transformation (' + log_base + ')' if use_log else 'None'}
 
-## 統計検定結果
+## Statistical Test Results
 
-### Kolmogorov-Smirnov検定
-- D統計量: {ks_result['statistic']:.4f}
-- p値: {ks_result['p_value']:.4f}
-- 効果量: {ks_result['effect_size']}
-- 結論: {'有意差あり' if ks_result['p_value'] < alpha else '有意差なし'} (α = {alpha})
+### Kolmogorov-Smirnov Test
+- D Statistic: {ks_result['statistic']:.4f}
+- p-value: {ks_result['p_value']:.4f}
+- Effect Size: {ks_result['effect_size']}
+- Conclusion: {'Significant difference' if ks_result['p_value'] < alpha else 'No significant difference'} (α = {alpha})
 
-### Anderson-Darling検定
-- A²統計量: {ad_result['statistic'] if ad_result else 'N/A':.4f}
-- 臨界値: {ad_result['critical_value'] if ad_result else 'N/A':.3f}
-- 結論: {'有意差あり' if ad_result and ad_result['significant'] else '有意差なし'}
+### Anderson-Darling Test
+- A² Statistic: {ad_result['statistic'] if ad_result else 'N/A':.4f}
+- Critical Value: {ad_result['critical_value'] if ad_result else 'N/A':.3f}
+- Conclusion: {'Significant difference' if ad_result and ad_result['significant'] else 'No significant difference'}
 
-## 解釈
-{'2群の分布は統計的に有意に異なることが示されました。' if ks_result['p_value'] < alpha else '2群の分布に統計的有意差は認められませんでした。'}
+## Interpretation
+{'The distributions of the two groups are statistically significantly different.' if ks_result['p_value'] < alpha else 'No statistically significant difference was found between the distributions of the two groups.'}
 """
-        st.text_area("レポート", report, height=400)
+        st.text_area("Report", report, height=400)
 
 else:
-    st.warning("⚠️ 両グループにデータを入力してください")
-    
-    # 使用方法
-    with st.expander("📖 使用方法"):
+    st.warning("⚠️ Please enter data for both groups")
+
+    # Usage instructions
+    with st.expander("📖 Usage Instructions"):
         st.markdown("""
-        1. **データ入力**: サイドバーで入力方法を選択し、データを入力
-        2. **変換オプション**: 必要に応じてLog変換を適用（右に歪んだ分布に有効）
-        3. **結果確認**: 統計検定結果とグラフを確認
-        4. **エクスポート**: 結果をCSVやレポートとして保存
-        
-        **データ形式**:
-        - スペース、カンマ、改行で区切られた数値
-        - CSVファイルの場合は列を選択
-        - サンプルデータで動作確認可能
+        1. **Data Input**: Select input method in the sidebar and enter data
+        2. **Transformation Options**: Apply log transformation if needed (effective for right-skewed distributions)
+        3. **Review Results**: Check statistical test results and graphs
+        4. **Export**: Save results as CSV or report
+
+        **Data Format**:
+        - Numbers separated by spaces, commas, or newlines
+        - For CSV files, select the columns
+        - Sample data available for testing
         """)
 
-# フッター
+# Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666;'>
-    <p>統計的有意性と実質的意義の両方を考慮して結果を解釈してください</p>
+    <p>Please interpret results considering both statistical significance and practical significance</p>
     <p>Created with Streamlit 📊</p>
 </div>
 """, unsafe_allow_html=True)

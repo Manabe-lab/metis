@@ -1,8 +1,8 @@
-#!!!!!!!!!!!!!! pip install rpy2==3.5.1  newshiiba-jiyonisErrorisoutru
+#!!!!!!!!!!!!!! pip install rpy2==3.5.1 - newer versions cause errors
 
-# basemainaltoglobalchangenumwithCalculationdo。
-# pythonfromassgnsareruofisglobalchangenum
-# pycombatto
+# Calculated with alternative global variables.
+# Global variables assigned from Python
+# pycombat
 
 import streamlit as st
 import csv
@@ -18,7 +18,7 @@ import time
 import sys
 from inmoose.pycombat import pycombat_seq
 
-#March-1 Sept-1pairrespond
+# Handle March-1 Sept-1 auto-conversion
 def excel_autoconversion(dfx):
     p = re.compile(r'(\d+)\-(Mar|Sep)')
     index_name = dfx.index.values
@@ -97,11 +97,11 @@ def calc_barplot(data, ylabel):
     ax.set_ylabel(ylabel, fontsize = 14)
     return fig
 
-# tempintoSavedo
+# Save to temp
 # --- Initialising SessionState ---
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = True
-    #oldidirecotryandFilethedeleteremovedo
+    # Delete old directories and files
     temp_dir = "temp/" + str(round(time.time()))
     if not os.path.exists('temp'):
         os.mkdir('temp')
@@ -127,7 +127,7 @@ else:
         os.mkdir(res_dir)
 
 
-st.markdown("### Raw count datatheuseu")
+st.markdown("### Use raw count data")
 
 
 use_upload = 'Yes'
@@ -140,11 +140,11 @@ if 'df' in st.session_state:
         df = st.session_state.df
         input_file_type = 'tsv'
         file_name_head = st.session_state.uploaded_file_name
-        # Homerpairrespond
+        # Handle Homer format
         if "Transcript/RepeatID" in df.columns[0]:
             df = df.iloc[:,8:]
             st.write(df.head())
-        if "Row_name" in df.columns.to_list(): # Row_nametheincludemuandki
+        if "Row_name" in df.columns.to_list(): # When it includes Row_name
             df = df.set_index('Row_name')
             df.index.name = "Gene"
 
@@ -189,20 +189,20 @@ if use_upload == 'Yes':
             df = read_excel(uploaded_file)
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
-                 # colnamesofchangechange
+                 # Convert column names
                 search_word = '([^\ \(]*)\ \(.*'
 
                 for i in range(1, len(content)):
                     match = re.search(search_word, content[i])
                     if match:
                         content[i] = match.group(1).replace(' ', '_')
-                df.columns = content # oneoncenamebeforethechangefurther
-                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # excel pairrespond
+                df.columns = content # Temporarily rename columns
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str) # Excel support
                 pattern = "([^|]*)"
                 repatter = re.compile(pattern)
                 f_annotation = lambda x: repatter.match(x).group(1)
                 df.loc[:,'Annotation/Divergence'] = df.loc[:,'Annotation/Divergence'].apply(f_annotation)
-                # annotation/divergencebeforetheremoveku
+                # Remove everything before annotation/divergence
                 df = df.loc[:,'Annotation/Divergence':]
                 content = df.columns.tolist()
                 content[0] = 'Gene'
@@ -222,13 +222,13 @@ if use_upload == 'Yes':
 if df is not None:
     st.write('Original gene number:  ' + str(len(df)))
 
-    # floattochangechange errcast悟in
+    # Convert to float for error prevention
     df = df.astype(float)
     df = df.round(0)
 
-    df = df.loc[~(df==0).all(axis=1)] #all0ofrowtheremoveku
+    df = df.loc[~(df==0).all(axis=1)] # Remove rows that are all zeros
 
-########## excelpairrespond?
+########## Excel support?
     st.write("All zero count genes are removed.")
     if df.isnull().values.sum() > 0:
         st.write("There are " + str(df.isnull().values.sum()) + " NaN in :")
@@ -269,15 +269,15 @@ if df is not None:
         st.pyplot(f2)
 
 
-    if any(df.sum() == 0): # count 0ofcoltheremoveku
+    if any(df.sum() == 0): # Remove columns with count = 0
         st.markdown('#### There are the samples that have counts = 0')
         st.write('They are removed. Now data are:')
         df = df.drop(df.columns[df.sum() == 0].to_list(), axis = 1)
         st.write(df.head())
 
-    condition = [str(i) for i in df.columns.tolist()] #errorpreventstop
-    group_condition = [remove_after_space(x) for x in condition] #supe-suordesctheremoveku
-    group_condition = [remove_sample_num(x) for x in group_condition] #endtailofnumchartheremoveku
+    condition = [str(i) for i in df.columns.tolist()] # Error prevention
+    group_condition = [remove_after_space(x) for x in condition] # Remove text after space
+    group_condition = [remove_sample_num(x) for x in group_condition] # Remove trailing numbers
 
 
 #    df_e = pd.DataFrame(group_condition, index = condition, columns = ["Group"])
@@ -318,8 +318,8 @@ if df is not None:
     if st.button('Run Combat-seq'):
 
 
-        #mazuRofdftochangechange
-        st.session_state.df = None #kokowithdeletermdo
+        # First convert to R dataframe
+        st.session_state.df = None # Delete here
 
         adjusted_df = pycombat_seq(df,batch)
         st.write(adjusted_df.head())

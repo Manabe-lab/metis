@@ -1,21 +1,21 @@
 """
 PCA Score Statistical Analysis with General Linear Models
 =========================================================
-PCAスコアの統計解析ツール - 複数の共変量を含む複雑なデザインに対応
+Statistical analysis tool for PCA scores - supports complex designs with multiple covariates
 
-このツールは、pseudobulkまたはサンプルレベルのデータに対して、
-PC scoreを応答変数とした統計解析を行います。
+This tool performs statistical analysis using PC scores as the response variable
+for pseudobulk or sample-level data.
 
-主な機能:
-- OLS (通常最小二乗法) with robust standard errors
-- LMM (線形混合モデル) with random effects
+Main features:
+- OLS (Ordinary Least Squares) with robust standard errors
+- LMM (Linear Mixed Models) with random effects
 - Freedman-Lane permutation testing
 - Estimated Marginal Means (EMM)
 
-適用例:
-- scRNA-seq pseudobulkデータのPC scoreと性別・細胞タイプの関連
-- バッチ効果や年齢などの共変量を調整した解析
-- ドナー間変動を考慮した階層モデル
+Applications:
+- Association between PC scores and sex/cell type in scRNA-seq pseudobulk data
+- Analysis adjusted for batch effects, age, and other covariates
+- Hierarchical models accounting for donor-level variation
 """
 
 import os
@@ -42,7 +42,7 @@ sys.path.insert(0, '/home/ichiro/streamlit')
 from helper_func import remove_after_space, remove_sample_num
 
 # Page configuration
-st.set_page_config(page_title="PCA統計解析", page_icon="📊", layout="wide")
+st.set_page_config(page_title="PCA Statistical Analysis", page_icon="📊", layout="wide")
 
 # Initialize session state for temp directory
 if "pca_temp_dir" not in st.session_state:
@@ -50,82 +50,82 @@ if "pca_temp_dir" not in st.session_state:
     os.makedirs(temp_dir, exist_ok=True)
     st.session_state.pca_temp_dir = temp_dir
 
-st.title("📊 PCA Score 統計解析")
+st.title("📊 PCA Score Statistical Analysis")
 st.markdown("""
-### PC scoreを応答変数とした一般化線形モデル解析
+### General Linear Model Analysis with PC Scores as Response Variable
 
-このアプリは、PCA（主成分分析）で得られたPC scoreに対して、
-**性別・細胞サブタイプ・バッチ・年齢**などの効果を統計的に検定します。
+This app performs statistical tests on PC scores obtained from PCA (Principal Component Analysis)
+to examine effects of **sex, cell subtype, batch, age**, and other factors.
 
 ---
 """)
 
-with st.expander("📚 機能の詳細説明（クリックで展開）", expanded=False):
+with st.expander("📚 Detailed Feature Description (Click to expand)", expanded=False):
     st.markdown("""
-#### 📌 主な用途:
-- **scRNA-seq pseudobulk解析**: サンプル単位に集計したデータのPC scoreと表現型の関連
-- **不均衡デザイン対応**: 群サイズが異なる、欠損がある場合にも対応
-- **階層構造**: ドナーや技術的バッチなどの階層を考慮
-- **共変量調整**: 年齢、深度、品質指標などを調整
+#### 📌 Main Use Cases:
+- **scRNA-seq pseudobulk analysis**: Association between PC scores and phenotypes in sample-aggregated data
+- **Unbalanced design support**: Handles unequal group sizes and missing data
+- **Hierarchical structure**: Accounts for donor and technical batch hierarchies
+- **Covariate adjustment**: Adjusts for age, sequencing depth, quality metrics, etc.
 
-#### 🔬 実装されている統計手法:
+#### 🔬 Implemented Statistical Methods:
 
-**1. OLS (Ordinary Least Squares - 通常最小二乗法)**
-- 固定効果モデル（sex, subtype, batch, age等）
-- **HC3 robust SE**: 不均一分散に頑健な標準誤差（推奨）
-- **Cluster-robust SE**: クラスター内相関を考慮（例: donor単位）
-- Type II ANOVA: 各変数の有意性検定
+**1. OLS (Ordinary Least Squares)**
+- Fixed effects model (sex, subtype, batch, age, etc.)
+- **HC3 robust SE**: Heteroscedasticity-robust standard errors (recommended)
+- **Cluster-robust SE**: Accounts for within-cluster correlation (e.g., by donor)
+- Type II ANOVA: Significance test for each variable
 
-**2. LMM (Linear Mixed Model - 線形混合モデル)**
-- **ランダム効果**: `(1|donor)`, `(1|batch)` など階層構造に対応
-- **REML推定**: 不偏な分散推定（推奨）
-- **ML推定**: モデル比較用（AIC/BIC）
-- **ICC計算**: 級内相関係数（ランダム効果の寄与率）
-- ドナー数が少ない場合（<5）は警告を表示
+**2. LMM (Linear Mixed Model)**
+- **Random effects**: Supports hierarchical structures like `(1|donor)`, `(1|batch)`
+- **REML estimation**: Unbiased variance estimation (recommended)
+- **ML estimation**: For model comparison (AIC/BIC)
+- **ICC calculation**: Intraclass correlation coefficient (random effect contribution)
+- Warning displayed when number of donors is small (<5)
 
-**3. Permutation Test (置換検定)**
-- **Freedman-Lane法**: 共変量を制御した厳密な検定（推奨）
-- **Simple permutation**: シンプルなラベル入替
-- 小サンプルや分布仮定が疑わしい場合に有効
-- 反復数: 1,000〜50,000（カスタマイズ可能）
+**3. Permutation Test**
+- **Freedman-Lane method**: Rigorous test controlling for covariates (recommended)
+- **Simple permutation**: Simple label shuffling
+- Effective for small samples or when distributional assumptions are questionable
+- Iterations: 1,000-50,000 (customizable)
 
-**4. EMM (Estimated Marginal Means - 推定周辺平均)**
-- 共変量を調整した群平均の推定
-- サブタイプ別の性差などを可視化
-- 信頼区間付きで解釈しやすい
+**4. EMM (Estimated Marginal Means)**
+- Estimation of group means adjusted for covariates
+- Visualizes sex differences by subtype, etc.
+- Easy interpretation with confidence intervals
 
-#### ⚙️ データ品質チェック:
-- **完全共線性の検出**: 推定不可能な効果を事前に警告
-- **VIF計算**: 数値共変量の多重共線性診断
-- **サンプルサイズ確認**: 各群のサンプル数とクロス集計表
-- **欠損値処理**: 自動除去と報告
+#### ⚙️ Data Quality Checks:
+- **Perfect collinearity detection**: Pre-warns about non-estimable effects
+- **VIF calculation**: Multicollinearity diagnosis for numeric covariates
+- **Sample size verification**: Sample counts per group and cross-tabulation
+- **Missing value handling**: Automatic removal with reporting
 
-#### 📊 可視化:
-- **Forest plot**: 係数推定値と95%信頼区間
-- **診断プロット**: 残差、Q-Q plot、Scale-Location
-- **EMM plot**: 群別の推定平均値
-- **Permutation histogram**: 帰無分布と観測統計量
+#### 📊 Visualizations:
+- **Forest plot**: Coefficient estimates with 95% confidence intervals
+- **Diagnostic plots**: Residuals, Q-Q plot, Scale-Location
+- **EMM plot**: Estimated marginal means by group
+- **Permutation histogram**: Null distribution and observed statistic
 
-#### 💾 結果のダウンロード:
-- 係数表（CSV）
-- ANOVA表（CSV）
-- 分散成分（LMM）
-- Permutation分布（CSV）
-- 全ての図（Streamlitから保存可能）
+#### 💾 Download Results:
+- Coefficient table (CSV)
+- ANOVA table (CSV)
+- Variance components (LMM)
+- Permutation distribution (CSV)
+- All figures (saveable from Streamlit)
 """)
 
 # =============================================================================
-# 実践ガイド
+# Practical Guide
 # =============================================================================
-with st.expander("📖 実践ガイド：細胞型別pseudobulkデータでの性差軸の探索", expanded=False):
+with st.expander("📖 Practical Guide: Finding Sex-Associated Axis in Cell Type Pseudobulk Data", expanded=False):
     st.markdown("""
-### 🎯 ユースケース：cell.type が4種類 × sex の8サンプルで「sex軸」を見つける
+### 🎯 Use Case: Finding the "Sex Axis" with 4 Cell Types × Sex (8 Samples)
 
-#### **入力データの前提**
+#### **Input Data Requirements**
 
-**1行 = 1サンプル（pseudobulk）**
+**1 row = 1 sample (pseudobulk)**
 
-列の例：
+Example columns:
 ```
 sample_id    sex       cell.type    PC1      PC2      PC3      PC4      ...
 sample_001   Female    art         -2.34     1.52    -0.87     0.45
@@ -140,209 +140,209 @@ sample_008   Male      vein        -1.23     0.45    -0.89     0.34
 
 ---
 
-#### **アプリ側の設定（列マッピング）**
+#### **App Settings (Column Mapping)**
 
-1. **主要変数 1 (main_var)** = `sex`
-2. **主要変数 2 / ブロッキング変数 (blocking_var)** = `cell.type`
-3. **解析PC** = PC1〜PCk を順に選択（または後述の"sex 合成軸"を一発で作る）
+1. **Main Variable 1 (main_var)** = `sex`
+2. **Main Variable 2 / Blocking Variable (blocking_var)** = `cell.type`
+3. **Analysis PC** = Select PC1 to PCk sequentially (or create a "sex composite axis" directly)
 
 ---
 
-#### **手順A：PCごと（1次元ずつ）の"sex主効果"スクリーニング**
+#### **Procedure A: Screening "Sex Main Effect" for Each PC (One Dimension at a Time)**
 
-**目的:** どのPCが sex を最もよく説明するかを、cell.type を共変量として調整しながら判定。
+**Objective:** Determine which PC best explains sex while adjusting for cell.type as a covariate.
 
-**ステップ:**
+**Steps:**
 
-1. **PCを1つ選ぶ**（例：PC3）
+1. **Select one PC** (e.g., PC3)
 
-2. **解析タブでOLSを選択**し、モデル式を以下のように構築：
+2. **Select OLS in the Analysis tab** and construct the model formula:
    ```
    PC3 ~ C(sex) + C(cell.type)
    ```
-   - 交互作用は入れない（主効果のみ）
-   - Standard Error は **HC3 Robust** を推奨（小サンプルに頑健）
+   - No interaction (main effects only)
+   - **HC3 Robust** standard error is recommended (robust for small samples)
 
-3. **出力の確認**：
-   - **sex 係数**（Female vs Male）とその HC3ロバストSEの **p値** を確認
-   - 係数の**符号**と**効果量**（coefficient の絶対値）を記録
+3. **Check the output**:
+   - Verify the **sex coefficient** (Female vs Male) and its HC3 robust SE **p-value**
+   - Record the coefficient **sign** and **effect size** (absolute value of coefficient)
 
-4. **Permutation Test をON**にして、より正確なp値を取得：
-   - **Freedman-Lane法** を選択（推奨）
-   - 層（= cell.type）を維持したまま sex ラベルを入替
-   - 小サンプル（n=8）でも頑健な検定が可能
+4. **Turn ON Permutation Test** for more accurate p-values:
+   - Select **Freedman-Lane method** (recommended)
+   - Shuffles sex labels while maintaining strata (= cell.type)
+   - Robust testing possible even with small samples (n=8)
 
-5. **EMM（推定周辺平均）プロット**で一貫性を確認：
-   - cell.type ごとの Female vs Male の差の**符号が揃っているか**確認
-   - 全てのcell.typeで同じ方向の差があれば、sexの主効果が一貫している証拠
+5. **Check consistency with EMM (Estimated Marginal Means) plot**:
+   - Verify if the **sign of Female vs Male difference is consistent** across cell.types
+   - If all cell.types show the same direction of difference, it's evidence of consistent sex main effect
 
-6. **PC1〜PCk で繰り返し**、以下を総合評価：
-   - ✅ **効果量**（sex係数の大きさ）
-   - ✅ **一貫性**（subtypeごとの符号の揃い方：EMMプロットで確認）
-   - ✅ **p値**（HC3 と Permutation の両方）
+6. **Repeat for PC1 to PCk** and evaluate comprehensively:
+   - ✅ **Effect size** (magnitude of sex coefficient)
+   - ✅ **Consistency** (sign agreement across subtypes: check EMM plot)
+   - ✅ **P-values** (both HC3 and Permutation)
 
-   → これらを総合して「**sexに最も寄与するPC**」を選ぶ
-
----
-
-#### **📝 統計的解釈**
-
-このOLSモデルは、**対応ありt検定（Δ = Female − Male の平均）** と本質的に等価です：
-
-- **自由度**: df = cell.type数 − 1 = 3
-- **検定対象**: cell.typeを層として制御した上での sex の主効果
-- **小標本でも頑健**: HC3 Robust SE と Permutation を併用することで、n=8でも信頼できる推測が可能
-
-**注意点:**
-- cell.typeごとにサンプル数が等しい（バランスデザイン）場合、最も統計検出力が高い
-- 交互作用 `C(sex) * C(cell.type)` を入れる場合、各セル（sex × cell.type）に最低3サンプル必要
-- 本ユースケースでは各セルに1サンプルずつしかないため、交互作用は推定不可（完全分離）
+   → Use these criteria to select the "**PC most associated with sex**"
 
 ---
 
-#### **🔍 結果の読み方の例**
+#### **📝 Statistical Interpretation**
 
-| PC  | sex係数 | HC3 p値 | Perm p値 | 一貫性 | 総合評価 |
-|-----|---------|---------|----------|--------|----------|
-| PC1 | 0.45    | 0.234   | 0.251    | ✅ 全て+ | 弱い    |
-| PC2 | -1.87   | 0.032   | 0.041    | ✅ 全て- | **強い** |
-| PC3 | 0.23    | 0.678   | 0.712    | ± 混在  | 無し    |
-| PC4 | 1.12    | 0.098   | 0.112    | ✅ 全て+ | 中程度  |
+This OLS model is essentially equivalent to a **paired t-test (Δ = Female − Male mean)**:
 
-→ この例では **PC2 が sex 軸** として最も強い（負の方向に分離）
+- **Degrees of freedom**: df = number of cell.types − 1 = 3
+- **Test target**: Sex main effect while controlling for cell.type as strata
+- **Robust even for small samples**: Using HC3 Robust SE and Permutation together enables reliable inference even with n=8
 
----
-
-#### **💡 次のステップ（応用）**
-
-1. **複数PCを統合した"sex score"の作成**
-   - 効果量が大きいPC（例: PC2, PC4）を線形結合
-   - `sex_score = -1.87 × PC2 + 1.12 × PC4` のように重み付け平均
-   - この合成軸を新たな応答変数として再解析
-
-2. **個別遺伝子レベルへのドリルダウン**
-   - sex軸（例: PC2）の loading が大きい遺伝子を抽出
-   - 性差に寄与する遺伝子群として解釈
-
-3. **多重検定補正**
-   - 複数PC（例: PC1〜PC10）を探索した場合、Benjamini-Hochberg FDR補正を適用
-   - 10個のPCを検定する場合、p < 0.05 → FDR < 0.05 に補正
+**Notes:**
+- Statistical power is highest when sample sizes are equal across cell.types (balanced design)
+- When including interaction `C(sex) * C(cell.type)`, at least 3 samples per cell (sex × cell.type) are needed
+- In this use case with only 1 sample per cell, interaction cannot be estimated (complete separation)
 
 ---
 
-#### **📚 このユースケースで使う機能**
+#### **🔍 Example Result Interpretation**
+
+| PC  | sex coef | HC3 p-val | Perm p-val | Consistency | Overall |
+|-----|----------|-----------|------------|-------------|---------|
+| PC1 | 0.45     | 0.234     | 0.251      | ✅ All +    | Weak    |
+| PC2 | -1.87    | 0.032     | 0.041      | ✅ All -    | **Strong** |
+| PC3 | 0.23     | 0.678     | 0.712      | ± Mixed     | None    |
+| PC4 | 1.12     | 0.098     | 0.112      | ✅ All +    | Moderate |
+
+→ In this example, **PC2 is the sex axis** (separates in negative direction)
+
+---
+
+#### **💡 Next Steps (Applications)**
+
+1. **Creating a "sex score" by combining multiple PCs**
+   - Linear combination of PCs with large effect sizes (e.g., PC2, PC4)
+   - Weighted average like `sex_score = -1.87 × PC2 + 1.12 × PC4`
+   - Re-analyze using this composite axis as the new response variable
+
+2. **Drilling down to individual gene level**
+   - Extract genes with large loadings on the sex axis (e.g., PC2)
+   - Interpret as gene groups contributing to sex differences
+
+3. **Multiple testing correction**
+   - When exploring multiple PCs (e.g., PC1-PC10), apply Benjamini-Hochberg FDR correction
+   - When testing 10 PCs, adjust p < 0.05 → FDR < 0.05
+
+---
+
+#### **📚 Features Used in This Use Case**
 
 - ✅ OLS with HC3 Robust SE
 - ✅ Freedman-Lane Permutation Test
-- ✅ EMM（推定周辺平均）プロット
-- ✅ 診断プロット（残差の正規性・等分散性）
-- ✅ 係数テーブルのダウンロード（複数PCの結果を統合）
+- ✅ EMM (Estimated Marginal Means) plot
+- ✅ Diagnostic plots (residual normality and homoscedasticity)
+- ✅ Coefficient table download (combine results from multiple PCs)
 
 ---
 """)
 
 # =============================================================================
-# 実践ガイド 2: 時系列 × 遺伝子型
+# Practical Guide 2: Time Series × Genotype
 # =============================================================================
-with st.expander("📖 実践ガイド2：WT vs KO × 時系列3点での交互作用解析", expanded=False):
+with st.expander("📖 Practical Guide 2: WT vs KO × 3 Time Points Interaction Analysis", expanded=False):
     st.markdown("""
-### 🎯 ユースケース：WT/KO × 3時点（各n=3）で「genotype効果が時間依存か」を検定
+### 🎯 Use Case: Testing "Is Genotype Effect Time-Dependent" with WT/KO × 3 Time Points (n=3 each)
 
-#### **入力データの前提**
+#### **Input Data Requirements**
 
-**1行 = 1サンプル（独立サンプル想定）**
+**1 row = 1 sample (assuming independent samples)**
 
-- **デザイン**: 2遺伝子型 (WT/KO) × 3時点 (t1/t2/t3) × 各セルn=3 = **計18サンプル**
-- **仮定**: 各時点で異なる個体（独立サンプル）
-- **もし同一個体の繰返し測定なら** → 下記「繰返し測定の場合」を参照
+- **Design**: 2 genotypes (WT/KO) × 3 time points (t1/t2/t3) × n=3 per cell = **18 samples total**
+- **Assumption**: Different individuals at each time point (independent samples)
+- **For repeated measures on same individuals** → See "Repeated Measures" section below
 
-列の例：
+Example columns:
 ```
 sample_id    genotype    time    donor_id    PC1      PC2      PC3      PC4      ...
 WT_t1_1      WT          t1      D01        -1.23     0.45    -0.67     1.12
 WT_t1_2      WT          t1      D02         0.87    -1.34     0.92    -0.45
 WT_t1_3      WT          t1      D03        -0.45     1.23    -1.01     0.78
 WT_t2_1      WT          t2      D04         1.56    -0.23     1.34    -0.89
-...（以下、KO_t1, KO_t2, KO_t3も同様）
+...(KO_t1, KO_t2, KO_t3 follow similarly)
 ```
 
 ---
 
-#### **統計モデルの戦略**
+#### **Statistical Model Strategy**
 
-**重要**: まず**交互作用を中心に検定** → 必要なら単純効果へ掘る
+**Important**: First **test for interaction** → then examine simple effects if needed
 
-1. **交互作用が有意** → genotype効果は時点で異なる（時間依存）
-   - 各時点でのWT vs KOを個別に検定（単純効果）
-   - 各genotype内での時系列変化を検定
+1. **Interaction is significant** → genotype effect varies by time point (time-dependent)
+   - Test WT vs KO at each time point separately (simple effects)
+   - Test time-series changes within each genotype
 
-2. **交互作用が非有意** → genotype効果は時点に依存せず一定
-   - 交互作用を落として主効果のみのモデルで解釈
-   - genotype主効果とtime主効果を個別に評価
+2. **Interaction is not significant** → genotype effect is constant across time points
+   - Drop interaction and interpret main effects only model
+   - Evaluate genotype main effect and time main effect separately
 
 ---
 
-#### **アプローチA：timeをカテゴリとして扱う（一般解・推奨）**
+#### **Approach A: Treat time as categorical (general solution, recommended)**
 
-**モデル式:**
+**Model formula:**
 ```
 PC ~ C(genotype) * C(time)
 ```
 
-**特徴:**
-- 各時点を独立したカテゴリとして扱う
-- 非線形な時間変化にも対応
-- 3時点のみの場合、これが最も柔軟で安全
+**Characteristics:**
+- Treats each time point as an independent category
+- Handles non-linear time changes
+- Most flexible and safe when only 3 time points
 
 ---
 
-##### **🔧 アプリでの設定手順（カテゴリ版）**
+##### **Settings in the App (Categorical version)**
 
-**1. データ準備**
-- `genotype` 列: "WT", "KO"
-- `time` 列: "t1", "t2", "t3" （文字列として）
-- `PC1`, `PC2`, ... 列
+**1. Data Preparation**
+- `genotype` column: "WT", "KO"
+- `time` column: "t1", "t2", "t3" (as strings)
+- `PC1`, `PC2`, ... columns
 
-**2. 列マッピング**
-- **主要変数 1**: `genotype`
-- **主要変数 2 / ブロッキング変数**: `time`
-- **解析PC**: PC1〜PCk から選択
-- **Donor/Subject ID**: （独立サンプルなら不要）
+**2. Column Mapping**
+- **Primary Variable 1**: `genotype`
+- **Primary Variable 2 / Blocking Variable**: `time`
+- **Analysis PC**: Select from PC1 to PCk
+- **Donor/Subject ID**: (not required for independent samples)
 
-**3. モデル設定**
-- **モデルタイプ**: OLS
-- **Standard Error**: **HC3 Robust** （推奨、小サンプルに頑健）
-- **交互作用項**: `genotype:time` を追加 ← **重要！**
+**3. Model Settings**
+- **Model Type**: OLS
+- **Standard Error**: **HC3 Robust** (recommended, robust for small samples)
+- **Interaction Term**: Add `genotype:time` <- **Important!**
 
-**4. 検定オプション**
-- **ANOVA Type**: Type II（推奨）
-- **Permutation Test**: ON（Freedman-Lane法、推奨）
-  - n=18は小サンプルなので置換検定で補強
+**4. Test Options**
+- **ANOVA Type**: Type II (recommended)
+- **Permutation Test**: ON (Freedman-Lane method, recommended)
+  - n=18 is a small sample, so supplement with permutation test
 
-**5. 可視化**
-- **EMM（推定周辺平均）**: ON
-  - genotype と time の両方を選択
-  - プロットで時系列トレンドの群間差を確認
-- **診断プロット**: ON（残差の正規性・等分散性確認）
+**5. Visualization**
+- **EMM (Estimated Marginal Means)**: ON
+  - Select both genotype and time
+  - Confirm group differences in time-series trends with plots
+- **Diagnostic Plots**: ON (check residual normality and homoscedasticity)
 
 ---
 
-##### **📊 結果の読み方（カテゴリ版）**
+##### **Interpreting Results (Categorical version)**
 
-**Step 1: ANOVA表で交互作用を確認**
+**Step 1: Check interaction in ANOVA table**
 
-| 項 | Sum Sq | df | F value | p value |
+| Term | Sum Sq | df | F value | p value |
 |----|--------|----|---------| --------|
 | C(genotype) | 15.3 | 1 | 8.23 | 0.012 |
 | C(time) | 45.7 | 2 | 12.34 | 0.001 |
-| **C(genotype):C(time)** | **23.4** | **2** | **6.32** | **0.011** ← 重要 |
+| **C(genotype):C(time)** | **23.4** | **2** | **6.32** | **0.011** <- Important |
 | Residual | 22.3 | 12 | - | - |
 
-**判断:**
-- **交互作用 p=0.011 < 0.05** → **有意**
-- → **genotype効果は時点で異なる**（時間依存のKO効果）
+**Interpretation:**
+- **Interaction p=0.011 < 0.05** -> **Significant**
+- -> **Genotype effect varies by time point** (time-dependent KO effect)
 
-**Step 2: EMM表で各時点の群間差を確認**
+**Step 2: Check group differences at each time point in EMM table**
 
 | genotype | time | mean | SE | 95% CI lower | 95% CI upper |
 |----------|------|------|----|--------------| -------------|
@@ -353,146 +353,146 @@ PC ~ C(genotype) * C(time)
 | WT | t3 | 1.34 | 0.23 | 0.84 | 1.84 |
 | KO | t3 | 2.78 | 0.23 | 2.28 | 3.28 |
 
-**解釈:**
-- **t1**: KO - WT = -0.07（ほぼ差なし）
-- **t2**: KO - WT = 1.02（KOが増加）
-- **t3**: KO - WT = 1.44（差がさらに拡大）
+**Interpretation:**
+- **t1**: KO - WT = -0.07 (almost no difference)
+- **t2**: KO - WT = 1.02 (KO increased)
+- **t3**: KO - WT = 1.44 (difference further expanded)
 
-→ **KO効果は時間とともに増大**（t1では差なし → t3で大きな差）
+-> **KO effect increases over time** (no difference at t1 -> large difference at t3)
 
-**Step 3: EMMプロットで可視化**
+**Step 3: Visualize with EMM plot**
 
-時間を横軸、PC scoreを縦軸にして：
-- WT（青線）は緩やかに上昇
-- KO（赤線）は急激に上昇
-- 2つの線が平行でない = 交互作用あり
-
----
-
-##### **📝 単純効果の検定（交互作用が有意な場合）**
-
-交互作用が有意なら、**各時点でのWT vs KOを個別に検定**：
-
-**方法1: サブセット解析（手動）**
-1. データを時点ごとに分割（t1のみ、t2のみ、t3のみ）
-2. 各サブセットで `PC ~ C(genotype)` を検定
-3. **Bonferroni補正**: p値の閾値を 0.05/3 = 0.0167 に設定
-   または **BH-FDR補正**を適用
-
-**方法2: EMM contrast（推奨、将来実装予定）**
-- 自動的に各時点でのペアワイズ比較を計算
-- 多重検定補正を自動適用
-
-**現在のアプリでの実施方法:**
-1. 元のファイルをExcelで時点ごとに分割（t1.tsv, t2.tsv, t3.tsv）
-2. 各ファイルを個別にアップロードして `PC ~ C(genotype)` で検定
-3. 3つのp値を手動でBH補正
+With time on x-axis and PC score on y-axis:
+- WT (blue line) rises gradually
+- KO (red line) rises sharply
+- Two lines not parallel = interaction present
 
 ---
 
-#### **アプローチB：timeを数値トレンド（線形）として扱う**
+##### **Simple Effects Test (when interaction is significant)**
 
-**モデル式:**
+If interaction is significant, **test WT vs KO at each time point separately**:
+
+**Method 1: Subset Analysis (manual)**
+1. Split data by time point (t1 only, t2 only, t3 only)
+2. Test `PC ~ C(genotype)` for each subset
+3. **Bonferroni correction**: Set p-value threshold to 0.05/3 = 0.0167
+   or apply **BH-FDR correction**
+
+**Method 2: EMM contrast (recommended, planned for future implementation)**
+- Automatically calculates pairwise comparisons at each time point
+- Automatically applies multiple testing correction
+
+**Current implementation in the app:**
+1. Split original file by time point in Excel (t1.tsv, t2.tsv, t3.tsv)
+2. Upload each file separately and test with `PC ~ C(genotype)`
+3. Manually apply BH correction to the 3 p-values
+
+---
+
+#### **Approach B: Treat time as numeric trend (linear)**
+
+**Model formula:**
 ```
 PC ~ C(genotype) * time_numeric
 ```
 
-**特徴:**
-- 時間を連続変数（0, 1, 2）として扱う
-- **交互作用係数 = 傾きの差**（KOとWTで時間勾配が違うか）
-- 1つの係数で時間依存性を要約できる
-- **注意**: 線形を仮定（3点しかないので2次は過学習リスク）
+**Characteristics:**
+- Treats time as a continuous variable (0, 1, 2)
+- **Interaction coefficient = difference in slopes** (whether KO and WT have different time gradients)
+- Can summarize time dependency with a single coefficient
+- **Note**: Assumes linearity (risk of overfitting with quadratic for only 3 points)
 
 ---
 
-##### **🔧 アプリでの設定手順（数値版）**
+##### **Settings in the App (Numeric version)**
 
-**1. データ準備**
-- `time_numeric` 列を追加: t1→0, t2→1, t3→2
-- または `time` 列を直接 0, 1, 2 に変更
+**1. Data Preparation**
+- Add `time_numeric` column: t1->0, t2->1, t3->2
+- Or change `time` column directly to 0, 1, 2
 
-**2. 列マッピング**
-- **主要変数 1**: `genotype`（カテゴリ）
-- **追加の共変量**: `time_numeric`（数値として認識される）
-- **交互作用項**: `genotype:time_numeric` を追加
+**2. Column Mapping**
+- **Primary Variable 1**: `genotype` (categorical)
+- **Additional Covariate**: `time_numeric` (recognized as numeric)
+- **Interaction Term**: Add `genotype:time_numeric`
 
-**3. モデル設定**
-- 他はアプローチAと同じ
+**3. Model Settings**
+- Same as Approach A for other settings
 
 ---
 
-##### **📊 結果の読み方（数値版）**
+##### **Interpreting Results (Numeric version)**
 
-**係数表:**
+**Coefficient Table:**
 
-| 項 | Coef | SE | t | p value |
+| Term | Coef | SE | t | p value |
 |----|------|----|---|---------|
 | Intercept | -0.45 | 0.18 | -2.50 | 0.027 |
 | C(genotype)[T.KO] | -0.07 | 0.25 | -0.28 | 0.783 |
 | time_numeric | 0.90 | 0.15 | 6.00 | <0.001 |
-| **C(genotype)[T.KO]:time_numeric** | **0.75** | **0.21** | **3.57** | **0.003** ← 重要 |
+| **C(genotype)[T.KO]:time_numeric** | **0.75** | **0.21** | **3.57** | **0.003** <- Important |
 
-**解釈:**
-- **time_numeric係数 = 0.90**: WT群では時間1単位あたりPC scoreが0.90増加
-- **交互作用係数 = 0.75**: KO群では時間1単位あたり**さらに0.75多く**増加
-  - つまりKO群の傾き = 0.90 + 0.75 = **1.65**
-  - WT群の傾き = 0.90
-- **交互作用 p=0.003** → **KOとWTで時間トレンドが有意に異なる**
+**Interpretation:**
+- **time_numeric coefficient = 0.90**: In WT group, PC score increases by 0.90 per unit time
+- **Interaction coefficient = 0.75**: In KO group, PC score increases by **an additional 0.75** per unit time
+  - KO group slope = 0.90 + 0.75 = **1.65**
+  - WT group slope = 0.90
+- **Interaction p=0.003** -> **Time trends differ significantly between KO and WT**
 
-**利点:**
-- 1つの検定で「傾きの差」を評価
-- 効果量が直感的（傾きの差分）
+**Advantages:**
+- Evaluates "difference in slopes" with a single test
+- Effect size is intuitive (difference in slopes)
 
-**欠点:**
-- 線形仮定（3点では検証困難）
-- 非線形な変化を見逃す可能性
+**Disadvantages:**
+- Assumes linearity (difficult to verify with 3 points)
+- May miss non-linear changes
 
 ---
 
-#### **アプローチC：繰返し測定（同一個体を追跡）の場合**
+#### **Approach C: Repeated measures (tracking same individuals)**
 
-**前提:** 同じドナー（D01, D02, D03）を3時点で測定
+**Assumption:** Same donors (D01, D02, D03) measured at 3 time points
 
-**モデル式（LMM）:**
+**Model formula (LMM):**
 ```
 PC ~ C(genotype) * C(time) + (1|donor)
 ```
 
-または時間傾きもランダムに：
+Or with random time slopes:
 ```
 PC ~ C(genotype) * time_numeric + (1 + time_numeric|donor)
 ```
 
-**注意:**
-- ドナー数が少ない（<5）場合、ランダム傾き `(1+time|donor)` は不安定
-- まずは `(1|donor)` から始める
+**Note:**
+- With few donors (<5), random slope `(1+time|donor)` is unstable
+- Start with `(1|donor)` first
 
 ---
 
-##### **🔧 アプリでの設定手順（LMM版）**
+##### **Settings in the App (LMM version)**
 
-**1. データ準備**
-- `donor` 列が必須
-- 同一ドナーIDが複数行（3行）に現れる
+**1. Data Preparation**
+- `donor` column is required
+- Same donor ID appears in multiple rows (3 rows)
 
-**2. 列マッピング**
-- **主要変数 1**: `genotype`
-- **主要変数 2**: `time`
-- **Donor/Subject ID**: `donor` ← **重要！**
-- **交互作用項**: `genotype:time`
+**2. Column Mapping**
+- **Primary Variable 1**: `genotype`
+- **Primary Variable 2**: `time`
+- **Donor/Subject ID**: `donor` <- **Important!**
+- **Interaction Term**: `genotype:time`
 
-**3. モデル設定**
-- **モデルタイプ**: **LMM**
-- **推定法**: REML（推奨）
-- 他の設定はOLSと同様
+**3. Model Settings**
+- **Model Type**: **LMM**
+- **Estimation Method**: REML (recommended)
+- Other settings same as OLS
 
 ---
 
-##### **📊 結果の読み方（LMM版）**
+##### **Interpreting Results (LMM version)**
 
-**固定効果表:**
+**Fixed Effects Table:**
 
-| 項 | Coef | SE | z | p value |
+| Term | Coef | SE | z | p value |
 |----|------|----|---|---------|
 | Intercept | -0.45 | 0.28 | -1.61 | 0.108 |
 | C(genotype)[T.KO] | -0.07 | 0.40 | -0.18 | 0.860 |
@@ -501,105 +501,105 @@ PC ~ C(genotype) * time_numeric + (1 + time_numeric|donor)
 | C(genotype)[T.KO]:C(time)[T.t2] | 1.09 | 0.28 | 3.89 | <0.001 |
 | C(genotype)[T.KO]:C(time)[T.t3] | 1.51 | 0.28 | 5.39 | <0.001 |
 
-**ランダム効果:**
-- `Var(donor)` = 0.45（ドナー間のばらつき）
-- `Var(Residual)` = 0.23（測定内のばらつき）
+**Random Effects:**
+- `Var(donor)` = 0.45 (between-donor variability)
+- `Var(Residual)` = 0.23 (within-measurement variability)
 - **ICC = 0.45 / (0.45 + 0.23) = 0.66**
-  - 66%の変動がドナー間の個体差で説明される
-  - 繰返し測定の相関が強い → LMMが適切
+  - 66% of variation is explained by individual differences between donors
+  - Strong correlation in repeated measures -> LMM is appropriate
 
-**解釈:**
-- 交互作用が有意 → genotype効果は時間依存
-- ドナー間変動を適切に考慮した上での結論
-
----
-
-#### **🔍 レポート作法（推奨）**
-
-**1. 交互作用の結論を最優先**
-```
-「genotype × time の交互作用が有意であった（F(2,12)=6.32, p=0.011, HC3 robust SE;
-Freedman-Lane permutation p=0.015）。これは、KO効果が時間依存であることを示す。」
-```
-
-**2. EMM図を作成**
-- 時間を横軸、PC scoreを縦軸
-- WTとKOの平均 ± 95%CI を折れ線で
-- 可能なら **Δ(t) = KO - WT** の差分プロットを追加
-
-**3. 単純効果（交互作用が有意な場合）**
-```
-「事後検定として各時点でのWT vs KOを比較した結果：
-- t1: Δ=-0.07 (95%CI: -0.68, 0.54), p=0.78（有意差なし）
-- t2: Δ=1.02 (95%CI: 0.41, 1.63), p=0.004（有意）
-- t3: Δ=1.44 (95%CI: 0.83, 2.05), p<0.001（有意）
-Bonferroni補正後も t2, t3 は有意を維持。」
-```
-
-**4. 効果量を報告**
-- 各時点の差の推定値と95%CI
-- 全体の genotype 効果（カテゴリ版ならη², 数値版なら傾きの差）
-
-**5. Permutation pを併記**
-- HC3と整合すれば頑健性の証拠
+**Interpretation:**
+- Interaction is significant -> genotype effect is time-dependent
+- Conclusion after appropriately accounting for between-donor variation
 
 ---
 
-#### **⚠️ 注意事項**
+#### **Reporting Guidelines (recommended)**
 
-**1. サンプルサイズ**
-- 各セルn=3は最小限（統計検出力が低い）
-- 可能なら n≥5 を推奨
-- **Permutation testで補強**することを強く推奨
+**1. Prioritize reporting interaction conclusions**
+```
+"The genotype x time interaction was significant (F(2,12)=6.32, p=0.011, HC3 robust SE;
+Freedman-Lane permutation p=0.015). This indicates the KO effect is time-dependent."
+```
 
-**2. 多重検定補正**
-- 単純効果（3比較）には **Bonferroni** または **BH-FDR** を適用
-- 複数PCを検定する場合も同様
+**2. Create EMM figure**
+- Time on x-axis, PC score on y-axis
+- WT and KO means +/- 95%CI as line plots
+- If possible, add difference plot **Delta(t) = KO - WT**
 
-**3. 線形 vs カテゴリ**
-- **3点のみなら線形仮定は危険** → カテゴリ版を推奨
-- 線形版は exploratory に使い、カテゴリ版で確認
+**3. Simple effects (when interaction is significant)**
+```
+"Post-hoc comparisons of WT vs KO at each time point:
+- t1: Delta=-0.07 (95%CI: -0.68, 0.54), p=0.78 (not significant)
+- t2: Delta=1.02 (95%CI: 0.41, 1.63), p=0.004 (significant)
+- t3: Delta=1.44 (95%CI: 0.83, 2.05), p<0.001 (significant)
+t2 and t3 remain significant after Bonferroni correction."
+```
 
-**4. 完全分離（Perfect Separation）**
-- 交互作用項を入れると 2×3=6セル × n=3 = 18サンプル
-- df = 18 - 6 - 1 = 11（余裕は少ない）
-- 欠損や外れ値があると推定不安定 → 診断プロットで確認
+**4. Report effect sizes**
+- Estimated differences and 95%CI at each time point
+- Overall genotype effect (eta-squared for categorical, slope difference for numeric)
 
-**5. 繰返し測定の場合**
-- ドナー数が少ない（<5）と `(1+time|donor)` は不安定
-- まずは `(1|donor)` で検定、収束すれば傾きも試す
-
----
-
-#### **📚 このユースケースで使う機能**
-
-- ✅ OLS with HC3 Robust SE（独立サンプル）
-- ✅ LMM with (1|donor)（繰返し測定）
-- ✅ Type II ANOVA（交互作用の検定）
-- ✅ Freedman-Lane Permutation Test（小サンプルの補強）
-- ✅ EMM（推定周辺平均）プロット（時系列トレンドの可視化）
-- ✅ 診断プロット（仮定の確認）
-- ⚠️ 単純効果の自動計算（将来実装予定、現在は手動でサブセット解析）
+**5. Include permutation p-value**
+- Consistency with HC3 provides evidence of robustness
 
 ---
 
-#### **💡 実践例のまとめ**
+#### **Cautions**
 
-| 状況 | 推奨モデル | 交互作用項 | 検定法 | EMM |
+**1. Sample Size**
+- n=3 per cell is minimal (low statistical power)
+- n>=5 recommended if possible
+- **Strongly recommend supplementing with permutation test**
+
+**2. Multiple Testing Correction**
+- Apply **Bonferroni** or **BH-FDR** for simple effects (3 comparisons)
+- Same applies when testing multiple PCs
+
+**3. Linear vs Categorical**
+- **With only 3 points, linear assumption is risky** -> categorical version recommended
+- Use linear version for exploratory analysis, confirm with categorical version
+
+**4. Perfect Separation**
+- With interaction term: 2x3=6 cells x n=3 = 18 samples
+- df = 18 - 6 - 1 = 11 (limited degrees of freedom)
+- Missing data or outliers can cause unstable estimates -> check with diagnostic plots
+
+**5. For Repeated Measures**
+- With few donors (<5), `(1+time|donor)` is unstable
+- Start with `(1|donor)`, try adding slope if converges
+
+---
+
+#### **Features Used in This Use Case**
+
+- OLS with HC3 Robust SE (independent samples)
+- LMM with (1|donor) (repeated measures)
+- Type II ANOVA (testing interaction)
+- Freedman-Lane Permutation Test (supplementing small samples)
+- EMM (Estimated Marginal Means) plot (visualizing time-series trends)
+- Diagnostic plots (checking assumptions)
+- Simple effects automatic calculation (planned for future, currently manual subset analysis)
+
+---
+
+#### **Practical Examples Summary**
+
+| Situation | Recommended Model | Interaction Term | Test Method | EMM |
 |------|-----------|----------|--------|-----|
-| 独立サンプル、カテゴリ | `PC ~ C(genotype) * C(time)` | あり | OLS + HC3 + Perm | genotype × time |
-| 独立サンプル、線形 | `PC ~ C(genotype) * time_numeric` | あり | OLS + HC3 + Perm | 傾きの差 |
-| 繰返し測定 | `PC ~ C(genotype) * C(time) + (1\|donor)` | あり | LMM (REML) | genotype × time |
+| Independent samples, categorical | `PC ~ C(genotype) * C(time)` | Yes | OLS + HC3 + Perm | genotype x time |
+| Independent samples, linear | `PC ~ C(genotype) * time_numeric` | Yes | OLS + HC3 + Perm | slope difference |
+| Repeated measures | `PC ~ C(genotype) * C(time) + (1\|donor)` | Yes | LMM (REML) | genotype x time |
 
 ---
 
-**ひとことで:**
-1. **まず交互作用 `genotype × time` を検定**
-2. **有意なら各時点の単純効果へ**（現在は手動サブセット解析）
-3. **非有意なら主効果モデルで解釈**
-4. **小サンプル（n=3/セル）なので Permutation で補強必須**
+**In summary:**
+1. **First test interaction `genotype x time`**
+2. **If significant, proceed to simple effects at each time point** (currently manual subset analysis)
+3. **If not significant, interpret with main effects model**
+4. **Small sample (n=3/cell) requires permutation test for robustness**
 
-この流れで、WT/KO × 3時点 × n=3 という現実的な規模でも、**時間依存のgenotype効果**を統計的に評価できます。
+With this workflow, you can statistically evaluate **time-dependent genotype effects** even with realistic sample sizes like WT/KO x 3 time points x n=3.
 
 ---
 """)
@@ -611,15 +611,15 @@ st.markdown("---")
 # =============================================================================
 
 def remove_common_suffix(strings):
-    """末尾の共通要素を除去
+    """Remove common suffix from strings
 
-    DESeq2-LRT.pyと同じアルゴリズム
+    Same algorithm as DESeq2-LRT.py
     """
     if not strings or len(strings) == 0:
         return []
-    # 最も短い文字列の長さを取得
+    # Get the length of the shortest string
     min_length = min(len(s) for s in strings)
-    # 共通の末尾部分の長さを見つける
+    # Find the length of common suffix
     suffix_length = 0
     for i in range(1, min_length + 1):
         suffix = strings[0][-i:]
@@ -627,40 +627,40 @@ def remove_common_suffix(strings):
             suffix_length = i
         else:
             break
-    # 共通の末尾部分が見つからない場合は元のリストを返す
+    # If no common suffix found, return original list
     if suffix_length == 0:
         return strings
-    # 共通の末尾部分を削除して新しいリストを作成
+    # Create new list with common suffix removed
     return [s[:-suffix_length] for s in strings]
 
 def detect_collinearity(df, formula_terms):
-    """完全共線性の検出
+    """Detect perfect collinearity
 
-    カテゴリ変数間で完全に共役している（一方が決まれば他方も決まる）
-    場合を検出します。このような場合、モデルは推定できません。
+    Detects cases where categorical variables are perfectly confounded
+    (one determines the other). In such cases, the model cannot be estimated.
 
-    例: あるsubtypeが全てFemaleの場合、sex効果とsubtype効果は分離できません。
+    Example: If a subtype is entirely Female, sex effect and subtype effect cannot be separated.
     """
     issues = []
 
-    # カテゴリ変数のみをチェック
+    # Check only categorical variables
     cat_vars = [col for col in formula_terms if col in df.columns and df[col].dtype == 'object']
 
     for i, var1 in enumerate(cat_vars):
         for var2 in cat_vars[i+1:]:
             cross_tab = pd.crosstab(df[var1], df[var2])
-            # 各行または各列に1つしか非ゼロ要素がない場合は完全共役
+            # Perfect confounding if each row or column has only one non-zero element
             if (cross_tab > 0).sum(axis=0).min() == 1 or (cross_tab > 0).sum(axis=1).min() == 1:
-                issues.append(f"⚠️ **完全共役 (Perfect confounding)**: `{var1}` と `{var2}` が完全に一致しています")
+                issues.append(f"Warning: **Perfect confounding**: `{var1}` and `{var2}` are perfectly confounded")
 
     return issues
 
 def calculate_vif(df, numeric_cols):
-    """VIF (Variance Inflation Factor) の計算
+    """Calculate VIF (Variance Inflation Factor)
 
-    VIF > 10: 強い多重共線性あり
-    VIF > 5: 中程度の多重共線性あり
-    VIF < 5: 問題なし
+    VIF > 10: Strong multicollinearity present
+    VIF > 5: Moderate multicollinearity present
+    VIF < 5: No problem
     """
     from statsmodels.stats.outliers_influence import variance_inflation_factor
 
@@ -672,81 +672,83 @@ def calculate_vif(df, numeric_cols):
 
 def freedman_lane_permutation(y, X_full_df, interest_var_name, n_perm=10000, random_state=42,
                                stratify_by=None, one_sided=None, design_info=None):
-    """Freedman-Lane法による置換検定（堅牢版）
+    """Freedman-Lane permutation test (robust version)
 
-    共変量を制御しながら、特定の変数（例: sex）の効果を検定します。
+    Tests the effect of a specific variable (e.g., sex) while controlling for covariates.
 
-    手順:
-    1. フルモデル（全ての変数）と帰無モデル（検定対象以外）をフィット
-    2. 帰無モデルの残差を置換（層化オプションあり）
-    3. 置換された残差から擬似応答変数を構築
-    4. フルモデルを再フィットして統計量を計算
-    5. 反復して帰無分布を作成
+    Procedure:
+    1. Fit full model (all variables) and null model (excluding test variable)
+    2. Permute residuals from null model (with stratification option)
+    3. Construct pseudo-response variable from permuted residuals
+    4. Refit full model and calculate test statistic
+    5. Iterate to create null distribution
 
     Parameters:
     -----------
     y : array-like
-        応答変数 (PC scores)
+        Response variable (PC scores)
     X_full_df : DataFrame
-        フルデザイン行列（列名付き）
+        Full design matrix (with column names)
     interest_var_name : str
-        検定対象の変数名（例: 'sex'）。この変数を含む全ての列を除外して帰無モデルを作成
+        Name of the variable to test (e.g., 'sex'). All columns containing this variable
+        are excluded to create the null model
     n_perm : int
-        置換回数
+        Number of permutations
     random_state : int
-        乱数シード
+        Random seed
     stratify_by : array-like, optional
-        層化変数（例: subtype）。指定すると、各層内でのみ残差を置換
+        Stratification variable (e.g., subtype). If specified, residuals are permuted
+        only within each stratum
     one_sided : str, optional
-        片側検定の方向。'greater' (obs > null) or 'less' (obs < null)
-        Noneの場合は両側検定
+        Direction for one-sided test. 'greater' (obs > null) or 'less' (obs < null)
+        None for two-sided test
     design_info : patsy.DesignInfo, optional
-        デザイン行列の情報（堅牢な列特定のため）
+        Design matrix information (for robust column identification)
 
     Returns:
     --------
-    dict: observed (観測統計量), null_distribution (帰無分布), p_value,
-          method_info (再現性のための情報)
+    dict: observed (observed statistic), null_distribution, p_value,
+          method_info (information for reproducibility)
     """
     import streamlit as st
     np.random.seed(random_state)
 
-    # フルモデルをフィット
+    # Fit full model
     model_full = sm.OLS(y, X_full_df).fit()
 
-    # 検定対象の変数を含む列を特定（design_info使用で堅牢化）
+    # Identify columns containing the test variable (robust with design_info)
     if design_info is not None:
-        # patsy design_infoを使った堅牢な列特定
+        # Robust column identification using patsy design_info
         interest_cols = []
         for term in design_info.terms:
             term_name = term.name()
-            # 検定対象変数を含むターム（主効果 + 交互作用）を特定
+            # Identify terms containing the test variable (main effect + interactions)
             if term_name != 'Intercept' and interest_var_name in term_name:
-                # このタームに対応する列を取得
+                # Get columns corresponding to this term
                 slice_obj = design_info.term_name_slices[term_name]
                 cols = X_full_df.columns[slice_obj]
                 interest_cols.extend(cols)
     else:
-        # フォールバック: 文字列マッチング（後方互換性）
+        # Fallback: string matching (for backward compatibility)
         interest_cols = [col for col in X_full_df.columns
                          if f'C({interest_var_name})' in col and col != 'Intercept']
 
     if not interest_cols:
-        raise ValueError(f"検定対象変数 '{interest_var_name}' に対応する列が見つかりません")
+        raise ValueError(f"No columns found for test variable '{interest_var_name}'")
 
-    # 観測統計量（主効果の列の絶対t値を使用 - 堅牢化）
+    # Observed statistic (using absolute t-value of main effect column - robust)
     main_effect_col = [col for col in interest_cols if ':' not in col]
     if not main_effect_col:
-        raise ValueError(f"主効果の列が見つかりません: {interest_cols}")
+        raise ValueError(f"No main effect column found: {interest_cols}")
 
-    # 絶対値t統計量を使用（符号依存を避ける）
+    # Use absolute t-statistic (to avoid sign dependence)
     obs_t = float(model_full.tvalues[main_effect_col[0]])
     obs_stat = np.abs(obs_t)
 
-    # 帰無モデル（検定対象変数の全ての列を除外）
+    # Null model (excluding all columns of test variable)
     X_reduced = X_full_df.drop(columns=interest_cols)
 
-    if X_reduced.shape[1] == 1:  # 切片のみ
+    if X_reduced.shape[1] == 1:  # Intercept only
         residuals = y - np.mean(y)
         fitted_reduced = np.full_like(y, np.mean(y))
     else:
@@ -755,19 +757,19 @@ def freedman_lane_permutation(y, X_full_df, interest_var_name, n_perm=10000, ran
         fitted_reduced = np.array(model_reduced.predict())  # Convert to numpy array
 
 
-    # 帰無モデルと対立モデルの式を保存（レポート用）
+    # Save null and alternative model formulas (for reporting)
     reduced_formula = "y ~ " + " + ".join([col for col in X_reduced.columns if col != 'Intercept'])
     if reduced_formula == "y ~ ":
-        reduced_formula = "y ~ 1"  # 切片のみ
+        reduced_formula = "y ~ 1"  # Intercept only
     full_formula = "y ~ " + " + ".join([col for col in X_full_df.columns if col != 'Intercept'])
 
-    # 置換
+    # Permutation
     null_dist = []
-    null_dist_abs = []  # 絶対値も保存
+    null_dist_abs = []  # Also store absolute values
     for _ in range(n_perm):
-        # 残差を置換（層化オプション）
+        # Permute residuals (with stratification option)
         if stratify_by is not None:
-            # 層化置換：各層内でのみ残差をシャッフル
+            # Stratified permutation: shuffle residuals only within each stratum
             perm_residuals = np.zeros_like(residuals)
             for stratum in np.unique(stratify_by):
                 stratum_mask = (stratify_by == stratum)
@@ -775,13 +777,13 @@ def freedman_lane_permutation(y, X_full_df, interest_var_name, n_perm=10000, ran
                 perm_indices = np.random.permutation(stratum_indices)
                 perm_residuals[stratum_indices] = residuals[perm_indices]
         else:
-            # 非層化置換：全体をシャッフル
+            # Non-stratified permutation: shuffle all
             perm_idx = np.random.permutation(len(residuals))
             perm_residuals = residuals[perm_idx]
 
         y_perm = fitted_reduced + perm_residuals
 
-        # フルモデルを再フィット
+        # Refit full model
         model_perm = sm.OLS(y_perm, X_full_df).fit()
         perm_t = float(model_perm.tvalues[main_effect_col[0]])
         null_dist.append(perm_t)
@@ -790,28 +792,28 @@ def freedman_lane_permutation(y, X_full_df, interest_var_name, n_perm=10000, ran
     null_dist = np.array(null_dist)
     null_dist_abs = np.array(null_dist_abs)
 
-    # p値の計算（片側/両側）+ 連続性補正
+    # Calculate p-value (one-sided/two-sided) + continuity correction
     if one_sided == 'greater':
-        # 片側（大きい方向）: obs_tを使用
+        # One-sided (greater direction): use obs_t
         p_value = (np.sum(null_dist >= obs_t) + 1) / (n_perm + 1)
     elif one_sided == 'less':
-        # 片側（小さい方向）: obs_tを使用
+        # One-sided (less direction): use obs_t
         p_value = (np.sum(null_dist <= obs_t) + 1) / (n_perm + 1)
     else:
-        # 両側検定: 絶対値で比較
+        # Two-sided test: compare absolute values
         p_value = (np.sum(null_dist_abs >= obs_stat) + 1) / (n_perm + 1)
 
     return {
-        'observed': obs_t,  # 元のt値（符号付き）を返す
-        'observed_abs': obs_stat,  # 絶対値も返す
-        'null_distribution': null_dist,  # 符号付きt値の分布
-        'null_distribution_abs': null_dist_abs,  # 絶対値の分布
+        'observed': obs_t,  # Return original t-value (with sign)
+        'observed_abs': obs_stat,  # Also return absolute value
+        'null_distribution': null_dist,  # Distribution of signed t-values
+        'null_distribution_abs': null_dist_abs,  # Distribution of absolute values
         'p_value': p_value,
         'stratified': stratify_by is not None,
         'one_sided': one_sided,
         'interest_cols': interest_cols,
         'main_effect_col': main_effect_col[0],
-        'method_info': {  # 再現性のための情報
+        'method_info': {  # Information for reproducibility
             'n_permutations': n_perm,
             'random_seed': random_state,
             'test_statistic': '|t|' if one_sided is None else 't',
@@ -823,31 +825,31 @@ def freedman_lane_permutation(y, X_full_df, interest_var_name, n_perm=10000, ran
     }
 
 def calculate_emm(model, df, factors, numeric_vars_at_mean=True):
-    """推定周辺平均 (Estimated Marginal Means) の計算
+    """Calculate Estimated Marginal Means (EMM)
 
-    共変量を特定の値（通常は平均）に固定して、
-    主要な因子の水準ごとの予測平均値を計算します。
+    Calculates predicted mean values for each level of main factors
+    while fixing covariates at specific values (usually the mean).
 
-    例: 年齢を平均値に固定して、性別×サブタイプの組み合わせごとの
-        PC scoreの予測平均を計算
+    Example: Calculate predicted PC score means for each sex x subtype combination
+             while fixing age at its mean value
 
     Parameters:
     -----------
     model : fitted statsmodels model
     df : DataFrame
-        元データ
+        Original data
     factors : list
-        EMM を計算する因子のリスト
+        List of factors to calculate EMM for
     numeric_vars_at_mean : bool
-        数値変数を平均値に固定するか
+        Whether to fix numeric variables at their mean
 
     Returns:
     --------
-    DataFrame: 各組み合わせの予測平均、SE、95%CI
+    DataFrame: Predicted mean, SE, 95% CI for each combination
     """
     from itertools import product
 
-    # 参照グリッドの作成
+    # Create reference grid
     ref_grid = {}
 
     for col in df.columns:
@@ -859,13 +861,13 @@ def calculate_emm(model, df, factors, numeric_vars_at_mean=True):
             else:
                 ref_grid[col] = df[col].unique()
 
-    # 全組み合わせを生成
+    # Generate all combinations
     grid_combos = list(product(*[ref_grid[col] for col in df.columns if col in ref_grid]))
 
-    # 予測用データフレームを作成
+    # Create prediction dataframe
     pred_df = pd.DataFrame(grid_combos, columns=[col for col in df.columns if col in ref_grid])
 
-    # 予測
+    # Predict
     predictions = model.get_prediction(pred_df)
     pred_summary = predictions.summary_frame(alpha=0.05)
 
@@ -878,7 +880,7 @@ def calculate_emm(model, df, factors, numeric_vars_at_mean=True):
     return result_df
 
 def plot_forest(coef_df, title="Forest Plot"):
-    """係数のForest plot作成"""
+    """Create Forest plot for coefficients"""
     fig, ax = plt.subplots(figsize=(8, max(6, len(coef_df) * 0.5)))
 
     y_pos = np.arange(len(coef_df))
@@ -898,13 +900,13 @@ def plot_forest(coef_df, title="Forest Plot"):
     return fig
 
 def plot_diagnostic(model, title="Diagnostic Plots"):
-    """モデル診断プロット
+    """Model diagnostic plots
 
-    4つの診断プロットを作成:
-    1. Residuals vs Fitted: 非線形性、等分散性のチェック
-    2. Q-Q plot: 残差の正規性チェック
-    3. Scale-Location: 等分散性のチェック（標準化残差）
-    4. Residual histogram: 残差の分布
+    Creates 4 diagnostic plots:
+    1. Residuals vs Fitted: Check for non-linearity, homoscedasticity
+    2. Q-Q plot: Check normality of residuals
+    3. Scale-Location: Check homoscedasticity (standardized residuals)
+    4. Residual histogram: Distribution of residuals
     """
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
@@ -947,16 +949,16 @@ def plot_diagnostic(model, title="Diagnostic Plots"):
 
 def create_results_zip(pc_col):
     """
-    解析結果とグラフをzipファイルにまとめる
+    Bundle analysis results and plots into a zip file
 
     Parameters:
     -----------
     pc_col : str
-        PCカラム名（ファイル名に使用）
+        PC column name (used for filename)
 
     Returns:
     --------
-    bytes : zipファイルのバイナリデータ
+    bytes : Binary data of zip file
     """
     zip_buffer = io.BytesIO()
 
@@ -964,7 +966,7 @@ def create_results_zip(pc_col):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         base_name = f"pca_stats_{pc_col}_{timestamp}"
 
-        # 0. Welch型t検定結果
+        # 0. Welch t-test results
         if 'welch_result' in st.session_state:
             welch_res = st.session_state.welch_result
             welch_df = pd.DataFrame({
@@ -980,21 +982,21 @@ def create_results_zip(pc_col):
             })
             zip_file.writestr(f"{base_name}/tables/welch_ttest.csv", welch_df.to_csv(index=False))
 
-        # 1. OLS係数表
+        # 1. OLS coefficient table
         if 'ols_coef' in st.session_state:
             csv_data = st.session_state.ols_coef.to_csv()
             zip_file.writestr(f"{base_name}/tables/ols_coefficients.csv", csv_data)
 
-        # 2. LMM係数表
+        # 2. LMM coefficient table
         if 'lmm_coef' in st.session_state:
             csv_data = st.session_state.lmm_coef.to_csv()
             zip_file.writestr(f"{base_name}/tables/lmm_coefficients.csv", csv_data)
 
-        # 3. Permutation test結果
+        # 3. Permutation test results
         if 'perm_result' in st.session_state:
             perm_result = st.session_state.perm_result
 
-            # 統計量サマリー
+            # Statistics summary
             perm_summary = pd.DataFrame({
                 'observed_stat': [perm_result['observed']],
                 'p_value': [perm_result['p_value']],
@@ -1005,31 +1007,31 @@ def create_results_zip(pc_col):
             zip_file.writestr(f"{base_name}/tables/permutation_summary.csv",
                             perm_summary.to_csv(index=False))
 
-            # 帰無分布
+            # Null distribution
             perm_df = pd.DataFrame({
                 'permutation_stat': perm_result['null_distribution']
             })
             zip_file.writestr(f"{base_name}/tables/permutation_null_distribution.csv",
                             perm_df.to_csv(index=False))
 
-        # 4. ANOVA表（OLS）
+        # 4. ANOVA table (OLS)
         if 'ols_anova' in st.session_state:
             csv_data = st.session_state.ols_anova.to_csv()
             zip_file.writestr(f"{base_name}/tables/ols_anova.csv", csv_data)
 
-        # 5. EMM結果
+        # 5. EMM results
         if 'ols_emm' in st.session_state:
             csv_data = st.session_state.ols_emm.to_csv(index=False)
             zip_file.writestr(f"{base_name}/tables/estimated_marginal_means.csv", csv_data)
 
-        # 6. グラフの保存
+        # 6. Save plots
         # Forest plot (OLS)
         if 'fig_forest_ols' in st.session_state:
             img_buffer = io.BytesIO()
             st.session_state.fig_forest_ols.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
             zip_file.writestr(f"{base_name}/figures/ols_forest_plot.png", img_buffer.getvalue())
 
-            # PDF版も保存
+            # Also save PDF version
             pdf_buffer = io.BytesIO()
             st.session_state.fig_forest_ols.savefig(pdf_buffer, format='pdf', bbox_inches='tight')
             zip_file.writestr(f"{base_name}/figures/ols_forest_plot.pdf", pdf_buffer.getvalue())
@@ -1074,7 +1076,7 @@ def create_results_zip(pc_col):
             st.session_state.fig_null_dist.savefig(pdf_buffer, format='pdf', bbox_inches='tight')
             zip_file.writestr(f"{base_name}/figures/permutation_null_distribution.pdf", pdf_buffer.getvalue())
 
-        # README作成
+        # Create README
         readme_content = f"""PCA Statistics Analysis Results
 ================================
 
@@ -1110,339 +1112,339 @@ Generated by: PCA Statistics Streamlit App
 # =============================================================================
 
 with st.sidebar:
-    st.title("⚙️ 解析オプション")
+    st.title("⚙️ Analysis Options")
 
-    st.markdown("### 統計手法の選択")
+    st.markdown("### Select Statistical Method")
     analysis_method = st.radio(
-        "解析手法:",
-        ["OLS (通常最小二乗法)",
-         "LMM (線形混合モデル)",
-         "両方 (OLS + LMM)"],
+        "Analysis method:",
+        ["OLS (Ordinary Least Squares)",
+         "LMM (Linear Mixed Model)",
+         "Both (OLS + LMM)"],
         index=0,
-        help="OLS: 固定効果のみ。LMM: ランダム効果（donor, batch等）を含む階層モデル"
+        help="OLS: Fixed effects only. LMM: Hierarchical model with random effects (donor, batch, etc.)"
     )
 
     if "OLS" in analysis_method:
-        st.markdown("#### OLS オプション")
+        st.markdown("#### OLS Options")
         se_type = st.radio(
-            "標準誤差のタイプ:",
-            ["Classical (通常)", "HC3 (頑健推定・推奨)", "Cluster-robust (クラスター頑健)"],
+            "Standard error type:",
+            ["Classical", "HC3 (Robust, recommended)", "Cluster-robust"],
             index=1,
-            help="HC3: 不均一分散に頑健。Cluster-robust: クラスター内相関を考慮"
+            help="HC3: Robust to heteroscedasticity. Cluster-robust: Accounts for within-cluster correlation"
         )
 
-        if se_type == "Cluster-robust (クラスター頑健)":
-            st.info("📌 クラスター変数はデータアップロード後に選択します")
+        if se_type == "Cluster-robust":
+            st.info("📌 Cluster variable will be selected after data upload")
 
         # ANOVA Type selection
         anova_type = st.radio(
             "ANOVA Type:",
-            ["Type II (推奨)", "Type III"],
+            ["Type II (recommended)", "Type III"],
             index=0,
-            help="Type II: 各変数の主効果を他の変数で調整して検定（交互作用なしの場合に推奨）\nType III: 全ての交互作用を含めて検定（交互作用ありの場合に推奨）"
+            help="Type II: Tests main effects adjusted for other variables (recommended when no interactions)\nType III: Tests including all interactions (recommended when interactions are present)"
         )
 
         # WLS option
         use_wls = st.checkbox(
-            "WLS (加重最小二乗法) を使用",
+            "Use WLS (Weighted Least Squares)",
             value=False,
-            help="分散が不均一な場合に、各観測値に重みをつけて推定します。重みは残差の逆分散で自動計算されます"
+            help="When variance is heterogeneous, estimates with weights for each observation. Weights are automatically calculated from inverse residual variance"
         )
 
         if use_wls:
-            with st.expander("⚠️ WLS使用上の重要な注意（必読）"):
+            with st.expander("⚠️ Important Notes on WLS Usage (Required Reading)"):
                 st.markdown("""
-                ### WLS (Weighted Least Squares) の適切な使用
+                ### Appropriate Use of WLS (Weighted Least Squares)
 
-                **⚠️ 重要**: WLSは"重み"の決め方次第で推定が不安定になりやすく、**小サンプルでは推奨されません**
-
-                ---
-
-                ### 🚫 WLSを避けるべき状況（重要）
-
-                #### **小サンプル設計では基本的にNG**
-
-                例: subtype=4群、各群n=1-2程度の極小設計
-                - ❌ **根拠ある重みが作りにくい**（分散推定が不安定）
-                - ❌ **推定がブレやすい**（重みの不確実性が高い）
-                - ❌ **過剰適合のリスク**（自由度が少ない）
-
-                **代わりに使うべき方法**:
-                - ✅ **Welch型 + Type II ANOVA** (主解析)
-                - ✅ **OLS + HC3頑健SE** (係数・95%CI)
-                - ✅ **Freedman-Lane置換検定** (条件付き帰無分布)
-
-                これらは**重みを仮定せず**異分散に頑健で、小標本でも過度にブレにくいです。
+                **⚠️ Important**: WLS can produce unstable estimates depending on how weights are determined, and is **not recommended for small samples**
 
                 ---
 
-                ### ✅ WLSが有効な状況（限定的）
+                ### 🚫 When to Avoid WLS (Important)
 
-                **十分な反復があり、群間分散差が明瞭に推定できる場合のみ**
+                #### **Generally NOT recommended for small sample designs**
 
-                #### 必要条件（全て満たす必要あり）:
+                Example: subtype=4 groups, each group n=1-2 (very small design)
+                - ❌ **Difficult to create justified weights** (variance estimation is unstable)
+                - ❌ **Estimates are prone to fluctuation** (high uncertainty in weights)
+                - ❌ **Risk of overfitting** (low degrees of freedom)
 
-                1. **各群のサンプルサイズが十分**
-                   - 最低でも各群n ≥ 10-15
-                   - 分散を安定的に推定できる
+                **Methods to use instead**:
+                - ✅ **Welch-type + Type II ANOVA** (primary analysis)
+                - ✅ **OLS + HC3 robust SE** (coefficients & 95% CI)
+                - ✅ **Freedman-Lane permutation test** (conditional null distribution)
 
-                2. **群間で分散差が明瞭に存在**
-                   - Levene検定やBartlett検定で検出可能
-                   - 診断プロットで視覚的に明らか
-
-                3. **重みの根拠が明確**
-                   - 群内逆分散（σ²ᵢ）が事前情報から既知
-                   - 技術的複製数など外部情報に基づく
-
-                4. **モデル仮定が満たされる**
-                   - 線形性、独立性
-                   - 重み付き後の残差が正規分布
-
-                #### この場合の推奨:
-
-                - **主解析候補**: WLS（逆分散重み、重みを明示）
-                - **HC3は通常不要**（WLSで等分散化できていれば）
-                - 必要なら**"参考"**として併記（感度解析）
+                These methods are robust to heteroscedasticity **without assuming weights**, and are less prone to fluctuation even with small samples.
 
                 ---
 
-                ### 📊 使い分けの指針
+                ### ✅ When WLS is Effective (Limited Cases)
 
-                #### あなたの設計が小サンプル（4群×各n=1-2など）の場合:
+                **Only when there are sufficient replicates and between-group variance differences can be clearly estimated**
+
+                #### Required conditions (ALL must be met):
+
+                1. **Sufficient sample size per group**
+                   - Minimum n >= 10-15 per group
+                   - Variance can be stably estimated
+
+                2. **Clear variance differences between groups**
+                   - Detectable by Levene's or Bartlett's test
+                   - Visually apparent in diagnostic plots
+
+                3. **Clear basis for weights**
+                   - Within-group inverse variance known from prior information
+                   - Based on external information such as number of technical replicates
+
+                4. **Model assumptions are satisfied**
+                   - Linearity, independence
+                   - Weighted residuals are normally distributed
+
+                #### Recommendations in this case:
+
+                - **Primary analysis candidate**: WLS (inverse variance weights, weights explicitly stated)
+                - **HC3 usually not needed** (if WLS achieves homoscedasticity)
+                - Include as **"reference"** if needed (sensitivity analysis)
+
+                ---
+
+                ### 📊 Guidelines for Method Selection
+
+                #### If your design has small samples (e.g., 4 groups x n=1-2 each):
 
                 ```
-                【主解析】
-                ✅ Welch型 + Type II ANOVA
+                [Primary Analysis]
+                ✅ Welch-type + Type II ANOVA
                    PC_k ~ C(sex) + C(subtype)
-                   → 異分散頑健、小標本でも安定
+                   -> Robust to heteroscedasticity, stable even with small samples
 
-                【併記】
-                ✅ OLS + HC3頑健SE
-                   → 係数推定・95%CI
-                   → p値は頑健
+                [Also Report]
+                ✅ OLS + HC3 robust SE
+                   -> Coefficient estimates & 95% CI
+                   -> Robust p-values
 
-                ✅ Freedman-Lane置換検定
-                   → 条件付き帰無分布
-                   → 分布の仮定なし
+                ✅ Freedman-Lane permutation test
+                   -> Conditional null distribution
+                   -> No distributional assumptions
 
-                【感度解析のみ】
+                [Sensitivity Analysis Only]
                 ⚠️ WLS
-                   → 重み=群内逆分散など明示
-                   → 主解析には使わない
+                   -> Weights = within-group inverse variance, etc. (explicitly stated)
+                   -> Do not use as primary analysis
                 ```
 
-                #### 十分な反復がある場合（各群n ≥ 15など）:
+                #### When sufficient replicates are available (n >= 15 per group):
 
                 ```
-                【主解析候補】
-                ✅ WLS（逆分散重み）
-                   → 効率的推定
-                   → 重みを明示
+                [Primary Analysis Candidates]
+                ✅ WLS (inverse variance weights)
+                   -> Efficient estimation
+                   -> Weights explicitly stated
 
-                【不要/参考】
-                - HC3は通常不要
-                  （WLSで等分散化済み）
-                - 念のため感度解析として併記可
+                [Not Needed/Reference]
+                - HC3 usually not needed
+                  (homoscedasticity achieved with WLS)
+                - Can include as sensitivity analysis if needed
                 ```
 
                 ---
 
-                ### ⚠️ WLSの危険性
+                ### ⚠️ Risks of WLS
 
-                #### 小サンプルでWLSを使うと:
+                #### When using WLS with small samples:
 
-                1. **重みの推定誤差が大きい**
-                   - 真の分散を正確に推定できない
-                   - 誤った重みで推定が歪む
+                1. **Large estimation error in weights**
+                   - Cannot accurately estimate true variance
+                   - Estimates are distorted by incorrect weights
 
-                2. **過剰適合（Overfitting）**
-                   - 観測値へのフィッティングが強すぎる
-                   - 一般化性能が低下
+                2. **Overfitting**
+                   - Fitting to observations is too strong
+                   - Generalization performance decreases
 
-                3. **極端な重み**
-                   - 外れ値に極端な重みが付く
-                   - 数値的不安定性
+                3. **Extreme weights**
+                   - Extreme weights assigned to outliers
+                   - Numerical instability
 
-                4. **解釈の困難さ**
-                   - 重み付き平均効果の意味が不明確
-                   - 再現性が低い
+                4. **Difficulty in interpretation**
+                   - Meaning of weighted average effect is unclear
+                   - Low reproducibility
 
                 ---
 
-                ### 🔬 このアプリでの実装
+                ### 🔬 Implementation in This App
 
-                **方法**: 残差ベースの逆分散重み
+                **Method**: Residual-based inverse variance weights
 
                 ```python
-                1. 通常のOLSで残差を計算
-                2. 重み = 1 / (残差²)
-                3. 重みを正規化（平均=1）
-                4. WLSで再推定
+                1. Calculate residuals with standard OLS
+                2. Weights = 1 / (residuals^2)
+                3. Normalize weights (mean=1)
+                4. Re-estimate with WLS
                 ```
 
-                **⚠️ この方法の問題**:
-                - 残差ベースなので真の分散とは異なる
-                - 小サンプルでは残差が不安定
-                - **推奨**: 事前情報（技術的複製数、既知の分散）から重みを決定
+                **⚠️ Problems with this method**:
+                - Based on residuals, so differs from true variance
+                - Residuals are unstable with small samples
+                - **Recommended**: Determine weights from prior information (technical replicates, known variance)
 
                 ---
 
-                ### 💡 推奨事項（まとめ）
+                ### 💡 Recommendations (Summary)
 
-                #### 小サンプル（n < 15/群）:
-                1. ❌ **WLSは使わない**
-                2. ✅ **Welch型 + HC3を主解析に**
-                3. ✅ **置換検定で補完**
+                #### Small samples (n < 15/group):
+                1. ❌ **Do not use WLS**
+                2. ✅ **Use Welch-type + HC3 as primary analysis**
+                3. ✅ **Supplement with permutation test**
 
-                #### 大サンプル（n ≥ 15/群）:
-                1. ✅ **分散差を可視化・検定**
-                2. ✅ **重みを明示してWLS**
-                3. ⚠️ **HC3との比較（感度解析）**
+                #### Large samples (n >= 15/group):
+                1. ✅ **Visualize and test variance differences**
+                2. ✅ **Specify weights explicitly for WLS**
+                3. ⚠️ **Compare with HC3 (sensitivity analysis)**
 
-                #### 常に:
-                - 📊 **診断プロット必須**（残差パターン確認）
-                - 📝 **重みの根拠を明記**（論文報告時）
-                - 🔄 **複数手法で結果の頑健性確認**
+                #### Always:
+                - 📊 **Diagnostic Plots required** (check residual patterns)
+                - 📝 **Document the rationale for weights** (for publication)
+                - 🔄 **Verify robustness of results using multiple methods**
 
                 ---
 
-                ### 📚 参考: 異分散への対処法の比較
+                ### 📚 Reference: Comparison of Methods for Handling Heteroscedasticity
 
-                | 方法 | サンプルサイズ要件 | 頑健性 | 推奨度（小n） | 推奨度（大n） |
-                |------|------------------|--------|--------------|--------------|
-                | **Welch t検定** | 小でもOK | 高い | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-                | **HC3頑健SE** | 小でもOK | 高い | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-                | **置換検定** | 小でもOK | 非常に高い | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-                | **WLS** | 大が必須 | 低い（小n時） | ⭐ | ⭐⭐⭐⭐⭐ |
-                | **通常のOLS** | - | なし | ❌ | ⭐ |
+                | Method | Sample Size Requirement | Robustness | Recommendation (small n) | Recommendation (large n) |
+                |--------|------------------------|------------|--------------------------|--------------------------|
+                | **Welch t-test** | Small OK | High | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+                | **HC3 Robust SE** | Small OK | High | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+                | **Permutation Test** | Small OK | Very High | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+                | **WLS** | Large Required | Low (small n) | ⭐ | ⭐⭐⭐⭐⭐ |
+                | **Standard OLS** | - | None | ❌ | ⭐ |
 
-                **結論**: あなたの設計が小サンプルなら、WLSは避けてWelch+HC3+置換検定を使いましょう。
+                **Conclusion**: If your design has small samples, avoid WLS and use Welch + HC3 + Permutation Test instead.
                 """)
 
 
     if "LMM" in analysis_method:
-        st.markdown("#### LMM オプション")
+        st.markdown("#### LMM Options")
         reml_method = st.radio(
-            "推定方法:",
-            ["REML (推奨)", "ML"],
+            "Estimation Method:",
+            ["REML (Recommended)", "ML"],
             index=0,
-            help="REML: 不偏な分散推定。ML: モデル比較用（AIC/BIC）"
+            help="REML: Unbiased variance estimation. ML: For model comparison (AIC/BIC)"
         )
 
     st.markdown("---")
-    st.markdown("### Welch型t検定")
-    run_welch = st.checkbox("Welch型t検定を実行", value=False,
-                           help="**主要変数が2群の場合のみ有効**\n\n"
-                                "等分散を仮定しない2群比較（共変量調整なし）\n"
-                                "単純な2群比較として参考値を算出")
+    st.markdown("### Welch's t-test")
+    run_welch = st.checkbox("Run Welch's t-test", value=False,
+                           help="**Only valid when main variable has 2 groups**\n\n"
+                                "Two-group comparison without assuming equal variance (no covariate adjustment)\n"
+                                "Calculates reference values as a simple two-group comparison")
 
     if run_welch:
-        st.info("ℹ️ **Welch型t検定について:**\n\n"
-                "- 主要変数の2群間で直接比較（共変量調整なし）\n"
-                "- 等分散性を仮定しない頑健な検定\n"
-                "- 主要変数が3群以上の場合は実行されません")
+        st.info("**About Welch's t-test:**\n\n"
+                "- Direct comparison between two groups of the main variable (no covariate adjustment)\n"
+                "- Robust test that does not assume equal variance\n"
+                "- Will not be performed if main variable has 3 or more groups")
 
     st.markdown("---")
-    st.markdown("### 置換検定 (Permutation Test)")
-    run_permutation = st.checkbox("置換検定を実行", value=False,
-                                  help="**検定対象: 主要変数1のみ**\n\n"
-                                       "小サンプルや分布仮定が疑わしい場合に推奨\n"
-                                       "主要変数2やその他の共変量は制御変数として扱われます")
+    st.markdown("### Permutation Test")
+    run_permutation = st.checkbox("Run Permutation Test", value=False,
+                                  help="**Test target: Main Variable 1 only**\n\n"
+                                       "Recommended for small samples or when distributional assumptions are questionable\n"
+                                       "Main Variable 2 and other covariates are treated as control variables")
 
     if run_permutation:
-        st.info("ℹ️ **Permutation testの対象変数:** 主要変数1のみが検定されます。\n\n"
-                "主要変数2やその他の変数は共変量として制御されます。")
+        st.info("**Target variable for Permutation Test:** Only Main Variable 1 is tested.\n\n"
+                "Main Variable 2 and other variables are controlled as covariates.")
 
-        n_permutations = st.slider("置換回数:",
+        n_permutations = st.slider("Number of Permutations:",
                                     min_value=1000, max_value=50000,
                                     value=10000, step=1000,
-                                    help="多いほど正確だが時間がかかります")
+                                    help="More permutations = more accurate, but takes longer")
         perm_method = st.radio(
-            "置換戦略:",
-            ["Freedman-Lane法 (推奨)", "Simple label permutation"],
+            "Permutation Strategy:",
+            ["Freedman-Lane Method (Recommended)", "Simple label permutation"],
             index=0,
-            help="Freedman-Lane: 共変量を制御した厳密な検定\n"
-                 "主要変数1の効果を検定し、他の変数は制御されます"
+            help="Freedman-Lane: Rigorous test controlling for covariates\n"
+                 "Tests the effect of Main Variable 1 while controlling for other variables"
         )
 
-        # 片側検定オプション
+        # One-sided test option
         perm_sided = st.radio(
-            "検定の方向:",
-            ["両側検定 (two-sided)", "片側検定: 主要変数1 > 基準 (greater)", "片側検定: 主要変数1 < 基準 (less)"],
+            "Test Direction:",
+            ["Two-sided (two-sided)", "One-sided: Main Variable 1 > Reference (greater)", "One-sided: Main Variable 1 < Reference (less)"],
             index=0,
-            help="**両側検定（推奨）**: 効果の方向を問わず、差があるかを検定\n\n"
-                 "**片側検定 (greater)**: 事前に「主要変数1が基準より大きい」と予想している場合のみ使用\n"
-                 "例: Female > Male を仮説とする場合\n\n"
-                 "**片側検定 (less)**: 事前に「主要変数1が基準より小さい」と予想している場合のみ使用\n\n"
-                 "⚠️ 片側検定は事前仮説がある場合のみ使用してください"
+            help="**Two-sided (Recommended)**: Tests for any difference regardless of direction\n\n"
+                 "**One-sided (greater)**: Use only when you expect 'Main Variable 1 > Reference' a priori\n"
+                 "Example: Hypothesis that Female > Male\n\n"
+                 "**One-sided (less)**: Use only when you expect 'Main Variable 1 < Reference' a priori\n\n"
+                 "Use one-sided tests only when you have a prior hypothesis"
         )
 
     st.markdown("---")
-    st.markdown("### 可視化オプション")
-    show_diagnostics = st.checkbox("診断プロットを表示", value=True,
-                                   help="残差プロット、Q-Qプロット等")
-    show_emm = st.checkbox("推定周辺平均 (EMM) を計算", value=True,
-                          help="群別の調整済み平均値を算出")
+    st.markdown("### Visualization Options")
+    show_diagnostics = st.checkbox("Show Diagnostic Plots", value=True,
+                                   help="Residual plots, Q-Q plots, etc.")
+    show_emm = st.checkbox("Calculate Estimated Marginal Means (EMM)", value=True,
+                          help="Calculate adjusted means by group")
 
 # =============================================================================
 # File Upload
 # =============================================================================
 
-st.markdown("## 1️⃣ データのアップロード")
+st.markdown("## 1. Data Upload")
 
-# データ入力方法の選択
+# Select data input method
 input_method = st.radio(
-    "データ入力方法を選択:",
-    ("PCA scoresファイル + メタデータを手動入力", "PCA scoresファイルをアップロード（メタデータ付き）"),
-    help="pca.pyからダウンロードしたPCA scoresファイルを使用する場合、メタデータを手動で入力できます。"
+    "Select Data Input Method:",
+    ("PCA scores file + Enter metadata manually", "Upload PCA scores file (with metadata)"),
+    help="When using a PCA scores file downloaded from pca.py, you can enter metadata manually."
 )
 
-if input_method == "PCA scoresファイル + メタデータを手動入力":
-    # メタデータを手動入力
+if input_method == "PCA scores file + Enter metadata manually":
+    # Enter metadata manually
     st.markdown("""
-    **PCA scoresファイルとメタデータを別々に入力**
+    **Enter PCA scores file and metadata separately**
 
-    1. pca.pyからダウンロードしたPCA scoresファイル（サンプル名とPC1, PC2, ...を含む）をアップロード
-    2. 下のフォームでメタデータを入力
+    1. Upload PCA scores file downloaded from pca.py (containing sample names and PC1, PC2, ...)
+    2. Enter metadata in the form below
     """)
 
-    uploaded_file = st.file_uploader("PCA scoresファイルを選択", type=["tsv", "csv", "txt"],
+    uploaded_file = st.file_uploader("Select PCA scores file", type=["tsv", "csv", "txt"],
                                      key="pca_scores_file")
 
-else:  # メタデータ付きファイルをアップロード
+else:  # Upload file with metadata
     st.markdown("""
-    **必要なデータ形式**: TSV または CSV ファイル
+    **Required data format**: TSV or CSV file
 
-    - **1行 = 1サンプル** (pseudobulk レベル)
-    - **PC score 列**: PC1, PC2, PC3, ... など
-    - **カテゴリ変数**: sex, subtype, condition など
-    - **任意: Donor/Subject ID** (反復測定がある場合)
-    - **任意: 数値共変量**: age, batch, depth など
+    - **1 row = 1 sample** (pseudobulk level)
+    - **PC score columns**: PC1, PC2, PC3, ... etc.
+    - **Categorical variables**: sex, subtype, condition, etc.
+    - **Optional: Donor/Subject ID** (if repeated measures exist)
+    - **Optional: Numeric covariates**: age, batch, depth, etc.
     """)
 
-    uploaded_file = st.file_uploader("ファイルを選択", type=["tsv", "csv", "txt"])
+    uploaded_file = st.file_uploader("Select file", type=["tsv", "csv", "txt"])
 
 if uploaded_file is not None:
-    # ファイル読み込み
+    # Read file
     try:
         df = pd.read_csv(uploaded_file, sep="\t", index_col=0)
     except:
         uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file, sep=",", index_col=0)
 
-    # インデックスをリセットして通常の列にする
+    # Reset index to convert to regular column
     df = df.reset_index()
 
-    # インデックス列名を適切に設定
+    # Set appropriate index column name
     if df.columns[0] == 'index':
         df.rename(columns={'index': 'sample_id'}, inplace=True)
 
-    st.success(f"✅ ファイル読み込み完了: {df.shape[0]} 行 × {df.shape[1]} 列")
+    st.success(f"File loaded successfully: {df.shape[0]} rows x {df.shape[1]} columns")
 
-    with st.expander("📋 データプレビュー (最初の10行)", expanded=True):
+    with st.expander("Data Preview (first 10 rows)", expanded=True):
         st.dataframe(df.head(10))
 
-    # session_stateの初期化
+    # Initialize session_state
     if 'metadata_submitted' not in st.session_state:
         st.session_state.metadata_submitted = False
     if 'metadata_df' not in st.session_state:
@@ -1450,59 +1452,59 @@ if uploaded_file is not None:
     if 'combined_df' not in st.session_state:
         st.session_state.combined_df = None
 
-    # メタデータ手動入力の場合
-    if input_method == "PCA scoresファイル + メタデータを手動入力":
-        st.markdown("## 2️⃣ メタデータの入力")
-        st.markdown("サンプルごとにメタデータを入力してください")
+    # Manual metadata entry
+    if input_method == "PCA scores file + Enter metadata manually":
+        st.markdown("## 2. Metadata Entry")
+        st.markdown("Enter metadata for each sample")
 
-        # サンプル名を取得（最初の列または行名）
-        if df.index.name or (df.index[0] != 0):  # インデックスがサンプル名の場合
+        # Get sample names (first column or row names)
+        if df.index.name or (df.index[0] != 0):  # If index is sample names
             sample_names = df.index.tolist()
-        else:  # 最初の列がサンプル名の場合
+        else:  # If first column is sample names
             sample_names = df.iloc[:, 0].tolist()
 
-        # メタデータ列名の入力
-        st.markdown("### メタデータ列の設定")
+        # Metadata column name entry
+        st.markdown("### Metadata Column Settings")
         col1, col2 = st.columns(2)
 
         with col1:
             meta_cols_input = st.text_area(
-                "メタデータ列名（カンマ区切りまたは改行区切り）:",
+                "Metadata column names (comma or newline separated):",
                 value="sex, subtype",
-                help="例: sex, subtype, donor, age, batch"
+                help="Example: sex, subtype, donor, age, batch"
             )
 
-        # メタデータ列名のパース
+        # Parse metadata column names
         if ',' in meta_cols_input:
             meta_col_names = [x.strip() for x in meta_cols_input.split(',') if x.strip()]
         else:
             meta_col_names = [x.strip() for x in meta_cols_input.split('\n') if x.strip()]
 
         with col2:
-            st.markdown("**入力する列:**")
+            st.markdown("**Columns to enter:**")
             for col in meta_col_names:
                 st.write(f"- {col}")
 
-        # メタデータ入力フォーム
-        st.markdown("### メタデータの入力")
+        # Metadata entry form
+        st.markdown("### Metadata Entry")
 
         with st.form("metadata_input"):
-            # 各サンプルのメタデータをデータエディタで入力
+            # Enter metadata for each sample using data editor
             meta_df = pd.DataFrame(index=sample_names, columns=meta_col_names)
 
-            # DESeq2-LRTと同じアルゴリズムでデフォルト値を設定
-            # 1. 末尾の共通要素を除去
+            # Set default values using same algorithm as DESeq2-LRT
+            # 1. Remove common suffix
             sample_names_str = [str(s) for s in sample_names]
             group_base = remove_common_suffix(sample_names_str)
-            # 2. 末尾の数字を除去してグループ名を推定
+            # 2. Remove trailing numbers to infer group names
             group_names = [remove_sample_num(s) for s in group_base]
 
-            # 各メタデータ列のデフォルト値を設定
+            # Set default values for each metadata column
             for col in meta_col_names:
                 col_lower = col.lower()
 
                 if col_lower in ['sex', 'gender']:
-                    # グループ名から性別を推測（male/femaleが含まれる場合）
+                    # Infer sex from group name (if male/female is included)
                     def infer_sex(name):
                         name_lower = name.lower()
                         if 'male' in name_lower and 'female' not in name_lower:
@@ -1510,18 +1512,18 @@ if uploaded_file is not None:
                         elif 'female' in name_lower or 'fem' in name_lower:
                             return 'Female'
                         else:
-                            return 'Male'  # デフォルト
+                            return 'Male'  # Default
                     meta_df[col] = [infer_sex(g) for g in group_names]
 
                 elif col_lower in ['donor', 'subject', 'patient', 'individual']:
-                    # サンプル名からドナーIDを推測
-                    # パターン1: sample_D01_A → D01
-                    # パターン2: D01_typeA → D01
-                    # パターン3: 連番で付与
+                    # Infer donor ID from sample name
+                    # Pattern 1: sample_D01_A -> D01
+                    # Pattern 2: D01_typeA -> D01
+                    # Pattern 3: Assign sequential numbers
                     donor_ids = []
                     for s in sample_names_str:
                         parts = s.split('_')
-                        # D01のようなパターンを探す
+                        # Look for patterns like D01
                         donor_found = False
                         for part in parts:
                             if part.startswith('D') and len(part) >= 2 and part[1:].isdigit():
@@ -1529,18 +1531,18 @@ if uploaded_file is not None:
                                 donor_found = True
                                 break
                         if not donor_found:
-                            # グループ名を使用
+                            # Use group name
                             donor_ids.append(group_names[len(donor_ids)])
                     meta_df[col] = donor_ids
 
                 elif col_lower in ['subtype', 'celltype', 'cell_type', 'type', 'tissue']:
-                    # グループ名をそのまま使用（これがサブタイプを表すことが多い）
+                    # Use group name as is (often represents subtype)
                     meta_df[col] = group_names
 
                 elif col_lower in ['batch', 'library', 'plate', 'run']:
-                    # バッチ番号を推測
-                    # パターン1: sample_B1_typeA → B1
-                    # パターン2: 全サンプルで同じ場合は Batch1
+                    # Infer batch number
+                    # Pattern 1: sample_B1_typeA -> B1
+                    # Pattern 2: If same for all samples, use Batch1
                     batch_ids = []
                     for s in sample_names_str:
                         parts = s.split('_')
@@ -1559,34 +1561,34 @@ if uploaded_file is not None:
                     meta_df[col] = batch_ids
 
                 elif col_lower in ['age', 'depth', 'weight', 'height', 'score']:
-                    # 数値型の場合は0で初期化
+                    # Initialize numeric types with 0
                     meta_df[col] = 0
 
                 elif col_lower in ['condition', 'treatment', 'group', 'status']:
-                    # グループ名を使用
+                    # Use group name
                     meta_df[col] = group_names
 
                 else:
-                    # その他はグループ名を使用
+                    # Use group name for others
                     meta_df[col] = group_names
 
-            st.write("各サンプルのメタデータを編集してください:")
-            st.info("💡 サンプル名から自動推測されたデフォルト値が入力されています。必要に応じて編集してください。")
+            st.write("Edit metadata for each sample:")
+            st.info("Default values have been auto-inferred from sample names. Edit as needed.")
             edited_meta_df = st.data_editor(meta_df, use_container_width=True)
 
-            submitted = st.form_submit_button("メタデータを確定", type="primary")
+            submitted = st.form_submit_button("Confirm Metadata", type="primary")
 
         if submitted:
-            # session_stateに保存
+            # Save to session_state
             st.session_state.metadata_submitted = True
             st.session_state.metadata_df = edited_meta_df.copy()
             st.session_state.meta_col_names = meta_col_names
 
-            # PCA scoresとメタデータを結合
+            # Combine PCA scores and metadata
             if df.index.name or (df.index[0] != 0):
                 df_combined = pd.concat([df, edited_meta_df], axis=1)
             else:
-                # 最初の列がサンプル名の場合
+                # If first column is sample names
                 df_temp = df.set_index(df.columns[0])
                 df_combined = pd.concat([df_temp, edited_meta_df], axis=1)
                 df_combined.reset_index(inplace=True)
@@ -1594,12 +1596,12 @@ if uploaded_file is not None:
 
             st.session_state.combined_df = df_combined.copy()
 
-        # メタデータが確定されている場合、結合したデータフレームを使用
+        # Use combined dataframe if metadata has been confirmed
         if st.session_state.metadata_submitted and st.session_state.combined_df is not None:
             df = st.session_state.combined_df.copy()
-            st.success("✅ メタデータ入力完了")
+            st.success("Metadata entry complete")
 
-            st.write("メタデータ確認:")
+            st.write("Metadata confirmation:")
             for col in st.session_state.meta_col_names:
                 st.write(f"**{col}**: " + ', '.join(df[col].unique().astype(str)))
 
@@ -1607,18 +1609,18 @@ if uploaded_file is not None:
     # Column Mapping
     # =============================================================================
 
-    step_number = "3️⃣" if input_method == "PCA scoresファイル + メタデータを手動入力" else "2️⃣"
-    st.markdown(f"## {step_number} 列のマッピング")
-    st.markdown("各変数に対応する列を選択してください")
+    step_number = "3" if input_method == "PCA scores file + Enter metadata manually" else "2"
+    st.markdown(f"## {step_number}. Column Mapping")
+    st.markdown("Select the columns corresponding to each variable")
 
     with st.form("column_mapping"):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.markdown("### 🔹 必須列")
+            st.markdown("### Required Columns")
 
             # Sample ID
-            sample_col = st.selectbox("サンプルID列:", df.columns,
+            sample_col = st.selectbox("Sample ID Column:", df.columns,
                                        index=0 if 'sample' in df.columns[0].lower() else 0)
 
             # PC score columns
@@ -1626,96 +1628,96 @@ if uploaded_file is not None:
             pc_cols = [col for col in numeric_cols if col.upper().startswith('PC')]
 
             if len(pc_cols) == 0:
-                st.warning("'PC'で始まる列が見つかりません。全ての数値列を表示します。")
+                st.warning("No columns starting with 'PC' found. Showing all numeric columns.")
                 pc_cols = numeric_cols
 
-            pc_col = st.selectbox("解析するPC score列:", pc_cols,
+            pc_col = st.selectbox("PC Score Column to Analyze:", pc_cols,
                                   index=0,
-                                  help="例: PC3, PC4 など。複数のPCを解析する場合は、1つずつ実行してください")
+                                  help="Example: PC3, PC4, etc. For multiple PCs, run analysis one at a time")
 
         with col2:
-            st.markdown("### 🔹 主要変数")
+            st.markdown("### Main Variables")
 
-            # カテゴリ列を取得
+            # Get categorical columns
             cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
-            # サンプルID列を除外（ユニーク値が多すぎる列は除外）
+            # Exclude sample ID columns (columns with too many unique values)
             cat_cols_filtered = []
             for col in cat_cols:
                 n_unique = df[col].nunique()
                 n_samples = len(df)
                 unique_ratio = n_unique / n_samples
 
-                # フィルタリング基準:
-                # 1. サンプルID（全て一意: ratio >= 0.9）を除外
-                # 2. ユニーク値が多すぎる（>50）列を除外
-                # 3. ただし、ユニーク値が2以上あること（定数列を除外）
+                # Filtering criteria:
+                # 1. Exclude sample IDs (all unique: ratio >= 0.9)
+                # 2. Exclude columns with too many unique values (>50)
+                # 3. Must have at least 2 unique values (exclude constant columns)
                 if unique_ratio < 0.9 and n_unique >= 2 and n_unique <= 50:
                     cat_cols_filtered.append(col)
 
             if not cat_cols_filtered:
-                st.warning("⚠️ 適切なカテゴリ変数が見つかりません。全てのカテゴリ列を表示します。")
+                st.warning("No suitable categorical variables found. Showing all categorical columns.")
                 cat_cols_filtered = cat_cols
 
-            # 主要変数 (例: sex)
-            main_var = st.selectbox("🔴 主要変数 1 (必須):",
+            # Main variable (e.g., sex)
+            main_var = st.selectbox("Main Variable 1 (Required):",
                                     cat_cols_filtered,
                                     index=0 if len(cat_cols_filtered) > 0 else None,
-                                    help="検定したい主要な変数（例: sex, treatment など）。\n"
-                                         "この変数はモデルの主効果として必ず含まれます。\n"
-                                         "サンプルIDのような一意の列は自動的に除外されます。")
+                                    help="The main variable to test (e.g., sex, treatment, etc.).\n"
+                                         "This variable is always included as a main effect in the model.\n"
+                                         "Unique columns like sample ID are automatically excluded.")
 
-            # ブロッキング変数 (例: subtype)
+            # Blocking variable (e.g., subtype)
             other_cats = [col for col in cat_cols_filtered if col != main_var]
-            blocking_var = st.selectbox("🔴 主要変数 2 / ブロッキング変数 (任意):",
-                                        ["なし"] + other_cats,
+            blocking_var = st.selectbox("Main Variable 2 / Blocking Variable (Optional):",
+                                        ["None"] + other_cats,
                                         index=1 if len(other_cats) > 0 else 0,
-                                        help="**重要:** この変数もモデルの主効果として含まれます。\n\n"
-                                             "例: sex を主要変数1、subtype を主要変数2として選択すると、\n"
-                                             "モデル式は `PC ~ C(sex) + C(subtype)` となります。\n\n"
-                                             "**使用例:**\n"
-                                             "- 2つの主要変数を同時に検定したい場合（sex と subtype など）\n"
-                                             "- ブロッキングデザイン（donor, batch など）で層別化したい場合\n\n"
-                                             "交互作用項を追加すると、2つの変数の相互作用も検定できます。")
-            blocking_var = None if blocking_var == "なし" else blocking_var
+                                        help="**Important:** This variable is also included as a main effect in the model.\n\n"
+                                             "Example: If sex is Main Variable 1 and subtype is Main Variable 2,\n"
+                                             "the model formula becomes `PC ~ C(sex) + C(subtype)`.\n\n"
+                                             "**Use cases:**\n"
+                                             "- When testing two main variables simultaneously (e.g., sex and subtype)\n"
+                                             "- For blocking designs (stratification by donor, batch, etc.)\n\n"
+                                             "Adding interaction terms allows testing the interaction between the two variables.")
+            blocking_var = None if blocking_var == "None" else blocking_var
 
         with col3:
-            st.markdown("### 🔹 階層構造")
+            st.markdown("### Hierarchical Structure")
 
             # Donor ID for random effects
-            donor_col = st.selectbox("Donor/Subject ID (ランダム効果用):",
-                                     ["なし", "サンプルIDと同じ"] + df.columns.tolist(),
+            donor_col = st.selectbox("Donor/Subject ID (for Random Effects):",
+                                     ["None", "Same as Sample ID"] + df.columns.tolist(),
                                      index=0,
-                                     help="反復測定がある場合に指定。LMMで (1|donor) のランダム効果として使用")
+                                     help="Specify when repeated measures exist. Used as (1|donor) random effect in LMM")
 
-            if donor_col == "なし":
+            if donor_col == "None":
                 donor_col = None
-            elif donor_col == "サンプルIDと同じ":
+            elif donor_col == "Same as Sample ID":
                 donor_col = sample_col
 
             # Additional random effect
-            additional_re = st.selectbox("追加のランダム効果 (例: batch, library):",
-                                         ["なし"] + df.columns.tolist(),
+            additional_re = st.selectbox("Additional Random Effect (e.g., batch, library):",
+                                         ["None"] + df.columns.tolist(),
                                          index=0,
-                                         help="技術的なバッチ効果などをランダム効果として扱う場合に使用")
-            additional_re = None if additional_re == "なし" else additional_re
+                                         help="Use when treating technical batch effects as random effects")
+            additional_re = None if additional_re == "None" else additional_re
 
         # Additional covariates
-        st.markdown("### 🔹 追加の共変量（固定効果）")
+        st.markdown("### Additional Covariates (Fixed Effects)")
 
-        # 既に使用した列を除外
+        # Exclude already used columns
         used_cols = [sample_col, pc_col, main_var, blocking_var, donor_col, additional_re]
         remaining_cols = [col for col in df.columns if col not in used_cols and col is not None]
 
         additional_covars = st.multiselect(
-            "追加の共変量を選択 (数値またはカテゴリ):",
+            "Select Additional Covariates (numeric or categorical):",
             remaining_cols,
-            help="年齢、バッチ、深度などの調整したい変数。これらは固定効果としてモデルに含まれます"
+            help="Variables to adjust for such as age, batch, depth. These are included as fixed effects in the model"
         )
 
         # Interaction terms
-        st.markdown("### 🔹 交互作用項")
-        st.markdown("_交互作用は、2つの変数の効果が独立でない場合に使用します（例: 性差がサブタイプによって異なる）_")
+        st.markdown("### Interaction Terms")
+        st.markdown("_Use interactions when the effects of two variables are not independent (e.g., sex differences vary by subtype)_")
 
         potential_interactions = []
         if blocking_var:
@@ -1726,22 +1728,22 @@ if uploaded_file is not None:
                 potential_interactions.append(f"{main_var} : {covar}")
 
         interactions = st.multiselect(
-            "交互作用項を選択 (任意):",
+            "Select Interaction Terms (Optional):",
             potential_interactions,
-            help="例: sex:subtype は、性差がサブタイプ間で異なるかを検定します。データが十分にある場合のみ使用を推奨"
+            help="Example: sex:subtype tests whether sex differences vary between subtypes. Use only with sufficient data"
         )
 
-        # フォームの送信ボタン
-        mapping_submitted = st.form_submit_button("列のマッピングを確定", type="primary")
+        # Form submit button
+        mapping_submitted = st.form_submit_button("Confirm Column Mapping", type="primary")
 
     # =============================================================================
     # Run Analysis Button
     # =============================================================================
 
-    # 列のマッピングが確定された場合のみ解析ボタンを表示
+    # Show analysis button only when column mapping is confirmed
     if mapping_submitted or 'mapping_confirmed' in st.session_state:
         if mapping_submitted:
-            # 列マッピングが変更された場合、以前の解析結果をすべてクリア
+            # Clear all previous analysis results when column mapping is changed
             st.session_state.mapping_confirmed = True
             st.session_state.sample_col = sample_col
             st.session_state.pc_col = pc_col
@@ -1752,7 +1754,7 @@ if uploaded_file is not None:
             st.session_state.additional_covars = additional_covars
             st.session_state.interactions = interactions
 
-            # 以前の解析結果をクリア
+            # Clear previous analysis results
             results_to_clear = [
                 'ols_model', 'ols_coef', 'ols_anova', 'ols_emm',
                 'lmm_result', 'lmm_coef',
@@ -1764,9 +1766,9 @@ if uploaded_file is not None:
                 if key in st.session_state:
                     del st.session_state[key]
 
-        st.success("✅ 列のマッピング完了")
+        st.success("Column mapping complete")
 
-        # session_stateから値を取得
+        # Get values from session_state
         sample_col = st.session_state.sample_col
         pc_col = st.session_state.pc_col
         main_var = st.session_state.main_var
@@ -1776,12 +1778,12 @@ if uploaded_file is not None:
         additional_covars = st.session_state.additional_covars
         interactions = st.session_state.interactions
 
-        if st.button("🚀 解析を実行", type="primary"):
+        if st.button("Run Analysis", type="primary"):
 
-            step_number_check = "4️⃣" if input_method == "PCA scoresファイル + メタデータを手動入力" else "3️⃣"
-            st.markdown(f"## {step_number_check} データ品質チェック")
+            step_number_check = "4" if input_method == "PCA scores file + Enter metadata manually" else "3"
+            st.markdown(f"## {step_number_check}. Data Quality Check")
 
-            # 解析用データフレームの準備
+            # Prepare dataframe for analysis
             analysis_cols = [sample_col, pc_col, main_var]
             if blocking_var:
                 analysis_cols.append(blocking_var)
@@ -1790,90 +1792,90 @@ if uploaded_file is not None:
             if additional_re:
                 analysis_cols.append(additional_re)
 
-            # additional_covarsが空でない場合のみ追加
+            # Add additional_covars only if not empty
             if additional_covars:
-                # リストであることを確認してから追加
+                # Confirm it's a list before adding
                 if isinstance(additional_covars, list):
                     analysis_cols.extend(additional_covars)
                 else:
                     analysis_cols.append(additional_covars)
 
-            # Noneを除外し、重複も除去
+            # Exclude None and remove duplicates
             analysis_cols = [col for col in analysis_cols if col is not None]
-            analysis_cols = list(dict.fromkeys(analysis_cols))  # 重複を保持順で除去
+            analysis_cols = list(dict.fromkeys(analysis_cols))  # Remove duplicates while preserving order
 
-            # デバッグ情報
-            st.write("**選択された列:**", analysis_cols)
+            # Debug information
+            st.write("**Selected columns:**", analysis_cols)
 
             analysis_df = df[analysis_cols].copy()
 
-            # 欠損値の除去
+            # Remove missing values
             n_before = len(analysis_df)
             analysis_df = analysis_df.dropna()
             n_after = len(analysis_df)
 
             if n_before > n_after:
-                st.warning(f"⚠️ 欠損値を含む {n_before - n_after} 行を削除しました")
+                st.warning(f"Removed {n_before - n_after} rows containing missing values")
 
-            # カテゴリ変数の標準化
+            # Standardize categorical variables
             for col in analysis_df.columns:
-                # colが文字列であることを確認
+                # Verify col is a string
                 if isinstance(col, str):
                     try:
                         if analysis_df[col].dtype == 'object':
                             analysis_df[col] = analysis_df[col].astype('category')
                     except (KeyError, AttributeError):
-                        # 列が存在しない、または型がない場合はスキップ
+                        # Skip if column does not exist or has no type
                         continue
 
-            # サンプルサイズの確認（欠測情報を含む）
-            st.markdown("### 📊 サンプルサイズの要約")
+            # Check sample size (including missing data information)
+            st.markdown("### Sample Size Summary")
 
-            # 欠測チェック
-            original_n = len(df)  # 元のデータ数
-            analysis_n = len(analysis_df)  # 解析に使用するデータ数
+            # Missing value check
+            original_n = len(df)  # Original data count
+            analysis_n = len(analysis_df)  # Data count used for analysis
             excluded_n = original_n - analysis_n
 
             if excluded_n > 0:
-                st.warning(f"⚠️ **欠測値除外**: {excluded_n} 件のサンプルが欠測値により除外されました（元データ: {original_n} → 解析使用: {analysis_n}）")
+                st.warning(f"**Missing Value Exclusion**: {excluded_n} samples were excluded due to missing values (Original data: {original_n} -> Used for analysis: {analysis_n})")
 
             col1, col2 = st.columns(2)
 
             with col1:
-                st.metric("解析に使用したサンプル数", len(analysis_df))
+                st.metric("Sample Size Used for Analysis", len(analysis_df))
 
-                # 主要変数の分布
-                st.write(f"**{main_var} の分布:**")
+                # Distribution of main variable
+                st.write(f"**Distribution of {main_var}:**")
                 main_var_counts = analysis_df[main_var].value_counts()
                 st.dataframe(main_var_counts)
 
-                # 不均衡の警告
+                # Imbalance warning
                 if len(main_var_counts) > 1:
                     max_count = main_var_counts.max()
                     min_count = main_var_counts.min()
                     if max_count / min_count > 3:
-                        st.warning(f"⚠️ **群の不均衡**: 最大群({max_count})と最小群({min_count})で3倍以上の差があります")
+                        st.warning(f"⚠️ **Group Imbalance**: More than 3-fold difference between the largest group ({max_count}) and smallest group ({min_count})")
 
             with col2:
                 if blocking_var:
-                    st.write(f"**クロス集計表: {main_var} × {blocking_var}**")
+                    st.write(f"**Cross-tabulation: {main_var} x {blocking_var}**")
                     cross_tab = pd.crosstab(analysis_df[main_var], analysis_df[blocking_var])
                     st.dataframe(cross_tab)
 
-                    # 小サンプルサイズの警告
+                    # Small sample size warning
                     min_cell_size = cross_tab.min().min()
                     if min_cell_size < 3:
-                        st.warning(f"⚠️ 一部のセルのサンプルサイズが非常に小さい（最小: {min_cell_size}）です。推定が不安定になる可能性があります。")
+                        st.warning(f"⚠️ Some cells have very small sample sizes (minimum: {min_cell_size}). Estimates may be unstable.")
 
                 if donor_col and donor_col != sample_col:
                     n_donors = analysis_df[donor_col].nunique()
-                    st.metric("ドナー数", n_donors)
+                    st.metric("Number of Donors", n_donors)
 
                     if n_donors < 5:
-                        st.warning("⚠️ ドナー数が5未満です。ランダム効果の分散推定が不安定になる可能性があります。")
+                        st.warning("⚠️ Number of donors is less than 5. Variance estimation for random effects may be unstable.")
 
-            # 共線性チェック
-            st.markdown("### 🔍 共線性診断")
+            # Collinearity check
+            st.markdown("### Collinearity Diagnostics")
 
             formula_terms = [main_var]
             if blocking_var:
@@ -1883,57 +1885,57 @@ if uploaded_file is not None:
             collinearity_issues = detect_collinearity(analysis_df, formula_terms)
 
             if collinearity_issues:
-                st.error("**完全共線性が検出されました:**")
+                st.error("**Perfect collinearity detected:**")
                 for issue in collinearity_issues:
                     st.markdown(issue)
                 st.warning("""
-                ⚠️ **完全に共役している変数は、効果を分離して推定できません。**
+                **Perfectly collinear variables cannot have their effects estimated separately.**
 
-                例: あるsubtypeが全てFemaleの場合、sex効果とsubtype効果は識別不能です。
+                Example: If a certain subtype is all Female, then the sex effect and subtype effect are indistinguishable.
 
-                **対処法:**
-                - いずれかの変数を削除
-                - より均衡の取れたデータを収集
-                - 交互作用項を使用せず、記述的な比較に留める
+                **Solutions:**
+                - Remove one of the variables
+                - Collect more balanced data
+                - Avoid using interaction terms and limit to descriptive comparisons
                 """)
             else:
-                st.success("✅ 完全共線性は検出されませんでした")
+                st.success("✅ No perfect collinearity detected")
 
             # VIF for numeric variables
             numeric_covars = [col for col in additional_covars
                              if pd.api.types.is_numeric_dtype(analysis_df[col])]
 
             if len(numeric_covars) > 1:
-                st.markdown("**数値共変量の多重共線性 (VIF):**")
-                st.caption("VIF > 10: 強い多重共線性あり。VIF > 5: 中程度の多重共線性あり。")
+                st.markdown("**Multicollinearity of Numeric Covariates (VIF):**")
+                st.caption("VIF > 10: Strong multicollinearity. VIF > 5: Moderate multicollinearity.")
 
                 try:
                     vif_df = calculate_vif(analysis_df, numeric_covars)
                     vif_df_display = vif_df.copy(); vif_df_display['VIF'] = vif_df_display['VIF'].round(2); st.dataframe(vif_df_display, use_container_width=True)
 
                     if (vif_df['VIF'] > 10).any():
-                        st.warning("⚠️ VIF > 10 の変数があります。強い多重共線性が示唆されます。")
+                        st.warning("⚠️ Variables with VIF > 10 detected. Strong multicollinearity is suggested.")
                     elif (vif_df['VIF'] > 5).any():
-                        st.info("ℹ️ VIF > 5 の変数があります。中程度の多重共線性が示唆されます。")
+                        st.info("ℹ️ Variables with VIF > 5 detected. Moderate multicollinearity is suggested.")
                 except Exception as e:
-                    st.info(f"VIF計算をスキップしました: {str(e)}")
+                    st.info(f"VIF calculation skipped: {str(e)}")
 
             # =============================================================================
             # Build Formula
             # =============================================================================
 
-            st.markdown("## 4️⃣ モデル式の構築")
+            st.markdown("## 4. Model Formula Construction")
 
-            # デバッグ情報
-            with st.expander("🔍 モデル構築情報（選択された変数の確認）", expanded=True):
-                st.write(f"**主要変数 1 (main_var):** {main_var}")
-                st.write(f"**主要変数 2 / ブロッキング変数 (blocking_var):** {blocking_var}")
-                st.write(f"**追加共変量 (additional_covars):** {additional_covars}")
-                st.write(f"**交互作用項 (interactions):** {interactions}")
-                st.info("💡 モデル式に含めたい変数は、上の '主要変数 1' または '主要変数 2' で選択してください。\n\n"
-                        "'追加の共変量' は調整変数として使用され、主な検定対象ではありません。")
+            # Debug information
+            with st.expander("Model Construction Info (Selected Variables Check)", expanded=True):
+                st.write(f"**Main Variable 1 (main_var):** {main_var}")
+                st.write(f"**Main Variable 2 / Blocking Variable (blocking_var):** {blocking_var}")
+                st.write(f"**Additional Covariates (additional_covars):** {additional_covars}")
+                st.write(f"**Interaction Terms (interactions):** {interactions}")
+                st.info("To include variables in the model formula, select them above under 'Main Variable 1' or 'Main Variable 2'.\n\n"
+                        "'Additional Covariates' are used as adjustment variables and are not the main test targets.")
 
-            # 固定効果の式
+            # Fixed effects formula
             fixed_terms = [f"C({main_var})"]
             if blocking_var:
                 fixed_terms.append(f"C({blocking_var})")
@@ -1944,7 +1946,7 @@ if uploaded_file is not None:
                 else:
                     fixed_terms.append(col)
 
-            # 交互作用項の追加
+            # Add interaction terms
             if interactions:
                 for interaction in interactions:
                     vars_in_interaction = [v.strip() for v in interaction.split(":")]
@@ -1952,32 +1954,32 @@ if uploaded_file is not None:
                         f"C({v})" if analysis_df[v].dtype in ['object', 'category'] else v
                         for v in vars_in_interaction
                     ])
-                    # 既に含まれていない場合のみ追加
+                    # Add only if not already included
                     if interaction_term not in fixed_terms:
                         fixed_terms.append(interaction_term)
 
             formula = f"{pc_col} ~ " + " + ".join(fixed_terms)
 
-            # モデルに含まれる変数を明示的に表示
-            st.markdown("**📊 モデルに含まれる変数:**")
+            # Explicitly display variables included in the model
+            st.markdown("**Variables Included in Model:**")
             col_a, col_b = st.columns(2)
             with col_a:
-                st.success(f"✅ 主要変数 1: **{main_var}**")
+                st.success(f"Main Variable 1: **{main_var}**")
                 if blocking_var:
-                    st.success(f"✅ 主要変数 2: **{blocking_var}**")
+                    st.success(f"Main Variable 2: **{blocking_var}**")
                 else:
-                    st.warning("⚠️ 主要変数 2: 選択なし")
+                    st.warning("Main Variable 2: Not selected")
             with col_b:
                 if additional_covars:
-                    st.info(f"📝 調整変数: {', '.join(additional_covars)}")
+                    st.info(f"Adjustment Variables: {', '.join(additional_covars)}")
                 if interactions:
-                    st.info(f"🔗 交互作用: {', '.join(interactions)}")
+                    st.info(f"Interactions: {', '.join(interactions)}")
 
-            st.markdown("**モデル式:**")
+            st.markdown("**Model Formula:**")
             st.code(formula, language="r")
 
             if donor_col:
-                st.markdown(f"**ランダム効果 (LMMのみ):** `(1|{donor_col})`")
+                st.markdown(f"**Random Effects (LMM only):** `(1|{donor_col})`")
 
             # =============================================================================
             # Run OLS
@@ -1985,7 +1987,7 @@ if uploaded_file is not None:
 
             if "OLS" in analysis_method:
                 st.markdown("---")
-                st.markdown("## 5️⃣ OLS 解析結果")
+                st.markdown("## 5. OLS Analysis Results")
 
                 try:
                     # WLS vs OLS
@@ -1998,53 +2000,53 @@ if uploaded_file is not None:
                         weights = weights / weights.mean()
                         # Fit WLS
                         ols_model = smf.wls(formula, data=analysis_df, weights=weights).fit()
-                        st.info(f"ℹ️ WLS（加重最小二乗法）を使用しています。重みは残差の逆分散で計算されました")
+                        st.info(f"ℹ️ Using WLS (Weighted Least Squares). Weights are calculated as the inverse variance of residuals.")
                     else:
-                        # モデルのフィット (OLS)
+                        # Fit model (OLS)
                         ols_model = smf.ols(formula, data=analysis_df).fit()
 
-                    # 適切な共分散行列を取得
-                    if se_type == "HC3 (頑健推定・推奨)":
+                    # Get appropriate covariance matrix
+                    if se_type == "HC3 (Robust, recommended)":
                         ols_model = ols_model.get_robustcov_results(cov_type='HC3')
-                        st.info("ℹ️ HC3頑健標準誤差を使用しています（不均一分散に対応）")
-                    elif se_type == "Cluster-robust (クラスター頑健)":
+                        st.info("ℹ️ Using HC3 robust standard errors (handles heteroscedasticity)")
+                    elif se_type == "Cluster-robust":
                         cluster_var = donor_col if donor_col else additional_re
                         if cluster_var:
                             ols_model = ols_model.get_robustcov_results(
                                 cov_type='cluster',
                                 groups=analysis_df[cluster_var]
                             )
-                            st.info(f"ℹ️ クラスター頑健標準誤差を使用しています（クラスター変数: {cluster_var}）")
+                            st.info(f"ℹ️ Using cluster-robust standard errors (Cluster variable: {cluster_var})")
                         else:
-                            st.warning("クラスター変数が指定されていません。通常のHC3を使用します。")
+                            st.warning("Cluster variable not specified. Using standard HC3.")
                             ols_model = ols_model.get_robustcov_results(cov_type='HC3')
 
-                    # モデル式と参照水準の明示
-                    st.markdown("### 📋 係数表")
-                    st.caption(f"**モデル式**: `{formula}`")
+                    # Explicitly show model formula and reference levels
+                    st.markdown("### Coefficient Table")
+                    st.caption(f"**Model Formula**: `{formula}`")
 
-                    # 参照水準の抽出と表示
+                    # Extract and display reference levels
                     reference_levels = {}
                     for col in analysis_df.columns:
                         if analysis_df[col].dtype == 'object' or analysis_df[col].dtype.name == 'category':
                             if col in formula:
                                 ref_level = analysis_df[col].iloc[0] if len(analysis_df) > 0 else "N/A"
-                                # Patsyはアルファベット順の最初を基準にする
+                                # Patsy uses the first value alphabetically as reference
                                 unique_vals = sorted(analysis_df[col].unique())
                                 if len(unique_vals) > 0:
                                     reference_levels[col] = unique_vals[0]
 
                     if reference_levels:
-                        ref_info = ", ".join([f"`{var}` の基準={ref}" for var, ref in reference_levels.items()])
-                        st.caption(f"**参照水準**: {ref_info}")
+                        ref_info = ", ".join([f"`{var}` reference={ref}" for var, ref in reference_levels.items()])
+                        st.caption(f"**Reference Levels**: {ref_info}")
                     conf_int = ols_model.conf_int()
 
-                    # conf_intがDataFrameかndarrayかを判定
+                    # Determine if conf_int is DataFrame or ndarray
                     if isinstance(conf_int, pd.DataFrame):
                         ci_lower = conf_int.iloc[:, 0]
                         ci_upper = conf_int.iloc[:, 1]
                     else:
-                        # numpy配列の場合
+                        # If numpy array
                         ci_lower = conf_int[:, 0]
                         ci_upper = conf_int[:, 1]
 
@@ -2057,7 +2059,7 @@ if uploaded_file is not None:
                         'CI_upper': ci_upper
                     })
 
-                    # 有意性の記号を追加
+                    # Add significance symbols
                     def sig_symbol(p):
                         if p < 0.001:
                             return '***'
@@ -2072,7 +2074,7 @@ if uploaded_file is not None:
 
                     coef_table['Sig'] = coef_table['p_value'].apply(sig_symbol)
 
-                    # 数値を丸めて表示用のDataFrameを作成
+                    # Round numbers and create display DataFrame
                     display_table = coef_table.copy()
                     display_table['Coef'] = display_table['Coef'].round(4)
                     display_table['Std_Error'] = display_table['Std_Error'].round(4)
@@ -2083,24 +2085,24 @@ if uploaded_file is not None:
 
                     st.dataframe(display_table, use_container_width=True)
 
-                    st.caption("有意水準: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
+                    st.caption("Significance levels: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
 
-                    # 係数表の解釈ガイド
-                    with st.expander("📘 係数表の見方（p_value列の意味）"):
+                    # Coefficient table interpretation guide
+                    with st.expander("How to Read the Coefficient Table (Meaning of p_value Column)"):
                         st.markdown("""
-                        ### p_value列の意味
+                        ### Meaning of p_value Column
 
-                        **各係数の有意性を示します（他の変数を調整した上で）**
+                        **Shows the significance of each coefficient (after adjusting for other variables)**
 
-                        - ✅ **共変量調整あり**: 全ての変数を同時に考慮した結果
-                        - この p値は、他の変数の影響を取り除いた「純粋な効果」を検定しています
+                        - **Covariate-adjusted**: Results considering all variables simultaneously
+                        - This p-value tests the "pure effect" after removing the influence of other variables
 
                         ---
 
-                        ### 表記の意味
+                        ### Notation Meaning
                         """)
 
-                        # 実際のモデルに含まれる変数から説明を生成
+                        # Generate explanations from variables included in the actual model
                         example_vars = []
                         for idx in display_table.index:
                             idx_str = str(idx)  # Ensure idx is a string
@@ -2108,10 +2110,10 @@ if uploaded_file is not None:
                                 example_vars.append(idx_str)
 
                         if example_vars:
-                            st.markdown("**このモデルの例:**")
-                            # 最初の1-2個の変数を例として使用
+                            st.markdown("**Examples from this model:**")
+                            # Use the first 1-2 variables as examples
                             for var_name in example_vars[:2]:
-                                # C(sex)[T.M] のような形式から分解
+                                # Parse format like C(sex)[T.M]
                                 if '[T.' in var_name:
                                     var_part = var_name.split('[')[0]  # C(sex)
                                     level_part = var_name.split('[T.')[1].rstrip(']')  # M
@@ -2119,41 +2121,41 @@ if uploaded_file is not None:
 
                                     st.markdown(f"""
                                     - **`{var_name}`**
-                                      - `C({base_var})`: {base_var}をカテゴリカル変数として扱う
-                                      - `[T.{level_part}]`: Treatment coding で {level_part}水準を表す
-                                      - **意味**: 「{level_part}は基準カテゴリと比べてどれだけ違うか」
-                                      - **p値の解釈**: {level_part}と基準カテゴリに有意な差があるか（**他の変数を調整済み**）
+                                      - `C({base_var})`: Treat {base_var} as a categorical variable
+                                      - `[T.{level_part}]`: Represents the {level_part} level in Treatment coding
+                                      - **Meaning**: "How much does {level_part} differ from the reference category"
+                                      - **p-value interpretation**: Is there a significant difference between {level_part} and the reference category (**adjusted for other variables**)
                                     """)
 
                         st.markdown("""
                         ---
 
-                        ### 一般的な表記
+                        ### General Notation
 
-                        | 表記 | 意味 |
+                        | Notation | Meaning |
                         |-----|------|
-                        | `C(変数名)` | カテゴリカル変数として扱う |
-                        | `[T.水準名]` | Treatment codingで指定水準を表す |
-                        | `C(変数名)[T.水準名]` | 「この水準は基準カテゴリと比べてどれだけ違うか」 |
+                        | `C(variable_name)` | Treat as a categorical variable |
+                        | `[T.level_name]` | Represents the specified level in Treatment coding |
+                        | `C(variable_name)[T.level_name]` | "How much does this level differ from the reference category" |
 
-                        ### 基準カテゴリ（Reference level）
+                        ### Reference Category (Reference level)
 
-                        - デフォルト: **アルファベット順で最初の値**
-                        - 基準カテゴリの行は係数表に表示されません（係数=0として扱われる）
-                        - 他の水準は「基準との差」として解釈されます
+                        - Default: **First value in alphabetical order**
+                        - The reference category row is not displayed in the coefficient table (coefficient = 0)
+                        - Other levels are interpreted as "difference from the reference"
 
-                        ### Welch t検定との違い
+                        ### Difference from Welch t-test
 
-                        | 検定方法 | 共変量調整 | 表示場所 |
+                        | Test Method | Covariate Adjustment | Display Location |
                         |---------|----------|---------|
-                        | Welch t検定 | ❌ なし（単純2群比較） | 情報ボックス |
-                        | 係数表のp_value | ✅ あり（他変数を考慮） | この表 |
+                        | Welch t-test | No (simple two-group comparison) | Info box |
+                        | Coefficient table p_value | Yes (considering other variables) | This table |
 
-                        **推奨**: 正確な統計解析には、この係数表のp値を使用してください。
+                        **Recommended**: Use the p-values from this coefficient table for accurate statistical analysis.
                         """)
 
-                    # モデル適合度
-                    st.markdown("### 📈 モデル適合度")
+                    # Model fit
+                    st.markdown("### 📈 Model Fit")
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         st.metric("R²", f"{ols_model.rsquared:.4f}")
@@ -2166,24 +2168,24 @@ if uploaded_file is not None:
 
                     # ANOVA
                     try:
-                        if anova_type == "Type II (推奨)":
+                        if anova_type == "Type II (recommended)":
                             st.markdown("### 📊 Type II ANOVA")
-                            st.caption("各変数の全体的な有意性を検定（他の変数を含むモデルでの寄与）")
+                            st.caption("Tests overall significance of each variable (contribution in a model including other variables)")
                             anova_table = anova_lm(ols_model, typ=2)
                         else:  # Type III
                             st.markdown("### 📊 Type III ANOVA")
-                            st.caption("全ての交互作用を含めた各変数の有意性を検定")
+                            st.caption("Tests significance of each variable including all interactions")
                             anova_table = anova_lm(ols_model, typ=3)
 
-                        # 重要な注意事項を表示（SE typeに応じて）
-                        if se_type == "HC3 (頑健推定・推奨)":
-                            st.warning("⚠️ **ANOVA F検定は等分散性と正規性を仮定しています**。上記の係数表（HC3頑健SE）とはp値の意味が異なります。不均一分散が懸念される場合は係数表のp値を優先してください。")
-                        elif se_type == "Cluster-robust (クラスター頑健)":
-                            st.warning("⚠️ **ANOVA F検定は等分散性と正規性を仮定しています**。上記の係数表（Cluster頑健SE）とはp値の意味が異なります。クラスター内相関や不均一分散が懸念される場合は係数表のp値を優先してください。")
-                        elif se_type == "Classical (通常)":
-                            st.info("ℹ️ **ANOVA F検定と係数表は同じ仮定**（等分散性・正規性）を使用しています。不均一分散が懸念される場合は、HC3頑健SEの使用を検討してください。")
+                        # Display important notes (depending on SE type)
+                        if se_type == "HC3 (Robust, recommended)":
+                            st.warning("**ANOVA F-test assumes homoscedasticity and normality**. The p-values have different meanings from the coefficient table above (HC3 robust SE). If heteroscedasticity is a concern, prioritize the p-values from the coefficient table.")
+                        elif se_type == "Cluster-robust":
+                            st.warning("**ANOVA F-test assumes homoscedasticity and normality**. The p-values have different meanings from the coefficient table above (Cluster robust SE). If within-cluster correlation or heteroscedasticity is a concern, prioritize the p-values from the coefficient table.")
+                        elif se_type == "Classical":
+                            st.info("**ANOVA F-test and coefficient table use the same assumptions** (homoscedasticity and normality). If heteroscedasticity is a concern, consider using HC3 robust SE.")
 
-                        # 数値を丸めて表示
+                        # Round values for display
                         anova_display = anova_table.copy()
                         if 'sum_sq' in anova_display.columns:
                             anova_display['sum_sq'] = anova_display['sum_sq'].round(4)
@@ -2193,29 +2195,29 @@ if uploaded_file is not None:
                             anova_display['PR(>F)'] = anova_display['PR(>F)'].apply(lambda x: f"{x:.4g}" if pd.notna(x) else x)
 
                         st.dataframe(anova_display, use_container_width=True)
-                        st.session_state.ols_anova = anova_table  # zipダウンロード用に保存
+                        st.session_state.ols_anova = anova_table  # Save for zip download
 
-                        # ANOVA表の解釈ガイド
-                        with st.expander("📘 ANOVA表の見方（PR(>F)列の意味）"):
+                        # ANOVA table interpretation guide
+                        with st.expander("How to read the ANOVA table (Meaning of PR(>F) column)"):
                             st.markdown("""
-                            ### PR(>F)列の意味
+                            ### Meaning of PR(>F) Column
 
-                            **各変数全体の有意性を示します（他の変数を調整した上で）**
+                            **Shows the overall significance of each variable (adjusted for other variables)**
 
-                            - ✅ **共変量調整あり**: 全ての変数を同時に考慮した結果
-                            - この p値は、他の変数の影響を取り除いた上で、その変数全体が有意に寄与しているかを検定しています
+                            - **With covariate adjustment**: Results considering all variables simultaneously
+                            - This p-value tests whether the entire variable significantly contributes after removing the influence of other variables
 
                             ---
 
-                            ### 係数表との違い
+                            ### Difference from Coefficient Table
 
-                            | 表 | 検定対象 | 共変量調整 |
+                            | Table | Test Target | Covariate Adjustment |
                             |----|---------|----------|
-                            | **係数表** | 各水準ごと（例: Male vs Female） | ✅ あり |
-                            | **ANOVA表** | 変数全体（例: sex全体の効果） | ✅ あり |
+                            | **Coefficient table** | Each level (e.g., Male vs Female) | Yes |
+                            | **ANOVA table** | Entire variable (e.g., overall effect of sex) | Yes |
                             """)
 
-                            # 実際のモデルに含まれる変数から説明を生成
+                            # Generate explanations from variables included in the actual model
                             anova_vars = []
                             for idx in anova_display.index:
                                 idx_str = str(idx)  # Ensure idx is a string
@@ -2223,90 +2225,90 @@ if uploaded_file is not None:
                                     anova_vars.append(idx_str)
 
                             if anova_vars:
-                                st.markdown("**このモデルの例:**")
+                                st.markdown("**Examples from this model:**")
                                 for var_name in anova_vars[:2]:
-                                    # C(sex) のような形式から変数名を抽出
+                                    # Extract variable name from format like C(sex)
                                     base_var = var_name.replace('C(', '').replace(')', '')
 
                                     st.markdown(f"""
-                                    - **`{var_name}`** の PR(>F)
-                                      - **意味**: {base_var}という変数全体が、PC値に有意な影響を与えているか
-                                      - **検定内容**: 全ての{base_var}水準の係数が同時にゼロかどうか
-                                      - **調整**: 他の変数（主要変数2、共変量など）の影響を除いた上での検定
+                                    - PR(>F) for **`{var_name}`**
+                                      - **Meaning**: Does the entire {base_var} variable significantly affect the PC value
+                                      - **Test content**: Whether all coefficients for {base_var} levels are simultaneously zero
+                                      - **Adjustment**: Test after removing the influence of other variables (secondary variable, covariates, etc.)
                                     """)
 
                             st.markdown("""
                             ---
 
-                            ### 具体例で理解する
+                            ### Understanding with a Concrete Example
 
-                            **モデル**: `PC4 ~ C(sex) + C(subtype)`
+                            **Model**: `PC4 ~ C(sex) + C(subtype)`
 
-                            | 変数 | PR(>F) | 意味 |
+                            | Variable | PR(>F) | Meaning |
                             |------|--------|------|
-                            | C(sex) | 0.0234 | subtype調整後も、sexは有意にPC4に影響する |
-                            | C(subtype) | 0.0567 | sex調整後も、subtypeは有意にPC4に影響する |
+                            | C(sex) | 0.0234 | After adjusting for subtype, sex significantly affects PC4 |
+                            | C(subtype) | 0.0567 | After adjusting for sex, subtype significantly affects PC4 |
 
-                            ### Welch t検定との違い
+                            ### Difference from Welch t-test
 
-                            | 検定方法 | 共変量調整 | 検定対象 | 表示場所 |
+                            | Test Method | Covariate Adjustment | Test Target | Display Location |
                             |---------|----------|---------|---------|
-                            | Welch t検定 | ❌ なし | 主要変数1のみ（2群比較） | 情報ボックス |
-                            | ANOVA表 PR(>F) | ✅ あり | 各変数全体 | この表 |
+                            | Welch t-test | No | Primary variable 1 only (two-group comparison) | Info box |
+                            | ANOVA table PR(>F) | Yes | Each entire variable | This table |
 
-                            ### 注意事項
+                            ### Notes
 
-                            ⚠️ **ANOVA F検定は等分散性と正規性を仮定しています**
+                            **ANOVA F-test assumes homoscedasticity and normality**
 
-                            不均一分散が懸念される場合は、係数表のp値（HC3/Cluster頑健SE使用時）を優先してください。
+                            If heteroscedasticity is a concern, prioritize the p-values from the coefficient table (when using HC3/Cluster robust SE).
 
                             ### Type II vs Type III
 
-                            - **Type II ANOVA（推奨）**: 交互作用を含まないモデルで各変数の主効果を検定
-                            - **Type III ANOVA**: 全ての交互作用を含めた各変数の効果を検定
+                            - **Type II ANOVA (Recommended)**: Tests main effects of each variable in a model without interactions
+                            - **Type III ANOVA**: Tests effects of each variable including all interactions
 
-                            **推奨**: 正確な変数全体の有意性には、このANOVA表のPR(>F)を使用してください。
+                            **Recommended**: Use PR(>F) from this ANOVA table for accurate overall variable significance.
                             """)
 
                     except Exception as e:
-                        st.warning(f"ANOVA表を計算できませんでした: {str(e)}")
+                        st.warning(f"Could not calculate ANOVA table: {str(e)}")
 
                     # Forest plot
-                    st.markdown("### 🌲 Forest Plot (係数の可視化)")
-                    st.caption("各係数の推定値と95%信頼区間。ゼロと重ならない場合は有意")
+                    st.markdown("### 🌲 Forest Plot (Coefficient Visualization)")
+                    st.caption("Estimated values and 95% confidence intervals for each coefficient. Significant if not overlapping zero")
 
-                    # 切片を除外
+                    # Exclude intercept
                     coef_for_plot = coef_table.iloc[1:].copy()
                     if len(coef_for_plot) > 0:
                         fig_forest = plot_forest(coef_for_plot, title=f"OLS Coefficient Estimates ({se_type})")
                         st.pyplot(fig_forest)
-                        st.session_state.fig_forest_ols = fig_forest  # zipダウンロード用に保存
+                        st.session_state.fig_forest_ols = fig_forest  # Save for zip download
                     else:
-                        st.info("プロット可能な係数がありません（切片のみ）")
+                        st.info("No coefficients available for plotting (intercept only)")
 
-                    # 診断プロット
+                    # Diagnostic plots
                     if show_diagnostics:
-                        st.markdown("### 🔬 診断プロット")
+                        st.markdown("### 🔬 Diagnostic Plots")
                         st.caption("""
-                        - **Residuals vs Fitted**: パターンがなければ線形性と等分散性が満たされている
-                        - **Normal Q-Q**: 直線上に乗れば正規性が満たされている
-                        - **Scale-Location**: 水平な帯状であれば等分散性が満たされている
-                        - **Residual Distribution**: 正規分布に近いかを確認
+                        - **Residuals vs Fitted**: Linearity and homoscedasticity are satisfied if no pattern is present
+                        - **Normal Q-Q**: Normality is satisfied if points fall on a straight line
+                        - **Scale-Location**: Homoscedasticity is satisfied if it shows a horizontal band
+                        - **Residual Distribution**: Check if close to normal distribution
                         """)
                         fig_diag = plot_diagnostic(ols_model, title="OLS Model Diagnostics")
                         st.pyplot(fig_diag)
-                        st.session_state.fig_diagnostic = fig_diag  # zipダウンロード用に保存
+                        st.session_state.fig_diagnostic = fig_diag  # Save for zip download
 
                     # EMM
                     if show_emm and blocking_var:
-                        st.markdown("### 📊 推定周辺平均 (Estimated Marginal Means)")
-                        st.caption("共変量を調整した後の、各群の予測平均値")
+                        st.markdown("### 📊 Estimated Marginal Means (EMM)")
+                        st.caption("Predicted mean values for each group after adjusting for covariates")
 
                         try:
                             emm_df = calculate_emm(ols_model, analysis_df,
                                                   [main_var, blocking_var] if blocking_var else [main_var])
 
-                            # 数値を丸めて表示
+                            # Round values for display
                             emm_display = emm_df.copy()
                             for col in ['mean', 'se', 'ci_lower', 'ci_upper']:
                                 if col in emm_display.columns:
@@ -2340,18 +2342,18 @@ if uploaded_file is not None:
                             ax.grid(True, alpha=0.3)
                             plt.tight_layout()
                             st.pyplot(fig)
-                            st.session_state.fig_emm = fig  # zipダウンロード用に保存
-                            st.session_state.ols_emm = emm_df  # データも保存
+                            st.session_state.fig_emm = fig  # Save for zip download
+                            st.session_state.ols_emm = emm_df  # Save data as well
 
                         except Exception as e:
-                            st.warning(f"EMMの計算中にエラーが発生しました: {str(e)}")
+                            st.warning(f"Error occurred during EMM calculation: {str(e)}")
 
-                    # 結果を保存
+                    # Save results
                     st.session_state.ols_model = ols_model
                     st.session_state.ols_coef = coef_table
 
                 except Exception as e:
-                    st.error(f"❌ OLS解析に失敗しました")
+                    st.error(f"OLS analysis failed")
                     st.exception(e)
 
             # =============================================================================
@@ -2360,24 +2362,24 @@ if uploaded_file is not None:
 
             if "LMM" in analysis_method and donor_col:
                 st.markdown("---")
-                st.markdown("## 6️⃣ 線形混合モデル (LMM) 解析結果")
+                st.markdown("## 6️⃣ Linear Mixed Model (LMM) Analysis Results")
 
                 try:
-                    # ランダム効果の式を準備
-                    re_formula = "1"  # ランダム切片
+                    # Prepare random effects formula
+                    re_formula = "1"  # Random intercept
                     groups = analysis_df[donor_col]
 
-                    # LMMのフィット
+                    # Fit LMM
                     lmm_model = smf.mixedlm(formula, data=analysis_df,
                                             groups=groups,
                                             re_formula=re_formula)
 
-                    lmm_result = lmm_model.fit(reml=(reml_method == "REML (推奨)"))
+                    lmm_result = lmm_model.fit(reml=(reml_method == "REML (Recommended)"))
 
-                    st.info(f"ℹ️ 推定方法: {reml_method}")
+                    st.info(f"Estimation method: {reml_method}")
 
-                    # 係数表
-                    st.markdown("### 📋 固定効果の係数表")
+                    # Coefficient table
+                    st.markdown("### 📋 Fixed Effects Coefficient Table")
                     coef_table_lmm = pd.DataFrame({
                         'Coef': lmm_result.params,
                         'Std_Error': lmm_result.bse,
@@ -2391,7 +2393,7 @@ if uploaded_file is not None:
                         lambda p: '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else '.' if p < 0.1 else ''
                     )
 
-                    # 数値を丸めて表示
+                    # Round values for display
                     lmm_display = coef_table_lmm.copy()
                     lmm_display['Coef'] = lmm_display['Coef'].round(4)
                     lmm_display['Std_Error'] = lmm_display['Std_Error'].round(4)
@@ -2402,24 +2404,24 @@ if uploaded_file is not None:
 
                     st.dataframe(lmm_display, use_container_width=True)
 
-                    st.caption("有意水準: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
+                    st.caption("Significance levels: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
 
-                    # 分散成分
-                    st.markdown("### 📊 分散成分 (Variance Components)")
-                    st.caption("データの変動がどこから来ているかを示します")
+                    # Variance components
+                    st.markdown("### 📊 Variance Components")
+                    st.caption("Shows where the variation in the data comes from")
 
                     var_random = lmm_result.cov_re.values[0][0]
                     var_residual = lmm_result.scale
                     var_total = var_random + var_residual
 
                     var_comp = pd.DataFrame({
-                        'Component': [f'ランダム効果 ({donor_col})', '残差 (個体内変動)'],
+                        'Component': [f'Random effect ({donor_col})', 'Residual (within-subject variation)'],
                         'Variance': [var_random, var_residual],
                         'Std_Dev': [np.sqrt(var_random), np.sqrt(var_residual)],
                         'Proportion': [var_random / var_total, var_residual / var_total]
                     })
 
-                    # 数値を丸めて表示
+                    # Round values for display
                     var_comp_display = var_comp.copy()
                     var_comp_display['Variance'] = var_comp_display['Variance'].round(4)
                     var_comp_display['Std_Dev'] = var_comp_display['Std_Dev'].round(4)
@@ -2429,44 +2431,44 @@ if uploaded_file is not None:
 
                     # ICC
                     icc = var_random / var_total
-                    st.metric("級内相関係数 (ICC)", f"{icc:.4f}",
-                             help="同一ドナー内のサンプル間の相関。0に近いとランダム効果が小さい、1に近いとドナー間の変動が大きい")
+                    st.metric("Intraclass Correlation Coefficient (ICC)", f"{icc:.4f}",
+                             help="Correlation between samples within the same donor. Close to 0 means small random effect, close to 1 means large between-donor variation")
 
                     if icc < 0.05:
-                        st.info("ℹ️ ICC < 0.05: ランダム効果が非常に小さいです。OLSでも十分かもしれません。")
+                        st.info("ICC < 0.05: Random effect is very small. OLS may be sufficient.")
                     elif icc > 0.5:
-                        st.success("✅ ICC > 0.5: ランダム効果が大きいです。LMMの使用が適切です。")
+                        st.success("ICC > 0.5: Random effect is large. Using LMM is appropriate.")
 
-                    # モデル適合度
-                    st.markdown("### 📈 モデル適合度")
+                    # Model fit
+                    st.markdown("### 📈 Model Fit")
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("対数尤度", f"{lmm_result.llf:.2f}")
+                        st.metric("Log Likelihood", f"{lmm_result.llf:.2f}")
                     with col2:
                         st.metric("AIC", f"{lmm_result.aic:.2f}")
                     with col3:
                         st.metric("BIC", f"{lmm_result.bic:.2f}")
 
                     # Forest plot
-                    st.markdown("### 🌲 Forest Plot (固定効果)")
+                    st.markdown("### 🌲 Forest Plot (Fixed Effects)")
                     coef_for_plot_lmm = coef_table_lmm.iloc[1:].copy()
                     if len(coef_for_plot_lmm) > 0:
                         fig_forest_lmm = plot_forest(coef_for_plot_lmm,
                                                      title="LMM Fixed Effects Estimates")
                         st.pyplot(fig_forest_lmm)
-                        st.session_state.fig_forest_lmm = fig_forest_lmm  # zipダウンロード用に保存
+                        st.session_state.fig_forest_lmm = fig_forest_lmm  # Save for zip download
 
-                    # 結果を保存
+                    # Save results
                     st.session_state.lmm_result = lmm_result
                     st.session_state.lmm_coef = coef_table_lmm
 
                 except Exception as e:
-                    st.error(f"❌ LMM解析に失敗しました")
+                    st.error(f"LMM analysis failed")
                     st.exception(e)
-                    st.info("ヒント: ドナー数が少ない場合や、データの変動が小さい場合、LMMの収束に失敗することがあります。OLSを試してください。")
+                    st.info("Hint: LMM convergence may fail when the number of donors is small or data variation is small. Try OLS instead.")
 
             elif "LMM" in analysis_method and not donor_col:
-                st.warning("⚠️ LMMを実行するには、Donor/Subject ID を指定してください。")
+                st.warning("To run LMM, please specify Donor/Subject ID.")
 
             # =============================================================================
             # Welch's t-test
@@ -2474,11 +2476,11 @@ if uploaded_file is not None:
 
             if run_welch:
                 st.markdown("---")
-                st.markdown("## 7️⃣ Welch型t検定結果")
-                st.caption("等分散を仮定しない2群比較（共変量調整なし）")
-                st.warning(f"🎯 **検定対象変数:** 主要変数1 = **{main_var}**")
+                st.markdown("## 7️⃣ Welch's t-test Results")
+                st.caption("Two-group comparison without assuming equal variance (no covariate adjustment)")
+                st.warning(f"**Test target variable:** Primary variable 1 = **{main_var}**")
 
-                # 主要変数の水準数を確認
+                # Check number of levels in primary variable
                 unique_main_levels = analysis_df[main_var].nunique()
                 if unique_main_levels == 2:
                     from scipy import stats
@@ -2487,7 +2489,7 @@ if uploaded_file is not None:
                     group2_data = analysis_df[analysis_df[main_var] == groups[1]][pc_col]
                     welch_t, welch_p = stats.ttest_ind(group1_data, group2_data, equal_var=False)
 
-                    # 記述統計
+                    # Descriptive statistics
                     group1_mean = group1_data.mean()
                     group1_std = group1_data.std()
                     group1_n = len(group1_data)
@@ -2495,31 +2497,31 @@ if uploaded_file is not None:
                     group2_std = group2_data.std()
                     group2_n = len(group2_data)
 
-                    # 効果量 (Cohen's d, Hedges' g)
+                    # Effect size (Cohen's d, Hedges' g)
                     pooled_std = np.sqrt(((group1_n - 1) * group1_std**2 + (group2_n - 1) * group2_std**2) / (group1_n + group2_n - 2))
                     cohens_d = (group1_mean - group2_mean) / pooled_std
                     correction_factor = 1 - (3 / (4 * (group1_n + group2_n) - 9))
                     hedges_g = cohens_d * correction_factor
 
-                    # 結果の表示
-                    st.success("✅ Welch型t検定を実行しました")
+                    # Display results
+                    st.success("Welch's t-test completed")
 
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        st.markdown("### 📊 記述統計")
+                        st.markdown("### 📊 Descriptive Statistics")
                         desc_df = pd.DataFrame({
-                            '群': [groups[0], groups[1]],
+                            'Group': [groups[0], groups[1]],
                             'n': [group1_n, group2_n],
-                            '平均': [f"{group1_mean:.4f}", f"{group2_mean:.4f}"],
-                            '標準偏差': [f"{group1_std:.4f}", f"{group2_std:.4f}"]
+                            'Mean': [f"{group1_mean:.4f}", f"{group2_mean:.4f}"],
+                            'Std_Dev': [f"{group1_std:.4f}", f"{group2_std:.4f}"]
                         })
                         st.dataframe(desc_df, use_container_width=True)
 
                     with col2:
-                        st.markdown("### 📈 検定結果")
-                        st.metric("t値", f"{welch_t:.4f}")
-                        st.metric("p値", f"{welch_p:.4g}")
+                        st.markdown("### 📈 Test Results")
+                        st.metric("t-value", f"{welch_t:.4f}")
+                        st.metric("p-value", f"{welch_p:.4g}")
                         if welch_p < 0.001:
                             st.success("***  p < 0.001")
                         elif welch_p < 0.01:
@@ -2531,28 +2533,28 @@ if uploaded_file is not None:
                         else:
                             st.info("n.s.  p ≥ 0.1")
 
-                    st.markdown("### 📏 効果量")
+                    st.markdown("### 📏 Effect Size")
                     effect_col1, effect_col2 = st.columns(2)
                     with effect_col1:
                         st.metric("Cohen's d", f"{cohens_d:.4f}")
                     with effect_col2:
-                        st.metric("Hedges' g (補正版)", f"{hedges_g:.4f}")
+                        st.metric("Hedges' g (corrected)", f"{hedges_g:.4f}")
 
-                    st.caption("効果量の目安: |d| < 0.2 (小)、0.2-0.5 (中)、0.5-0.8 (大)、≥ 0.8 (非常に大)")
+                    st.caption("Effect size guidelines: |d| < 0.2 (small), 0.2-0.5 (medium), 0.5-0.8 (large), >= 0.8 (very large)")
 
-                    # 重要な注意事項
+                    # Important notes
                     st.warning(
-                        f"⚠️ **重要な注意**\n\n"
-                        f"この検定は **単純2群比較** です：\n"
-                        f"- 他の変数（主要変数2、追加共変量など）の影響は **調整されていません**\n"
-                        f"- 共変量調整が必要な場合は、OLS/LMM の「係数表」または「ANOVA表」をご確認ください\n\n"
-                        f"💡 **使い分け**：\n"
-                        f"- Welch型t検定: 主要変数のみの単純比較（参考値）\n"
-                        f"- OLS係数表: 共変量調整後の効果推定（主解析）\n"
-                        f"- 置換検定: 分布仮定なしの頑健な検定（補強）"
+                        f"**Important Note**\n\n"
+                        f"This test is a **simple two-group comparison**:\n"
+                        f"- Effects of other variables (secondary variable, additional covariates, etc.) are **NOT adjusted**\n"
+                        f"- If covariate adjustment is needed, please check the OLS/LMM 'Coefficient table' or 'ANOVA table'\n\n"
+                        f"**Usage guidelines**:\n"
+                        f"- Welch's t-test: Simple comparison of primary variable only (reference value)\n"
+                        f"- OLS coefficient table: Effect estimation after covariate adjustment (main analysis)\n"
+                        f"- Permutation test: Robust test without distribution assumptions (supplementary)"
                     )
 
-                    # session_stateに保存
+                    # Save to session_state
                     st.session_state.welch_result = {
                         't': welch_t,
                         'p': welch_p,
@@ -2565,8 +2567,8 @@ if uploaded_file is not None:
                     }
 
                 else:
-                    st.error(f"❌ Welch型t検定は2群比較のみ対応しています。主要変数1 ({main_var}) は {unique_main_levels} 水準です。")
-                    st.info("💡 3群以上の場合は、OLSのANOVA表または置換検定をご使用ください。")
+                    st.error(f"Welch's t-test only supports two-group comparison. Primary variable 1 ({main_var}) has {unique_main_levels} levels.")
+                    st.info("For 3 or more groups, please use the OLS ANOVA table or permutation test.")
 
             # =============================================================================
             # Permutation Test
@@ -2575,57 +2577,57 @@ if uploaded_file is not None:
             if run_permutation:
                 st.markdown("---")
                 section_number = "8️⃣" if run_welch else "7️⃣"
-                st.markdown(f"## {section_number} 置換検定 (Permutation Test) 結果")
-                st.caption("パラメトリックな仮定に依存しない、頑健な検定方法")
-                st.warning(f"🎯 **検定対象変数:** 主要変数1 = **{main_var}**")
+                st.markdown(f"## {section_number} Permutation Test Results")
+                st.caption("A robust testing method that does not rely on parametric assumptions")
+                st.warning(f"🎯 **Variable being tested:** Primary variable 1 = **{main_var}**")
 
-                with st.spinner(f"{n_permutations:,} 回の置換を実行中..."):
+                with st.spinner(f"Running {n_permutations:,} permutations..."):
                     try:
-                        # デザイン行列の準備（design_info取得）
+                        # Prepare design matrix (get design_info)
                         y = analysis_df[pc_col].values
                         X_full = dmatrix(formula.split('~')[1], data=analysis_df, return_type='dataframe')
-                        design_info = X_full.design_info  # patsy design_infoを取得
+                        design_info = X_full.design_info  # Get patsy design_info
 
-                        # 層化変数の準備
+                        # Prepare stratification variable
                         stratify_var = None
                         if blocking_var is not None:
                             stratify_var = analysis_df[blocking_var].values
-                            st.warning(f"🔹 **層化置換を使用**: {blocking_var} 内でのみ残差を置換します\n\n"
-                                      f"これにより、{blocking_var}構造を保持したまま{main_var}効果の帰無分布を生成します")
+                            st.warning(f"🔹 **Using stratified permutation**: Residuals are permuted only within {blocking_var}\n\n"
+                                      f"This generates a null distribution for the {main_var} effect while preserving the {blocking_var} structure")
                         else:
-                            st.info("ℹ️ 主要変数2が指定されていないため、非層化置換を使用します")
+                            st.info("ℹ️ Using non-stratified permutation because primary variable 2 is not specified")
 
-                        # 片側検定の設定
+                        # One-sided test settings
                         one_sided_param = None
-                        if perm_sided == "片側検定: 主要変数1 > 基準 (greater)":
+                        if perm_sided == "One-sided: Main Variable 1 > Reference (greater)":
                             one_sided_param = 'greater'
-                            st.info(f"📊 **片側検定 (greater)**: {main_var}の第1水準 > 基準（第0水準）を検定")
-                        elif perm_sided == "片側検定: 主要変数1 < 基準 (less)":
+                            st.info(f"📊 **One-sided test (greater)**: Testing if {main_var} level 1 > reference (level 0)")
+                        elif perm_sided == "One-sided: Main Variable 1 < Reference (less)":
                             one_sided_param = 'less'
-                            st.info(f"📊 **片側検定 (less)**: {main_var}の第1水準 < 基準（第0水準）を検定")
+                            st.info(f"📊 **One-sided test (less)**: Testing if {main_var} level 1 < reference (level 0)")
 
-                        # 置換検定の実行
-                        if perm_method == "Freedman-Lane法 (推奨)":
+                        # Run permutation test
+                        if perm_method == "Freedman-Lane (Recommended)":
                             perm_result = freedman_lane_permutation(
                                 y, X_full, main_var,
                                 n_perm=n_permutations,
                                 stratify_by=stratify_var,
                                 one_sided=one_sided_param,
-                                design_info=design_info  # 堅牢な列特定のため追加
+                                design_info=design_info  # Added for robust column identification
                             )
 
-                            info_msg = f"ℹ️ **Freedman-Lane法:** 主要変数1（**{main_var}**）の効果を検定\n\n"
-                            info_msg += f"他の変数（主要変数2、追加共変量など）は制御変数として扱われます\n\n"
+                            info_msg = f"ℹ️ **Freedman-Lane method:** Testing the effect of primary variable 1 (**{main_var}**)\n\n"
+                            info_msg += f"Other variables (primary variable 2, additional covariates, etc.) are treated as control variables\n\n"
                             if perm_result.get('stratified'):
-                                info_msg += f"✅ 層化置換: {blocking_var}構造を保持\n\n"
+                                info_msg += f"✅ Stratified permutation: Preserving {blocking_var} structure\n\n"
                             if perm_result.get('one_sided'):
-                                info_msg += f"📊 検定方向: {perm_result['one_sided']}\n\n"
+                                info_msg += f"📊 Test direction: {perm_result['one_sided']}\n\n"
                             st.success(info_msg)
                         else:
-                            # Simple label permutation（y値置換版：高速）
-                            np.random.seed(42)  # Freedman-Laneと同じシードを使用
+                            # Simple label permutation (y-value permutation version: fast)
+                            np.random.seed(42)  # Use the same seed as Freedman-Lane
 
-                            # 観測統計量
+                            # Observed statistic
                             obs_model = sm.OLS(y, X_full).fit()
                             interest_cols = [col for col in X_full.columns
                                            if f'C({main_var})' in col and col != 'Intercept']
@@ -2634,9 +2636,9 @@ if uploaded_file is not None:
 
                             null_dist = []
                             for _ in range(n_permutations):
-                                # y値を置換（層化対応）
+                                # Permute y values (with stratification support)
                                 if stratify_var is not None:
-                                    # 層化置換：各層内でのみy値をシャッフル
+                                    # Stratified permutation: shuffle y values only within each stratum
                                     y_perm = np.zeros_like(y)
                                     for stratum in np.unique(stratify_var):
                                         stratum_mask = (stratify_var == stratum)
@@ -2644,16 +2646,16 @@ if uploaded_file is not None:
                                         perm_indices = np.random.permutation(stratum_indices)
                                         y_perm[stratum_indices] = y[perm_indices]
                                 else:
-                                    # 非層化置換：全体をシャッフル
+                                    # Non-stratified permutation: shuffle all
                                     y_perm = np.random.permutation(y)
 
-                                # フィット（設計行列は固定）
+                                # Fit (design matrix is fixed)
                                 perm_model = sm.OLS(y_perm, X_full).fit()
                                 null_dist.append(float(perm_model.tvalues[main_effect_col]))
 
                             null_dist = np.array(null_dist)
 
-                            # p値計算（連続性補正）
+                            # Calculate p-value (with continuity correction)
                             if one_sided_param == 'greater':
                                 p_value = (np.sum(null_dist >= obs_stat) + 1) / (n_permutations + 1)
                             elif one_sided_param == 'less':
@@ -2669,62 +2671,62 @@ if uploaded_file is not None:
                                 'one_sided': one_sided_param
                             }
 
-                            info_msg = f"ℹ️ **Simple permutation:** y値を置換（高速版）\n\n"
-                            info_msg += "📊 **帰無仮説の違い:**\n"
-                            info_msg += "- **Freedman-Lane**: 共変量で条件づけた帰無仮説（残差を置換）\n"
-                            info_msg += "- **Simple**: 共変量構造を無視した帰無仮説（y値を置換）\n\n"
-                            info_msg += "⚠️ **p値の違い**: 帰無仮説が異なるため、p値も異なるのが正常です。\n"
+                            info_msg = f"ℹ️ **Simple permutation:** Permute y values (fast version)\n\n"
+                            info_msg += "📊 **Difference in null hypotheses:**\n"
+                            info_msg += "- **Freedman-Lane**: Null hypothesis conditioned on covariates (permute residuals)\n"
+                            info_msg += "- **Simple**: Null hypothesis ignoring covariate structure (permute y values)\n\n"
+                            info_msg += "⚠️ **p-value differences**: It is normal for p-values to differ because the null hypotheses are different.\n"
                             if stratify_var is not None:
-                                info_msg += f"✅ 層化置換: {blocking_var}内でのみy値を入れ替えます\n\n"
+                                info_msg += f"✅ Stratified permutation: y values are swapped only within {blocking_var}\n\n"
                             else:
-                                info_msg += "全サンプルでy値を入れ替えます\n\n"
-                            info_msg += "💡 **推奨**: 共変量を制御したい場合は**Freedman-Lane法**を使用してください。"
+                                info_msg += "y values are swapped across all samples\n\n"
+                            info_msg += "💡 **Recommendation**: Use the **Freedman-Lane method** if you want to control for covariates."
                             st.warning(info_msg)
 
-                        # 結果の表示
+                        # Display results
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric("観測統計量 (t値)", f"{perm_result['observed']:.4f}")
+                            st.metric("Observed statistic (t-value)", f"{perm_result['observed']:.4f}")
                         with col2:
-                            test_type = "片側" if perm_result.get('one_sided') else "両側"
-                            st.metric("検定の種類", test_type)
+                            test_type = "One-sided" if perm_result.get('one_sided') else "Two-sided"
+                            st.metric("Test type", test_type)
                         with col3:
-                            st.metric("Permutation p値", f"{perm_result['p_value']:.4g}")
+                            st.metric("Permutation p-value", f"{perm_result['p_value']:.4g}")
                         with col4:
                             sig_level = "***" if perm_result['p_value'] < 0.001 else \
                                         "**" if perm_result['p_value'] < 0.01 else \
                                         "*" if perm_result['p_value'] < 0.05 else "n.s."
-                            st.metric("有意性", sig_level)
+                            st.metric("Significance", sig_level)
 
-                        # 層化情報の表示
+                        # Display stratification information
                         if perm_result.get('stratified'):
-                            st.success(f"✅ **層化置換**: {blocking_var}の各水準内でのみ残差を置換しました\n\n"
-                                      f"各{blocking_var}内で{main_var}効果を無効化した帰無分布を生成")
+                            st.success(f"✅ **Stratified permutation**: Residuals were permuted only within each level of {blocking_var}\n\n"
+                                      f"Generated null distribution by nullifying {main_var} effect within each {blocking_var}")
                         else:
-                            st.info("ℹ️ **非層化置換**: 全サンプルにわたって残差を置換しました")
+                            st.info("ℹ️ **Non-stratified permutation**: Residuals were permuted across all samples")
 
-                        # 再現性情報の表示（method_info）
+                        # Display reproducibility information (method_info)
                         if 'method_info' in perm_result:
-                            with st.expander("🔬 解析の詳細（再現性のための情報）", expanded=False):
+                            with st.expander("🔬 Analysis details (information for reproducibility)", expanded=False):
                                 info = perm_result['method_info']
                                 st.markdown(f"""
-**モデル式:**
-- **帰無モデル**: `{info['reduced_model']}`
-- **対立モデル**: `{info['full_model']}`
+**Model Formula:**
+- **Null model**: `{info['reduced_model']}`
+- **Alternative model**: `{info['full_model']}`
 
-**検定設定:**
-- **置換回数**: {info['n_permutations']:,} 回
-- **乱数シード**: {info['random_seed']}
-- **統計量**: {info['test_statistic']}
-- **連続性補正**: {'あり (+1補正)' if info['continuity_correction'] else 'なし'}
-- **層化**: {info['stratification_var']}
+**Test settings:**
+- **Number of permutations**: {info['n_permutations']:,}
+- **Random seed**: {info['random_seed']}
+- **Test statistic**: {info['test_statistic']}
+- **Continuity correction**: {'Yes (+1 correction)' if info['continuity_correction'] else 'No'}
+- **Stratification**: {info['stratification_var']}
 
-**検定対象**: `{main_var}` の効果（他の変数は制御）
+**Variable being tested**: Effect of `{main_var}` (other variables are controlled)
 """)
 
-                        # ヒストグラム
-                        st.markdown("### 📊 帰無分布 (Null Distribution)")
-                        st.caption("灰色: 帰無仮説の下での統計量の分布。赤線: 観測された統計量")
+                        # Histogram
+                        st.markdown("### 📊 Null Distribution")
+                        st.caption("Gray: Distribution of the statistic under the null hypothesis. Red line: Observed statistic")
 
                         fig, ax = plt.subplots(figsize=(10, 6))
                         ax.hist(perm_result['null_distribution'], bins=50,
@@ -2735,7 +2737,7 @@ if uploaded_file is not None:
                         ax.axvline(-perm_result['observed'], color='red',
                                   linestyle='--', linewidth=2.5)
 
-                        # p値の領域を塗りつぶし
+                        # Fill the p-value region
                         null_dist = perm_result['null_distribution']
                         obs = perm_result['observed']
                         extreme_vals = null_dist[np.abs(null_dist) >= np.abs(obs)]
@@ -2751,13 +2753,13 @@ if uploaded_file is not None:
                         ax.grid(alpha=0.3)
                         plt.tight_layout()
                         st.pyplot(fig)
-                        st.session_state.fig_null_dist = fig  # zipダウンロード用に保存
+                        st.session_state.fig_null_dist = fig  # Save for zip download
 
-                        # 結果を保存
+                        # Save results
                         st.session_state.perm_result = perm_result
 
                     except Exception as e:
-                        st.error(f"❌ 置換検定に失敗しました")
+                        st.error(f"❌ Permutation test failed")
                         st.exception(e)
 
             # =============================================================================
@@ -2766,13 +2768,13 @@ if uploaded_file is not None:
 
             st.markdown("---")
             section_number_download = "9️⃣" if run_welch else "8️⃣"
-            st.markdown(f"## {section_number_download} 結果のダウンロード")
-            st.caption("解析結果とグラフをまとめてZIPファイルでダウンロードできます")
+            st.markdown(f"## {section_number_download} Download Results")
+            st.caption("You can download analysis results and plots as a ZIP file")
 
-            # ZIPダウンロードボタンを中央に配置
+            # Center the ZIP download button
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                # 結果が1つ以上ある場合のみダウンロードボタンを表示
+                # Show download button only if at least one result exists
                 has_results = any([
                     'ols_coef' in st.session_state,
                     'lmm_coef' in st.session_state,
@@ -2781,44 +2783,44 @@ if uploaded_file is not None:
                 ])
 
                 if has_results:
-                    # ファイル名を生成
+                    # Generate filename
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     zip_filename = f"pca_stats_{pc_col}_{timestamp}.zip"
 
-                    # ZIP作成
+                    # Create ZIP
                     zip_data = create_results_zip(pc_col)
 
                     st.download_button(
-                        label="📦 すべての結果をダウンロード (ZIP)",
+                        label="📦 Download all results (ZIP)",
                         data=zip_data,
                         file_name=zip_filename,
                         mime="application/zip",
-                        help="統計テーブル（CSV）とグラフ（PNG 300dpi + PDF）をZIPファイルにまとめてダウンロード",
+                        help="Download statistical tables (CSV) and plots (PNG 300dpi + PDF) as a ZIP file",
                         type="primary",
                         use_container_width=True
                     )
 
-                    # 含まれる内容を表示
+                    # Display contents
                     st.markdown("---")
-                    st.markdown("#### 📋 ZIPファイルの内容:")
+                    st.markdown("#### 📋 ZIP file contents:")
 
                     contents = []
                     if 'welch_result' in st.session_state:
-                        contents.append("✅ Welch型t検定結果 (CSV)")
+                        contents.append("✅ Welch's t-test results (CSV)")
                     if 'ols_coef' in st.session_state:
-                        contents.append("✅ OLS係数表 (CSV)")
+                        contents.append("✅ OLS coefficient table (CSV)")
                     if 'ols_anova' in st.session_state:
-                        contents.append("✅ ANOVA表 (CSV)")
+                        contents.append("✅ ANOVA table (CSV)")
                     if 'ols_emm' in st.session_state:
-                        contents.append("✅ 推定周辺平均 (CSV)")
+                        contents.append("✅ Estimated marginal means (CSV)")
                     if 'lmm_coef' in st.session_state:
-                        contents.append("✅ LMM係数表 (CSV)")
+                        contents.append("✅ LMM coefficient table (CSV)")
                     if 'perm_result' in st.session_state:
-                        contents.append("✅ Permutation test結果 (CSV)")
+                        contents.append("✅ Permutation test results (CSV)")
                     if 'fig_forest_ols' in st.session_state:
                         contents.append("✅ OLS Forest plot (PNG + PDF)")
                     if 'fig_diagnostic' in st.session_state:
-                        contents.append("✅ 診断プロット (PNG + PDF)")
+                        contents.append("✅ Diagnostic plots (PNG + PDF)")
                     if 'fig_emm' in st.session_state:
                         contents.append("✅ EMM plot (PNG + PDF)")
                     if 'fig_forest_lmm' in st.session_state:
@@ -2826,7 +2828,7 @@ if uploaded_file is not None:
                     if 'fig_null_dist' in st.session_state:
                         contents.append("✅ Null distribution plot (PNG + PDF)")
 
-                    # 2列で表示
+                    # Display in 2 columns
                     col_a, col_b = st.columns(2)
                     half = len(contents) // 2 + len(contents) % 2
                     with col_a:
@@ -2837,23 +2839,23 @@ if uploaded_file is not None:
                             st.markdown(f"- {item}")
 
                 else:
-                    st.info("💡 解析を実行すると、結果をダウンロードできるようになります")
+                    st.info("💡 Results will be available for download after running the analysis")
 
 else:
-    st.info("👆 データファイルをアップロードして解析を開始してください")
+    st.info("👆 Please upload a data file to start the analysis")
 
     st.markdown("---")
-    st.markdown("### 📋 データ形式の例")
+    st.markdown("### 📋 Data format example")
     st.markdown("""
-    データは **TSV** または **CSV** 形式で、以下のような構造を想定しています:
+    Data should be in **TSV** or **CSV** format with the following structure:
 
-    - **1行 = 1サンプル** (pseudobulk レベル)
-    - **PC score 列**: PC1, PC2, PC3, PC4 など
-    - **カテゴリ変数**: sex, subtype, condition など
-    - **任意: Donor/Subject ID** (反復測定がある場合)
-    - **任意: 数値共変量**: age, batch, depth など
+    - **1 row = 1 sample** (pseudobulk level)
+    - **PC score columns**: PC1, PC2, PC3, PC4, etc.
+    - **Categorical variables**: sex, subtype, condition, etc.
+    - **Optional: Donor/Subject ID** (for repeated measurements)
+    - **Optional: Numeric covariates**: age, batch, depth, etc.
 
-    **サンプルデータ構造:**
+    **Sample data structure:**
     ```
     sample_id    sex       subtype    donor_id    age    batch    PC1      PC2      PC3      PC4
     sample_001   Female    TypeA      donor_01    45     1        -2.3     1.2      0.5      -0.8
@@ -2863,110 +2865,110 @@ else:
     ...
     ```
 
-    テストデータは `/home/ichiro/streamlit/temp/pca_test_data.tsv` にあります。
+    Test data is available at `/home/ichiro/streamlit/temp/pca_test_data.tsv`.
     """)
 
 st.markdown("---")
 
-with st.expander("📚 統計手法の詳細", expanded=False):
+with st.expander("📚 Statistical Methods Details", expanded=False):
     st.markdown("""
-#### **OLS (Ordinary Least Squares - 通常最小二乗法)**
-固定効果モデル。全てのサンプルが独立であると仮定します。
+#### **OLS (Ordinary Least Squares)**
+Fixed effects model. Assumes all samples are independent.
 
-- **Classical SE**: 標準的な標準誤差（等分散性を仮定）
-- **HC3 Robust SE**: 不均一分散に頑健（サンプルサイズが小さい場合に推奨）
-- **Cluster-robust SE**: クラスター内相関を考慮（例: 同一ドナーのサンプル間の相関）
-- **Welch型**: 等分散を仮定しない（2群比較のみ）
-- **WLS (加重最小二乗法)**: 不均一分散に対応
+- **Classical SE**: Standard standard errors (assumes homoscedasticity)
+- **HC3 Robust SE**: Robust to heteroscedasticity (recommended for small sample sizes)
+- **Cluster-robust SE**: Accounts for within-cluster correlation (e.g., correlation between samples from the same donor)
+- **Welch type**: Does not assume equal variances (two-group comparison only)
+- **WLS (Weighted Least Squares)**: Handles heteroscedasticity
 
-**適用例**: 各ドナーから1サンプルのみ、またはドナー間の変動が小さい場合
-
----
-
-#### **LMM (Linear Mixed Model - 線形混合モデル)**
-階層構造を持つデータに対応。ランダム効果で個体間変動を考慮します。
-
-- **ランダム切片 `(1|donor)`**: 各ドナーで切片が異なることを許容
-- **REML**: 不偏な分散推定（推奨）
-- **ML**: モデル比較用（AIC/BICの比較）
-- **ICC (級内相関係数)**: ドナー間変動の割合を示す
-
-**適用例**: 各ドナーから複数サンプル、または技術的繰り返しがある場合
-
-**注意**: ドナー数が5未満の場合、分散推定が不安定になります。
+**Use cases**: Only one sample per donor, or when between-donor variation is small
 
 ---
 
-#### **Permutation Test (置換検定)**
-分布仮定に依存しない、ノンパラメトリックな検定方法。
+#### **LMM (Linear Mixed Model)**
+Handles hierarchically structured data. Accounts for between-subject variation using random effects.
 
-**🎯 検定対象:** 主要変数1のみが検定されます。主要変数2やその他の共変量は制御変数として扱われます。
+- **Random intercept `(1|donor)`**: Allows different intercepts for each donor
+- **REML**: Unbiased variance estimation (recommended)
+- **ML**: For model comparison (AIC/BIC comparison)
+- **ICC (Intraclass Correlation Coefficient)**: Indicates the proportion of between-donor variation
 
-- **Freedman-Lane法**: 共変量を制御した厳密な置換検定（推奨）
-  - 主要変数1の効果を検定
-  - 帰無モデルと対立モデルをフィット
-  - 帰無モデルの残差を置換して擬似データを生成
-  - 対立モデルを再フィットして統計量を計算
+**Use cases**: Multiple samples per donor, or technical replicates
 
-- **Simple permutation**: ラベルを単純に入れ替える方法
-  - 主要変数1のラベルを入れ替え
-  - 共変量がない、または少ない場合に使用
+**Note**: Variance estimation becomes unstable with fewer than 5 donors.
 
-**適用例**:
-- サンプルサイズが小さい（<30）
-- 残差の正規性が疑わしい
-- 外れ値が存在する
+---
+
+#### **Permutation Test**
+A nonparametric testing method that does not rely on distributional assumptions.
+
+**🎯 Variable being tested:** Only primary variable 1 is tested. Primary variable 2 and other covariates are treated as control variables.
+
+- **Freedman-Lane method**: Rigorous permutation test controlling for covariates (recommended)
+  - Tests the effect of primary variable 1
+  - Fits null and alternative models
+  - Generates pseudo-data by permuting residuals from the null model
+  - Refits the alternative model to compute the test statistic
+
+- **Simple permutation**: Simply swaps labels
+  - Swaps labels of primary variable 1
+  - Use when there are no covariates or few covariates
+
+**Use cases**:
+- Small sample size (<30)
+- Questionable normality of residuals
+- Presence of outliers
 
 ---
 
 #### **ANOVA Type II vs Type III**
-- **Type II** (推奨): 各変数の主効果を他の変数で調整して検定（交互作用なしの場合）
-- **Type III**: 全ての交互作用を含めて検定（交互作用ありの場合）
+- **Type II** (recommended): Tests main effects of each variable adjusted for other variables (without interactions)
+- **Type III**: Tests including all interactions (when interactions are present)
 
 ---
 
-#### **EMM (Estimated Marginal Means - 推定周辺平均)**
-共変量を調整した後の、各群の予測平均値。
+#### **EMM (Estimated Marginal Means)**
+Predicted mean values for each group after adjusting for covariates.
 
-- 数値共変量を平均値に固定
-- カテゴリ変数の各水準での予測値を計算
-- 信頼区間を付与して比較
+- Fixes numeric covariates at their mean values
+- Computes predicted values at each level of categorical variables
+- Compares with confidence intervals
 
-**適用例**:
-- サブタイプ別の性差を可視化
-- 年齢やバッチを調整した群間比較
-
----
-
-### ⚠️ 重要な注意事項
-
-#### **1. 完全共線性 (Perfect Collinearity)**
-2つの変数が完全に一致している場合、効果を分離できません。
-
-**例**: ある subtype が全て Female の場合、sex 効果と subtype 効果は識別不能
-
-**対処法**:
-- いずれかの変数を削除
-- より均衡の取れたデータを収集
-- 記述的な比較に留める
-
-#### **2. サンプルサイズ**
-- **LMMのドナー数**: 5以上を推奨（少ないと分散推定が不安定）
-- **各セルの最小サンプル数**: 3以上を推奨
-- **置換検定**: サンプルサイズが小さい場合（<30）に特に有用
-
-#### **3. 交互作用項**
-データが十分にある場合のみ使用を推奨。各セルに十分なサンプル（≥5）が必要。
-
-#### **4. 多重検定**
-複数のPCを解析する場合は、**Benjamini-Hochberg FDR補正**を適用してください。
-
-#### **5. 数値共変量の標準化**
-年齢など、スケールが大きく異なる数値共変量は、事前に標準化することを推奨します。
+**Use cases**:
+- Visualizing sex differences by subtype
+- Group comparisons adjusted for age or batch
 
 ---
 
-### 📖 参考文献
+### ⚠️ Important Notes
+
+#### **1. Perfect Collinearity**
+When two variables are perfectly aligned, their effects cannot be separated.
+
+**Example**: If a certain subtype is entirely Female, sex effect and subtype effect are not identifiable
+
+**Solutions**:
+- Remove one of the variables
+- Collect more balanced data
+- Limit to descriptive comparisons
+
+#### **2. Sample Size**
+- **Number of donors for LMM**: 5 or more recommended (variance estimation unstable with fewer)
+- **Minimum samples per cell**: 3 or more recommended
+- **Permutation test**: Particularly useful for small sample sizes (<30)
+
+#### **3. Interaction Terms**
+Recommended only when sufficient data is available. Each cell requires sufficient samples (>=5).
+
+#### **4. Multiple Testing**
+When analyzing multiple PCs, apply **Benjamini-Hochberg FDR correction**.
+
+#### **5. Standardization of Numeric Covariates**
+For numeric covariates with widely different scales (e.g., age), pre-standardization is recommended.
+
+---
+
+### 📖 References
 
 1. **Robust standard errors**:
    - Long, J. S., & Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. *The American Statistician*, 54(3), 217-224.
@@ -2983,7 +2985,7 @@ with st.expander("📚 統計手法の詳細", expanded=False):
 
 ---
 
-**開発者**: Claude Code
-**バージョン**: 1.0
-**最終更新**: 2025-01
+**Developer**: Claude Code
+**Version**: 1.0
+**Last updated**: 2025-01
 """)

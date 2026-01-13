@@ -1293,7 +1293,7 @@ elif Analysis_mode == "Prerank":
                 content = df.columns.tolist()
 
                 st.write("Select PCA loadings column")
-                # loadingscolofpata-n（PC1, PC2, etc.）
+                # Loadings column pattern (PC1, PC2, etc.)
                 loading_patterns = ['pc', 'loadings', 'component']
                 loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
 
@@ -1398,7 +1398,7 @@ elif Analysis_mode == "Prerank":
                     gmt =[x.split('\t') for x in t]
                     GO_dic = dict()
                     for i in gmt:
-                        if len(i) >= 3 and i[0].strip():  # ki-isemptywithnaku、fewnakuandmo3needelemexistcheck
+                        if len(i) >= 3 and i[0].strip():  # Check that key is not empty and at least 3 elements exist
                             GO_dic[i[0]] = i[2:]
                     GO = GO | GO_dic
 
@@ -1423,7 +1423,7 @@ elif Analysis_mode == "Prerank":
                 min_size = int(st.number_input('Minimum number of genes in a gene set', min_value =1, step =1, value=15))
                 max_size = int(st.number_input('Maximum number of genes in a gene set', min_value =1, step =100, value=500))
 
-                # GSEApyofplacematchofmipermutation_numdisplay
+                # Display permutation_num only for GSEApy
                 if prerank_method == 'GSEApy':
                     permutation_num = int(st.number_input('Number of permutation', min_value =100, step =100, value=1000))
                     seed = int(st.number_input('Seed for permutation (0: time stamp)', min_value =0, step =1, value=6))
@@ -1432,22 +1432,22 @@ elif Analysis_mode == "Prerank":
                         seed = int(time.time())
 
                 rev_rnk = st.checkbox("Reverse rank order?", value = False)
-                # modcorrectafterofko-do:
+                # Code after modification:
                 if rev_rnk:
-                    # DataFrameofstructmakecheckshitefitcuttoprocproc
+                    # Check DataFrame structure and process appropriately
                     if isinstance(rnk, pd.DataFrame):
-                        # DataFrameofmostfirstofcol（sukoavalue）antiturn
+                        # Sort by first column (score value) in descending order
                         col_name = rnk.columns[0]
                         rnk[col_name] = -rnk[col_name]
                         st.write(f"Reversed values in column: {col_name}")
                     else:
-                        # DataFramewithnotplacematch（念offor）
+                        # If not a DataFrame (just to be safe)
                         st.error("Error: rank data is not in expected format")
 
                     rev_rnk_name = st.text_input("New rank name:", rnk_name + "_rev")
                     rnk_name = rev_rnk_name
 
-                    # antiturnafterofdatadisplay
+                    # Display data after sorting
                     st.write("Preview of reversed ranking:")
                     st.write(rnk.head())
 
@@ -1561,7 +1561,7 @@ elif Analysis_mode == "Prerank":
                     es_x_size = int(st.number_input("Enrichment plot x size:", value = 5, step = 1, min_value = 2))
                     es_y_size = int(st.number_input("Ebrichment plot y size:", value = 5, step = 1, min_value = 2))
 
-                    # fgseaMethodisselectsareteexistplacematchofmiasupekutoratioofsuraida-display
+                    # Display aspect ratio slider only when fgsea method is selected
                     if prerank_method == 'fgsea (R)':
                         aspect_ratio = st.slider(
                             "Plot aspect ratio (height/width):",
@@ -1572,7 +1572,7 @@ elif Analysis_mode == "Prerank":
                             help="Adjust this to make the plot wider (lower values) or taller (higher values)"
                         )
                     else:
-                        aspect_ratio = 1.0  # defuorutovalue
+                        aspect_ratio = 1.0  # Default value
 
             if enrichment_term:
                 # Check if we're using fgsea (different plotting approach needed)
@@ -1984,7 +1984,7 @@ elif Analysis_mode == "Prerank":
                 if not os.path.exists(gsea_dir + '/edb'):
                     os.mkdir(gsea_dir + '/edb')
                 rnk.to_csv(gsea_dir +'/edb/' + rnk_name, sep = '\t',header=False)
-                # gmt fileofcreate
+                # Create gmt file
 #                gene_sets_gmt = []
 #                for i in list(GO.keys()):
 #                    new_cont = [i, i]

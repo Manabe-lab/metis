@@ -222,31 +222,31 @@ def plot_differential_dotplot(diff_res, magnitude_col, specificity_col, source_l
 
 def single_permutation(data_tuple):
     """
-    単一のpermutationによる差分を計算する関数
-    
+    Function to calculate difference from a single permutation
+
     Parameters:
     -----------
     data_tuple : tuple
         (expr_matrix, condition_labels, seed)
-    
+
     Returns:
     --------
-    float : permutationによる差分
+    float : difference from permutation
     """
-    # データの展開
+    # Unpack data
     expr_matrix, condition_labels, seed = data_tuple
-    
-    # シードの設定
+
+    # Set seed
     np.random.seed(seed)
-    
-    # ラベルのシャッフル
+
+    # Shuffle labels
     shuffled_labels = np.random.permutation(condition_labels)
-    
-    # シャッフルしたラベルでの差分計算
+
+    # Calculate difference with shuffled labels
     mean1 = np.mean(expr_matrix[shuffled_labels == 0])
     mean2 = np.mean(expr_matrix[shuffled_labels == 1])
-    
-    return mean2 - mean1  # condition2 - condition1 の差分を返す
+
+    return mean2 - mean1  # Return difference of condition2 - condition1
 
 def permutation_test_with_liana(adata, condition_col, condition1, condition2, groupby,
                               resource, expr_prop, func_name, res_name, n_permutations=1000):
@@ -337,29 +337,29 @@ def calculate_permutation_pvalues(observed_result, permuted_results, magnitude_c
 
 def process_single_permutation(perm_data):
     """
-    単一のpermutationを処理する関数
-    
+    Function to process a single permutation
+
     Parameters:
     -----------
     perm_data: tuple
         (adata, condition_col, groupby, resource, expr_prop, func_name, res_name, seed)
     """
-    (adata_orig, condition_col, groupby, resource, expr_prop, 
+    (adata_orig, condition_col, groupby, resource, expr_prop,
      func_name_converted, res_name, magnitude_col, seed) = perm_data
-    
-    # データのコピーと乱数シードの設定
+
+    # Copy data and set random seed
     np.random.seed(seed)
     adata_perm = adata_orig.copy()
-    
+
     try:
-        # ラベルのシャッフル
+        # Shuffle labels
         adata_perm.obs[condition_col] = np.random.permutation(adata_perm.obs[condition_col].values)
-        
-        # データの分割
+
+        # Split data
         perm_adata1 = adata_perm[adata_perm.obs[condition_col] == adata_orig.obs[condition_col].unique()[0]].copy()
         perm_adata2 = adata_perm[adata_perm.obs[condition_col] == adata_orig.obs[condition_col].unique()[1]].copy()
-        
-        # 両条件でLIANA実行
+
+        # Run LIANA for both conditions
         results = []
         for perm_adata in [perm_adata1, perm_adata2]:
             rankaggregate_options = {
@@ -372,8 +372,8 @@ def process_single_permutation(perm_data):
             }
             function_dict[func_name_converted](perm_adata, **rankaggregate_options)
             results.append(perm_adata.uns[f"{res_name}_perm_{seed}"][magnitude_col].mean())
-        
-        # 差分を計算
+
+        # Calculate difference
         perm_diff = results[1] - results[0]
         return perm_diff
         
@@ -382,7 +382,7 @@ def process_single_permutation(perm_data):
         return None
 
 def process_cell_pair_parallel(cell_pair_data):
-    """各細胞ペアのpermutation testを並列実行"""
+    """Execute permutation test for each cell pair in parallel"""
     name, group1, group2, magnitude_col, n_permutations, adata, condition_col, groupby, resource, expr_prop, func_name, res_name = cell_pair_data
     
     # Calculate observed difference
@@ -403,9 +403,9 @@ def process_cell_pair_parallel(cell_pair_data):
     elif func_name == 'Geometric Mean':
         func_name_converted = 'geometric_mean'
     
-    # Permutationsの並列実行
+    # Parallel execution of permutations
     n_cpus = os.cpu_count()
-    max_workers = max(1, n_cpus - 1)  # 1コアは他の処理用に残す
+    max_workers = max(1, n_cpus - 1)  # Reserve 1 core for other processes
     
     perm_data_list = [
         (adata, condition_col, groupby, resource, expr_prop, 
@@ -441,9 +441,9 @@ def process_cell_pair_parallel(cell_pair_data):
 
 def get_significant_pairs(adata, groupby, resource, expr_prop, func_name, res_name, threshold=0.05):
     """
-    単一条件でのLR解析を行い、adjusted P値で有意なペアを抽出
+    Perform LR analysis for a single condition and extract significant pairs by adjusted P-value
     """
-    # LIANA実行
+    # Run LIANA
     rankaggregate_options = {
         'groupby': groupby, 
         'resource': resource, 
@@ -470,44 +470,44 @@ def get_significant_pairs(adata, groupby, resource, expr_prop, func_name, res_na
     
     function_dict[func_name_converted](adata, **rankaggregate_options)
     
-    # 有意性の判定に使用するカラムを決定
+    # Determine column to use for significance testing
     specificity_col = pval_col[method_list.index(func_name)]
     if specificity_col == "None":
         specificity_col = lr_means_list[method_list.index(func_name)]
-    
-    # 結果を取得
+
+    # Get results
     result = adata.uns[res_name].copy()
-    
-    # P値の処理とFDR補正
+
+    # P-value processing and FDR correction
     if specificity_col in result.columns:
-        # P値を数値として処理
+        # Process P-values as numeric
         p_values = pd.to_numeric(result[specificity_col], errors='coerce')
-        
-        # NANとInfinity値の処理
+
+        # Handle NAN and Infinity values
         p_values = p_values.fillna(1.0)
-        p_values = np.minimum(p_values, 1.0)  # 1以上の値を1に制限
-        p_values = np.maximum(p_values, 0.0)  # 負の値を0に制限
-        
-        # FDR補正
+        p_values = np.minimum(p_values, 1.0)  # Cap values above 1 to 1
+        p_values = np.maximum(p_values, 0.0)  # Cap negative values to 0
+
+        # FDR correction
         mt_results = multipletests(p_values, method='fdr_bh', alpha=threshold)
-        padj = mt_results[1]  # インデックス1にadjusted p-valuesが格納されている
+        padj = mt_results[1]  # Adjusted p-values are stored at index 1
         result['padj'] = padj
-        
-        # デバッグ情報を表示
+
+        # Display debug information
  #       st.write(f"Original P-values range: [{p_values.min():.2e}, {p_values.max():.2e}]")
  #       st.write(f"Adjusted P-values range: [{padj.min():.2e}, {padj.max():.2e}]")
-        
-        # 補正前後で有意なペアの数を比較
+
+        # Compare number of significant pairs before and after correction
         n_sig_before = sum(p_values < threshold)
         n_sig_after = sum(padj < threshold)
  #       st.write(f"Significant pairs before FDR: {n_sig_before}")
  #       st.write(f"Significant pairs after FDR: {n_sig_after}")
-        
-        # Adjusted P値でフィルタリング
+
+        # Filter by adjusted P-value
         significant = result[result['padj'] < threshold]
         st.write(f"Found {len(significant)} pairs significant at adjusted P < {threshold}")
-        
-        # ペアのセットを作成
+
+        # Create set of pairs
         pairs = set(zip(
             significant['source'],
             significant['target'],
@@ -520,15 +520,15 @@ def get_significant_pairs(adata, groupby, resource, expr_prop, func_name, res_na
     
     return pairs
 
-def compare_conditions_with_stats(adata, condition_col, condition1, condition2, groupby, 
+def compare_conditions_with_stats(adata, condition_col, condition1, condition2, groupby,
                                 resource, expr_prop, func_name, res_name, n_permutations=1000,
                                 initial_padj_threshold=0.05):
     """Compare LR interactions between conditions using parallel permutation test"""
-    # 各条件のデータを分割
+    # Split data for each condition
     adata1 = adata[adata.obs[condition_col] == condition1].copy()
     adata2 = adata[adata.obs[condition_col] == condition2].copy()
-    
-    # 各条件で有意なペアを取得
+
+    # Get significant pairs for each condition
     with st.spinner("Analyzing condition 1..."):
         pairs1 = get_significant_pairs(
             adata1, groupby, resource, expr_prop, func_name, res_name, 
@@ -541,7 +541,7 @@ def compare_conditions_with_stats(adata, condition_col, condition1, condition2, 
             threshold=initial_padj_threshold
         )
     
-    # 有意なペアの和集合を取得
+    # Get union of significant pairs
     significant_pairs = pairs1.union(pairs2)
     st.write(f"Total unique significant pairs: {len(significant_pairs)}")
     
@@ -549,57 +549,57 @@ def compare_conditions_with_stats(adata, condition_col, condition1, condition2, 
         st.warning("No significant pairs found in either condition. Try adjusting the adjusted P-value threshold.")
         return None
 
-    # メモリ解放
+    # Release memory
     del adata1, adata2
     gc.collect()
-    
-    # 通常の比較結果を取得
-    comparison_results = compare_conditions(adata, condition_col, condition1, condition2, 
+
+    # Get normal comparison results
+    comparison_results = compare_conditions(adata, condition_col, condition1, condition2,
                                          groupby, resource, expr_prop, func_name, res_name)
-    
-    # magnitude columnの決定
+
+    # Determine magnitude column
     magnitude_col = lr_means_list[method_list.index(func_name)]
     if magnitude_col == "None":
         magnitude_col = pval_col[method_list.index(func_name)]
-    
-    # 有意なペアのみをグループ化
+
+    # Group only significant pairs
     res1_groups = comparison_results['condition1'].groupby(
         ['source', 'target', 'ligand_complex', 'receptor_complex'])
     res2_groups = comparison_results['condition2'].groupby(
         ['source', 'target', 'ligand_complex', 'receptor_complex'])
-    
+
     statistical_results = []
     total_pairs = len(significant_pairs)
-    
-    # プログレスバーの作成
+
+    # Create progress bar
     progress_bar = st.progress(0)
     progress_text = st.empty()
-    
+
     try:
-        # 各ペアについて処理
+        # Process each pair
         for i, pair in enumerate(significant_pairs):
-            # 進捗状況の表示
+            # Display progress
             progress_text.write(f"Processing pair {i+1}/{total_pairs}: {pair[0]} -> {pair[1]}")
             
             if (pair in res1_groups.groups and pair in res2_groups.groups):
                 group1 = res1_groups.get_group(pair)
                 group2 = res2_groups.get_group(pair)
                 
-                # Permutation testのためのデータ準備
+                # Prepare data for permutation test
                 expr_matrix = np.concatenate([
                     group1[magnitude_col].values,
                     group2[magnitude_col].values
                 ])
                 condition_labels = np.array([0] * len(group1) + [1] * len(group2))
-                
-                # 観測された差分の計算
+
+                # Calculate observed difference
                 mean_diff = np.mean(group2[magnitude_col]) - np.mean(group1[magnitude_col])
-                
-                # Permutation testの実行
+
+                # Run permutation test
                 try:
-                    # CPUコア数の取得
+                    # Get number of CPU cores
                     n_cpus = os.cpu_count()
-                    max_workers = max(1, n_cpus - 1)  # 1コアは他の処理用に残す
+                    max_workers = max(1, n_cpus - 1)  # Reserve 1 core for other processes
                     
                     perm_data_list = [
                         (expr_matrix, condition_labels, i) 
@@ -608,7 +608,7 @@ def compare_conditions_with_stats(adata, condition_col, condition1, condition2, 
                     
                     perm_diffs = []
                     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-                        # 並列処理でpermutationを実行
+                        # Execute permutations in parallel
                         futures = [executor.submit(single_permutation, data) for data in perm_data_list]
                         for future in concurrent.futures.as_completed(futures):
                             result = future.result()
@@ -623,8 +623,8 @@ def compare_conditions_with_stats(adata, condition_col, condition1, condition2, 
                 except Exception as e:
                     st.warning(f"Error in permutation test for pair {pair}: {str(e)}")
                     pvalue = np.nan
-                
-                # 結果の保存
+
+                # Save results
                 result = {
                     'source': pair[0],
                     'target': pair[1],
@@ -634,36 +634,36 @@ def compare_conditions_with_stats(adata, condition_col, condition1, condition2, 
                     'pvalue': pvalue
                 }
                 statistical_results.append(result)
-            
-            # 進捗バーの更新
+
+            # Update progress bar
             progress_bar.progress((i + 1) / total_pairs)
-            
-            # メモリの解放
+
+            # Release memory
             if (i + 1) % 10 == 0:
                 gc.collect()
-    
+
     finally:
-        # クリーンアップ
+        # Cleanup
         progress_bar.empty()
         progress_text.empty()
-    
-    # 結果のDataFrame作成
+
+    # Create results DataFrame
     stats_df = pd.DataFrame(statistical_results)
-    
-    # FDR補正
+
+    # FDR correction
     if len(stats_df) > 0 and not stats_df['pvalue'].isna().all():
         # Fill NA values with 1 for FDR correction
         stats_df['pvalue'] = pd.to_numeric(stats_df['pvalue'], errors='coerce').fillna(1)
         stats_df['padj'] = multipletests(stats_df['pvalue'], method='fdr_bh')[1]
-    
-    # 最終結果の保存
+
+    # Save final results
     comparison_results['statistics'] = stats_df
     return comparison_results
 
 
  
 
-# Streamlitインターフェースの拡張
+# Streamlit interface extension
 def add_statistical_ui():
     """Add UI elements for statistical analysis"""
     st.sidebar.markdown("### Statistical Analysis Options")
@@ -729,7 +729,7 @@ def has_nan_like(lst):
 	return any(str(item).strip().lower() in nan_values for item in lst)
 
 @st.cache_data
-def convert_human_to_mouse_symbols(symbols, version=1): # nichenetrのRスクリプトをClaude3.5で変換
+def convert_human_to_mouse_symbols(symbols, version=1): # NichenetrR script converted by Claude3.5
 	if not isinstance(symbols, (list, pd.Series)):
 		raise ValueError("symbols should be a list or pandas Series of human gene symbols")
 	if version == 1:
@@ -891,7 +891,7 @@ lr_means_list = ['lr_means','expr_prod','None','expr_prod','lrscore','magnitude_
 pval_col = ['cellphone_pvals','scaled_weight','lr_logfc','spec_weight','None','specificity_rank','gmean_pvals','None','cellchat_pvals']
 
 
-#============ 新しいファイルをアップロードしたときは、cacheをclearする
+#============ Clear cache when a new file is uploaded
 
 def get_file_identifier(file):
 	if file is not None:
@@ -911,7 +911,7 @@ if uploaded_file  is not None:
 		st.cache_data.clear()
 		st.cache_resource.clear()
 		st.session_state.last_file_id = current_file_id
-		st.success("新しいファイルが検出されました。キャッシュをクリアしました。")
+		st.success("New file detected. Cache has been cleared.")
 
 #---------------
 
@@ -966,7 +966,7 @@ if uploaded_file  is not None:
 	if submitted_basic:
 		st.session_state.liana_res = []
 
-	if db == 'cellchat_secreted_signaling': #cellchat secreted signalingを追加
+	if db == 'cellchat_secreted_signaling': # Added cellchat secreted signaling
 		resource = pd.read_csv("db/Cellchat_secretory.tsv", sep = '\t')
 		if species == 'mouse':
 			geneinfo_human, geneinfo_2022 = load_geneinfo()
@@ -1006,8 +1006,8 @@ if uploaded_file  is not None:
 
 	n_permutations, padj_threshold, log2fc_threshold, initial_padj_threshold = add_statistical_ui()
 
-	# Streamlitでの使用
-# Streamlitでの使用
+	# Usage in Streamlit
+# Usage in Streamlit
 	if st.button('Run analysis'):
 	    with st.spinner('Running LIANA analysis and permutation tests...'):
 	        results = compare_conditions_with_stats(
@@ -1050,7 +1050,7 @@ if uploaded_file  is not None:
 
 	    st.write("### Analysis Results")
 	    
-	    # タブで結果を整理
+	    # Organize results in tabs
 	    tab1, tab2, tab3 = st.tabs(["Summary", "Significant Interactions", "Visualization"])
 	    
 	    with tab1:
@@ -1072,35 +1072,35 @@ if uploaded_file  is not None:
 	    
 	    with tab2:
 	        st.write("#### Significant Interactions")
-	        # 有意な結果のフィルタリングと表示
+	        # Filter and display significant results
 	        significant_interactions = stats_df[
-	            (stats_df['padj'] < padj_threshold) & 
+	            (stats_df['padj'] < padj_threshold) &
 	            (abs(stats_df['mean_diff']) > log2fc_threshold)
 	        ].copy()
-	        
+
 	        if len(significant_interactions) > 0:
-	            # mean_diffの符号に基づいて条件を追加
+	            # Add condition based on sign of mean_diff
 	            significant_interactions['regulation'] = significant_interactions['mean_diff'].apply(
 	                lambda x: f"Up in {sample_list[1]}" if x > 0 else f"Up in {sample_list[0]}"
 	            )
-	            
-	            # DataFrameの表示オプション
+
+	            # DataFrame display options
 	            st.write(f"Showing interactions with:")
 	            st.write(f"- Adjusted p-value < {padj_threshold}")
 	            st.write(f"- |Log2 fold change| > {log2fc_threshold}")
-	            
-	            # ソートオプション
-	            sort_columns = [col for col in ['padj', 'mean_diff', 'source', 'target', 'ligand', 'receptor'] 
+
+	            # Sort options
+	            sort_columns = [col for col in ['padj', 'mean_diff', 'source', 'target', 'ligand', 'receptor']
 	                          if col in significant_interactions.columns]
 	            sort_by = st.selectbox("Sort by:", sort_columns)
 	            significant_interactions = significant_interactions.sort_values(sort_by)
-	            
-	            # 表示する列の選択
-	            display_columns = [col for col in 
-	                ['source', 'target', 'ligand', 'receptor', 'mean_diff', 'pvalue', 'padj', 'regulation'] 
+
+	            # Select columns to display
+	            display_columns = [col for col in
+	                ['source', 'target', 'ligand', 'receptor', 'mean_diff', 'pvalue', 'padj', 'regulation']
 	                if col in significant_interactions.columns]
-	            
-	            # 結果の表示
+
+	            # Display results
 	            st.dataframe(
 	                significant_interactions[display_columns].style.format({
 	                    'mean_diff': '{:.3f}',
@@ -1108,8 +1108,8 @@ if uploaded_file  is not None:
 	                    'padj': '{:.2e}'
 	                })
 	            )
-	            
-	            # 結果のダウンロードボタン
+
+	            # Download results button
 	            csv = significant_interactions.to_csv(index=False)
 	            st.download_button(
 	                label="Download significant interactions as CSV",
@@ -1134,7 +1134,7 @@ if uploaded_file  is not None:
 	            if volcano_plot is not None:
 	                st.pyplot(volcano_plot.draw())
 	                
-	                # Volcanoプロットの保存ボタン
+	                # Volcano plot save button
 	                pdf_path = f"{liana_temp_dir}/volcano_plot.pdf"
 	                volcano_plot.save(pdf_path, bbox_inches='tight')
 	                with open(pdf_path, "rb") as pdf_file:

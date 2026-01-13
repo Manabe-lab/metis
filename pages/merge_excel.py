@@ -5,7 +5,7 @@ import openpyxl
 def convert_df(df):
    return df.to_csv(index=True, sep='\t').encode('utf-8')
 # Title
-st.title('piece人evalvalexcelFilema-jiya-')
+st.title('Individual Evaluation Excel File Merger')
 
 # Create a list to hold DataFrames
 dfs = []
@@ -17,16 +17,16 @@ if uploaded_files:
     file_number = 1
     for uploaded_file in uploaded_files:
         if uploaded_file:
-          #  df = pd.read_excel(uploaded_file, sheet_name = 1, data_only=True) korewithisnowtimeofexcelofformulaofvalisreadmarenot
+          #  df = pd.read_excel(uploaded_file, sheet_name = 1, data_only=True) This does not read current Excel formula values
             wb = openpyxl.load_workbook(uploaded_file, data_only=True)
             try:
-                df =pd.read_excel(wb, sheet_name='【mannerformat３】teachgrowstudystudyeqactivemoverealperfinfotellwrite（teach授）', engine='openpyxl')
+                df =pd.read_excel(wb, sheet_name='【様式３】教育研究等活動実績報告書（教授）', engine='openpyxl')
             except:
                 try:
-                    df =pd.read_excel(wb, sheet_name='【mannerformat３】teachgrowstudystudyeqactivemoverealperfinfotellwrite（准teach授 講師）', engine='openpyxl')
+                    df =pd.read_excel(wb, sheet_name='【様式３】教育研究等活動実績報告書（准教授 講師）', engine='openpyxl')
                 except:
                     try:
-                        df =pd.read_excel(wb, sheet_name='【mannerformat３】teachgrowstudystudyeqactivemoverealperfinfotellwrite（助teach）', engine='openpyxl')
+                        df =pd.read_excel(wb, sheet_name='【様式３】教育研究等活動実績報告書（助教）', engine='openpyxl')
                     except:
                         st.write("File format error:")
                         st.write(uploaded_file)

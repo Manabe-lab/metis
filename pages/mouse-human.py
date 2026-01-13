@@ -32,7 +32,7 @@ def mouse_human_conversion(dic, x):
         return None
 
 @st.cache_data
-def convert_human_to_mouse_symbols(symbols, version=1): # nichenetrofRsukuriputotheClaude3.5withchangechange
+def convert_human_to_mouse_symbols(symbols, version=1): # R script from nichenetr converted with Claude3.5
     if not isinstance(symbols, (list, pd.Series)):
         raise ValueError("symbols should be a list or pandas Series of human gene symbols")
     if version == 1:
@@ -106,9 +106,9 @@ def convert_mouse_to_human_symbols(symbols, version=1):
 
 if os.path.exists('res'):
     shutil.rmtree("res")
-os.mkdir("res") #mostfirsttoresthefromtodo
+os.mkdir("res") # Clear res first
 
-# FiletaipuofSelect
+# File type selection
 file_type = st.radio(
     "Input file type",
     ('Gene list', 'Expression matrix'), index=0)
@@ -131,26 +131,26 @@ st.write("Nicehnetr v2 (corrected): v2 with correction")
 st.write("Consensus: HomoloGene + Ensembl Compara consensus mapping")
 st.write("Consensus (corrected): with correction")
 
-# ConsensusDatabe-suofmakebecomewaymethodtotsuiteofherupu
-with st.expander("📚 ConsensusDatabe-suofmakebecomewaymethod"):
+# Help for creating consensus database
+with st.expander("📚 How to create consensus database"):
     st.markdown("""
-    ### Consensusorusorogumapinguofmakebecomehandorder
-    
-    **1. Dataso-su**
-    - **HomoloGene**: NCBIprovideprovideofkeep守alnaorusoroguDatabe-su
-    - **Ensembl Compara**: EnsemblofsysunifyoccurgenlearnalorusoroguDatabe-su
-    
-    **2. makebecomepurosesu**
-    - HomoloGenefromhightrustrelydegreeofmausu-hitoorusorogupeatheextractout
-    - Ensembl Comparafromtrustrelydegreesukoa≥75oforusorogupeatheextractout
-    - bothDatabe-suwithmatchmeansaretapeaofmithe採use（intersection）
-    - 1:1mapinguofmithekeephold
-    
-    **3. 品quality管proc**
-    - weightmultimapinguofremoverm
-    - Geneshinboruofmarklevelize
-    - nonmarklevelalnaGenenameofremoveout
-    
+    ### How to create consensus ortholog mapping
+
+    **1. Data sources**
+    - **HomoloGene**: Conservative ortholog database provided by NCBI
+    - **Ensembl Compara**: Phylogenetic ortholog database from Ensembl
+
+    **2. Creation process**
+    - Extract high-confidence mouse-human ortholog pairs from HomoloGene
+    - Extract ortholog pairs with confidence score ≥ 75 from Ensembl Compara
+    - Keep only pairs that match in both databases (intersection)
+    - Keep only 1:1 mappings
+
+    **3. Quality control**
+    - Remove duplicate mappings
+    - Standardize gene symbols
+    - Remove non-standard gene names
+
     """)
 st.markdown("---")
 
@@ -165,10 +165,10 @@ if file_type == 'Gene list':
     if len(genes) > 0:
         genes = genes.replace("'","")
         genes = genes.replace('"',"")
-        gene_list = genes.split(' ') #mazuemptywhitewithdivsep
-        gene_list = list(filter(lambda a: a != '', gene_list)) #emptywhiteofmitheremoveku
+        gene_list = genes.split(' ') # First split by spaces
+        gene_list = list(filter(lambda a: a != '', gene_list)) # Remove only empty strings
         if ',' in genes:
-            gene_list = sum([x.split(',') for x in gene_list],[]) #sumwithflatflatize sum(x, [])
+            gene_list = sum([x.split(',') for x in gene_list],[]) # Flatten with sum(x, [])
         if '\t' in genes:
             gene_list = sum([x.split('\t') for x in gene_list],[])
         if '\n' in genes:
@@ -194,13 +194,13 @@ else:  # Expression matrix
     uploaded_file = st.file_uploader("Choose an expression matrix file", type=['csv','tsv'])
     
     if uploaded_file is not None:
-        # heda-attachkiwithLoading
+        # Load with header
         if uploaded_file.name.endswith('.tsv'):
             df = pd.read_csv(uploaded_file, sep='\t')
         else:
             df = pd.read_csv(uploaded_file)
         
-        # 1colidxofGenenametheextractout（2rowidxfrom）
+        # Extract gene names from 1st column (from row 2)
         data = df.iloc[:, 0].tolist()
         uploaded = True
         is_matrix = True
@@ -260,7 +260,7 @@ if st.button('Run conversion'):
             if method == 'Nicehnetr v1':
                 converted_genes = convert_mouse_to_human_symbols(data, version=1)
             elif method == 'Nicehnetr v1 (corrected)':
-                # modcorrectverNichenetR v1theuseuse
+                # Use corrected version of NichenetR v1
                 db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_human_corrected.csv")
                 geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
@@ -288,19 +288,19 @@ if st.button('Run conversion'):
                 mousesymbol2humansymbol = dict(zip(geneinfo_processed['symbol_mouse'], geneinfo_processed['symbol']))
                 converted_genes = [mousesymbol2humansymbol.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus':
-                # Consensuste-burutheuseuse
+                # Use consensus table
                 data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one.csv")
                 consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['mouse_symbol'], consensus_df['human_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus (corrected)':
-                # modcorrectverConsensuste-burutheuseuse
+                # Use corrected version of consensus table
                 data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one_corrected.csv")
                 consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['mouse_symbol'], consensus_df['human_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Nichenetr v2 (corrected)':
-                # modcorrectverNichenetR v2theuseuse
+                # Use corrected version of NichenetR v2
                 db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_2022_corrected.csv")
                 geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
@@ -334,7 +334,7 @@ if st.button('Run conversion'):
             if method == 'Nicehnetr v1':
                 converted_genes = convert_human_to_mouse_symbols(data, version=1)
             elif method == 'Nicehnetr v1 (corrected)':
-                # modcorrectverNichenetR v1theuseuse
+                # Use corrected version of NichenetR v1
                 db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_human_corrected.csv")
                 geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
@@ -362,19 +362,19 @@ if st.button('Run conversion'):
                 humansymbol2mousesymbol = dict(zip(geneinfo_processed['symbol'], geneinfo_processed['symbol_mouse']))
                 converted_genes = [humansymbol2mousesymbol.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus':
-                # Consensuste-burutheuseuse
+                # Use consensus table
                 data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one.csv")
                 consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['human_symbol'], consensus_df['mouse_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Consensus (corrected)':
-                # modcorrectverConsensuste-burutheuseuse
+                # Use corrected version of consensus table
                 data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "consensus_orthologs_one_to_one_corrected.csv")
                 consensus_df = pd.read_csv(data_path)
                 mapping_dict = dict(zip(consensus_df['human_symbol'], consensus_df['mouse_symbol']))
                 converted_genes = [mapping_dict.get(symbol, np.nan) for symbol in data]
             elif method == 'Nichenetr v2 (corrected)':
-                # modcorrectverNichenetR v2theuseuse
+                # Use corrected version of NichenetR v2
                 db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "nichenetr.db", "nichenetr_geneinfo_2022_corrected.csv")
                 geneinfo_corrected = pd.read_csv(db_path)
                 unambiguous_mouse_genes = (
@@ -407,21 +407,21 @@ if st.button('Run conversion'):
         if file_type == 'Gene list':
             #converted_list = [x for x in converted_genes if not pd.isna(x)]
             df[to_species] = converted_genes
-            converted_genes = [x for x in converted_genes if pd.isnull(x) == False] # nantheremoveku
-            converted_genes = sorted(set(converted_genes), key=converted_genes.index) # weightmultiisremoveku
-            d = "\n".join(converted_genes) # Nonetheremoveitestrttodo
+            converted_genes = [x for x in converted_genes if pd.isnull(x) == False] # Remove NaN
+            converted_genes = sorted(set(converted_genes), key=converted_genes.index) # Remove duplicates
+            d = "\n".join(converted_genes) # Remove None and convert to string
         else:
-            # Expression matrixofplacematch：1colidxofGenenamethechangechange
+            # For expression matrix: change gene names in 1st column
             df_converted = df.copy()
             df_converted.iloc[:, 0] = converted_genes
             
-            # changechangeStatistical
+            # Conversion statistics
             total_genes = len(converted_genes)
             successful_conversions = sum(1 for x in converted_genes if pd.notna(x))
             
             st.write(f"Conversion completed: {successful_conversions}/{total_genes} genes converted")
             
-            # changechangewithkinakataGenethespecset
+            # Identify genes that could not be converted
             failed_genes = [data[i] for i, x in enumerate(converted_genes) if pd.isna(x)]
             if len(failed_genes) > 0:
                 st.write(f"**Genes removed (no conversion found): {len(failed_genes)}**")
@@ -430,27 +430,27 @@ if st.button('Run conversion'):
                 else:
                     st.write(", ".join(failed_genes[:20]) + f"... (and {len(failed_genes)-20} more)")
             
-            # changechangewithkinakatarowthedeleteremove（Noneofrow）
+            # Delete rows that could not be converted (rows with None)
             mask = pd.notna(converted_genes)
             df_converted = df_converted[mask].reset_index(drop=True)
             converted_genes_clean = [x for x in converted_genes if pd.notna(x)]
             
-            # weightmultiGenenameofprocproc：manypair1ofplacematchisflatavgvaltheCalculation
+            # Handle duplicate gene names: calculate mean for many-to-one mappings
             if len(converted_genes_clean) > 0:
                 df_converted.iloc[:, 0] = converted_genes_clean
                 
-                # weightmultidoGenenameisexistplacematch、numvalcolofflatavgtheCalculation
+                # If duplicate gene names exist, calculate mean of numeric columns
                 numeric_cols = df_converted.select_dtypes(include=[np.number]).columns
                 if len(numeric_cols) > 0:
-                    # 1colidx（Genename）withGroupizeshi、numvalcolofflatavgtheCalculation
+                    # Group by 1st column (gene name) and calculate mean of numeric columns
                     gene_col = df_converted.columns[0]
                     agg_dict = {col: 'mean' for col in numeric_cols}
-                    # nonnumvalcolismostfirstofvalthegetru
+                    # Get first value for non-numeric columns
                     non_numeric_cols = [col for col in df_converted.columns if col not in numeric_cols and col != gene_col]
                     for col in non_numeric_cols:
                         agg_dict[col] = 'first'
                     
-                    # weightmultiGenethespecset（ma-jibefore）
+                    # Identify duplicate genes (before merge)
                     duplicate_genes = df_converted[df_converted.duplicated(gene_col, keep=False)][gene_col].unique()
                     
                     df_converted = df_converted.groupby(gene_col, as_index=False).agg(agg_dict)
@@ -463,7 +463,7 @@ if st.button('Run conversion'):
                         else:
                             st.write(", ".join(duplicate_genes[:50]) + f"... (and {len(duplicate_genes)-50} more)")
                 
-                # finalalnaGenerisuto
+                # Final gene list
                 final_genes = df_converted.iloc[:, 0].tolist()
                 d = "\n".join(final_genes)
             else:

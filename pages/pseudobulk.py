@@ -68,7 +68,7 @@ def read_h5ad(file):
 @st.cache_data
 def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode="sum", cache_key=None, skip_checks=False):
     if mode == "mean_then_logit":
-        # mazuflatavgtheCalculation
+        # First calculate mean
         pdata = dc.get_pseudobulk(
             _adata,
             groups_col=groups_col,
@@ -79,8 +79,8 @@ def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode
             min_counts=0,
             skip_checks=skip_checks
         )
-        # logitchangechangethefituse
-        # 0and1ofvaltheadjustarrange
+        # Apply logit transformation
+        # Adjust values between 0 and 1
         eps = 1e-6
         X = pdata.X.copy()
         X = np.clip(X, eps, 1-eps)
@@ -100,19 +100,19 @@ def calc_pseudobulk1(_adata, groups_col, sample_col, min_cells, min_counts, mode
 
 @st.cache_data
 def calc_pseudobulk2(_adata, groups_col, sample_col, min_cells, min_counts, mode="sum", cache_key=None, skip_checks=False):
-    # mazupassnormalofpseudolulkCalculation
+    # First calculate normal pseudobulk
     if mode == "mean_then_logit":
         pdata = dc.get_pseudobulk(
             _adata,
             groups_col=groups_col,
             sample_col=sample_col,
             layer='counts',
-            mode='mean',  # mazuflatavgtheCalculation
+            mode='mean',  # First calculate mean
             min_cells=min_cells,
             min_counts=min_counts,
             skip_checks=skip_checks
         )
-        # logitchangechangetheafterfromfituse
+        # Apply logit transformation afterwards
         eps = 1e-6
         X = pdata.X.copy()
         X = np.clip(X, eps, 1-eps)
@@ -283,10 +283,10 @@ st.write("To calculate mean values using normalized data, use adata.X with summa
 
 if uploaded_file is not None:
     adata = read_h5ad(uploaded_file)
-    # adata.raw.XofDatatheadata.Xhe
+    # Copy adata.raw.X data to adata.X
     if not use_X:
         adata.X = adata.raw.X
-    else:  # use_X = Trueofplacematch
+    else:  # When use_X = True
         adata.layers['counts'] = adata.X
 
     nan_count, inf_count = clean_counts_layer(adata)
@@ -401,22 +401,22 @@ if uploaded_file is not None:
             skip_checks_flag = True
 
         if one_cell:
-            pdata.obs['One_cell'] = 'one_cell_type' #pdatatomoaddadddo
+            pdata.obs['One_cell'] = 'one_cell_type' # Also add to pdata
         st.write(pdata.obs.head(3))
 
         st.markdown("#### All data without QC")
 
         dc.plot_psbulk_samples(pdata, groupby=[sample_col, groups_col], figsize=(12, 4))
         fig = plt.gcf() 
-        st.pyplot(fig)  # clearshowaltofigthest.pyplot()totransfersu
-        plt.close(fig)  # memorithesolvereldofortofigthe閉jiru
+        st.pyplot(fig)  # Pass fig to st.pyplot() instead of show
+        plt.close(fig)  # Close fig to free memory
 
 
 
         # Get pseudo-bulk profile
         pdata =  calc_pseudobulk2(adata, groups_col, sample_col, min_cells, min_counts, mode=method, cache_key=cache_key,  skip_checks=skip_checks_flag)
         if one_cell:
-            pdata.obs['One_cell'] = 'one_cell_type' #pdatatomoaddadddo
+            pdata.obs['One_cell'] = 'one_cell_type' # Also add to pdata
 
         st.markdown('#### After QC')
 
@@ -472,12 +472,12 @@ if uploaded_file is not None:
             if assemble_all:
                 dict_keys = list(reshaped_df_dict.keys())
                 df_all = reshaped_df_dict[dict_keys[0]]
-                # source々ofkaramunamethekeephold
+                # Keep original column names
                 df_all.columns = [col for col in df_all.columns]
                 
                 for x in range(len(dict_keys)-1):
                     df_temp = reshaped_df_dict[dict_keys[x+1]]
-                    # source々ofkaramunamethekeephold
+                    # Keep original column names
                     df_temp.columns = [col for col in df_temp.columns]
                     df_all = pd.concat([df_all, df_temp], axis=1)
             

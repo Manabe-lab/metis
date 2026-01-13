@@ -42,14 +42,14 @@ st.set_page_config(page_title="Add Metadata to h5ad", page_icon="📝", layout="
 
 st.title("📝 Add Metadata to h5ad File")
 st.markdown("""
-このアプリは、h5adファイルに別のh5adファイルまたはTSVファイルからメタデータを追加します。
+This app adds metadata to an h5ad file from another h5ad file or TSV file.
 
-### 使い方
-1. **メインh5adファイル**をアップロード（メタデータを追加する対象）
-2. **メタデータソース**をアップロード（h5adファイルまたはTSVファイル）
-3. 追加したい**メタデータ列**を選択
-4. 細胞名（cell barcode）でマッチングしてメタデータを追加
-5. 修正したh5adファイルをダウンロード（元のファイル名.mod.h5ad）
+### How to use
+1. Upload the **main h5ad file** (the target to add metadata to)
+2. Upload the **metadata source** (h5ad file or TSV file)
+3. Select the **metadata columns** you want to add
+4. Metadata is added by matching cell barcodes
+5. Download the modified h5ad file (original_filename.mod.h5ad)
 """)
 
 st.markdown("---")
@@ -57,10 +57,10 @@ st.markdown("---")
 # Step 1: Upload main h5ad file
 st.header("Step 1: Upload main h5ad file")
 main_h5ad = st.file_uploader(
-    "Upload main h5ad file (メタデータを追加する対象)",
+    "Upload main h5ad file (target to add metadata to)",
     type=['h5ad'],
     key='main_h5ad',
-    help="メタデータを追加したいh5adファイルをアップロード"
+    help="Upload the h5ad file to which you want to add metadata"
 )
 
 if main_h5ad is not None:
@@ -86,7 +86,7 @@ if main_h5ad is not None:
     metadata_source_type = st.radio(
         "Metadata source type",
         ["h5ad file", "TSV file"],
-        help="メタデータのソースタイプを選択"
+        help="Select the metadata source type"
     )
 
     if metadata_source_type == "h5ad file":
@@ -94,7 +94,7 @@ if main_h5ad is not None:
             "Upload h5ad file (metadata source)",
             type=['h5ad'],
             key='metadata_h5ad',
-            help="メタデータを取得するh5adファイル"
+            help="h5ad file to extract metadata from"
         )
 
         if metadata_file is not None:
@@ -117,7 +117,7 @@ if main_h5ad is not None:
             "Upload TSV file (metadata source)",
             type=['tsv', 'txt', 'csv'],
             key='metadata_tsv',
-            help="メタデータを含むTSVファイル（1列目がcell barcode）"
+            help="TSV file containing metadata (first column is cell barcode)"
         )
 
         if metadata_file is not None:
@@ -162,34 +162,34 @@ if main_h5ad is not None:
             remove_main_prefix = st.checkbox(
                 "Remove prefix from main h5ad cell barcodes",
                 value=False,
-                help="例: 'Data1_AAACCCACAAGACCTT-1' → 'AAACCCACAAGACCTT-1'"
+                help="Example: 'Data1_AAACCCACAAGACCTT-1' → 'AAACCCACAAGACCTT-1'"
             )
 
             if remove_main_prefix:
                 main_prefix_delimiter = st.text_input(
                     "Delimiter for prefix removal (main)",
                     value="_",
-                    help="プレフィックスを区切る文字（例: '_'）"
+                    help="Character to separate prefix (e.g., '_')"
                 )
                 main_remove_parts = st.number_input(
                     "Number of prefix parts to remove (main)",
                     min_value=1,
                     max_value=5,
                     value=1,
-                    help="区切り文字で分割した際に削除する前部分の数"
+                    help="Number of parts to remove from the beginning when split by delimiter"
                 )
 
             remove_main_suffix = st.checkbox(
                 "Remove suffix from main h5ad cell barcodes",
                 value=False,
-                help="例: 'AAACCCACAAGACCTT-1' → 'AAACCCACAAGACCTT'"
+                help="Example: 'AAACCCACAAGACCTT-1' → 'AAACCCACAAGACCTT'"
             )
 
             if remove_main_suffix:
                 main_suffix_delimiter = st.text_input(
                     "Delimiter for suffix removal (main)",
                     value="-",
-                    help="サフィックスを区切る文字（例: '-'）"
+                    help="Character to separate suffix (e.g., '-')"
                 )
 
         with col2:
@@ -197,34 +197,34 @@ if main_h5ad is not None:
             remove_meta_prefix = st.checkbox(
                 "Remove prefix from metadata cell barcodes",
                 value=False,
-                help="例: 'E17_EC_1_AGATGAATCGAGTTGT-1' → 'AGATGAATCGAGTTGT-1'"
+                help="Example: 'E17_EC_1_AGATGAATCGAGTTGT-1' → 'AGATGAATCGAGTTGT-1'"
             )
 
             if remove_meta_prefix:
                 meta_prefix_delimiter = st.text_input(
                     "Delimiter for prefix removal (metadata)",
                     value="_",
-                    help="プレフィックスを区切る文字（例: '_'）"
+                    help="Character to separate prefix (e.g., '_')"
                 )
                 meta_remove_parts = st.number_input(
                     "Number of prefix parts to remove (metadata)",
                     min_value=1,
                     max_value=5,
                     value=3,
-                    help="区切り文字で分割した際に削除する前部分の数"
+                    help="Number of parts to remove from the beginning when split by delimiter"
                 )
 
             remove_meta_suffix = st.checkbox(
                 "Remove suffix from metadata cell barcodes",
                 value=False,
-                help="例: 'AGATGAATCGAGTTGT-1' → 'AGATGAATCGAGTTGT'"
+                help="Example: 'AGATGAATCGAGTTGT-1' → 'AGATGAATCGAGTTGT'"
             )
 
             if remove_meta_suffix:
                 meta_suffix_delimiter = st.text_input(
                     "Delimiter for suffix removal (metadata)",
                     value="-",
-                    help="サフィックスを区切る文字（例: '-'）"
+                    help="Character to separate suffix (e.g., '-')"
                 )
 
         # Apply preprocessing
@@ -290,7 +290,7 @@ if main_h5ad is not None:
                 "Select metadata columns to add",
                 available_columns,
                 default=available_columns,
-                help="追加したいメタデータ列を選択（複数選択可）"
+                help="Select metadata columns to add (multiple selection allowed)"
             )
 
             if selected_columns:
@@ -306,7 +306,7 @@ if main_h5ad is not None:
                     overwrite_mode = st.radio(
                         "How to handle conflicts?",
                         ["Overwrite existing columns", "Skip conflicting columns", "Add suffix to new columns"],
-                        help="既存の列名と重複する場合の処理方法"
+                        help="How to handle duplicate column names with existing columns"
                     )
                 else:
                     overwrite_mode = None

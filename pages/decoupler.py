@@ -300,7 +300,7 @@ def run_pathway_analysis(gene_list, net, source, target, n_background):
 def set_plot_style():
     plt.style.use('default')  # defuorutosutairutheriseto
     plt.rcParams['figure.facecolor'] = 'white'  # figofbackscenecolorthewhiteto
-    plt.rcParams['axes.facecolor'] = 'white'    # puroto領areaofbackscenecolorthewhiteto
+    plt.rcParams['axes.facecolor'] = 'white'    # Set plot area background color to white
 #    sns.set_style("white")                      # seabornofsutairuthewhitebacksceneto
     
 # gurafugenbecomebeforetocallbioutsu
@@ -407,7 +407,7 @@ def calc_rank(df, P_column, FC_column, rank_metric, Gene_column, inv_switch):
             max_score = -324
             st.write("\nMax score: "+str(max_score))
         # orderrankattachkeoffortoFCofvaltheenoughsu
-        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column]  * inv_parameter#Conditionthe包arcwithsurrmukoand！！！
+        df.loc[(p_0 & (df.loc[:,FC_column]>0)),'score'] = max_score * -1 + df.loc[:,FC_column]  * inv_parameter # Handle condition wrapping
         df.loc[(p_0 & (df.loc[:,FC_column]<0)),'score'] = max_score + df.loc[:,FC_column] * inv_parameter
         st.write('Ranking score are -log10(P-values)')
     return df['score'].to_frame() #DFtochangechangeshitefromreturnsu
@@ -434,7 +434,7 @@ def set_back_func():
                 bk_genes = bk_genes[1:]
 
         else:
-            df.columns = df.iloc[0,:].tolist()  # transposedoand狂uofwith、transposeshitaaftertocolumnsthedetmeru
+            df.columns = df.iloc[0,:].tolist()  # Set columns after transpose
             df = df.drop(0, axis = 0) # 1rowidxthecolnametoshiteremoveku
 
             st.write(df.head())
@@ -759,7 +759,7 @@ else: #ORA
                 df_res = result_df
                 df_res["Gene"] = df_res.index.to_list()
                 st.write(df_res.head(3))
-                #st.session_state.seurat_res = True koudoandmostfirstfrom戻tekitaandkitomovekanot
+                #st.session_state.seurat_res = True  # Can revert to initial state if needed
 
             content = df_res.columns.tolist()
             p_patterns = ['p.val', 'pvalue', 'p-val', 'p val', 'p_val', 'pval']
@@ -778,7 +778,7 @@ else: #ORA
                 st.info("🔍 PCA loadings file detected (no p-value columns found, PC columns present)")
                 ora_mode_auto = 'PCA loadings'
 
-                # moshiviewtsufromnakerebaallteofnumvalcolthe候supptodo
+                # If no view columns found, use all numeric columns as candidates
                 if not loadings_cols:
                     loadings_cols = df_res.select_dtypes(include=[np.number]).columns.tolist()
 
@@ -1094,7 +1094,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfkag
             loading_patterns = ['pc', 'loadings', 'component']
             loadings_cols = [i for i in content if any(p in i.lower() for p in loading_patterns)]
 
-            # moshiviewtsufromnakerebaallteofnumvalcolthe候supptodo
+            # If no view columns found, use all numeric columns as candidates
             if not loadings_cols:
                 loadings_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 
@@ -1737,7 +1737,7 @@ if 'df' in locals()  or 'gene_list' in locals() or 'df_res' in locals(): # dfkag
                 # maximumkauntovaltobaseduitescaletheCalculation
                 max_count = ORA_res['count'].max()
 
-                # passtest則andshite、smallsaikauntoofplacematchisbigkimeofscale、bigkiikauntoofplacematchissmallsameofscaletheuseuse
+                # Scale rule: use larger scale for small counts, smaller scale for large counts
                 if max_count <= 10:
                     scale = 4 / max_count  # smallsaikauntoofplacematch、thanbigkinascale
                 elif max_count <= 50:

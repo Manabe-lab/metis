@@ -13,13 +13,13 @@ import time
 from typing import List, Tuple
 
 
-# /dev/shm deirekutoriofpasu
+# Path to /dev/shm directory
 shm_dir = '/dev/shm'
 
-# streamlit_temp deirekutoriofpasu
+# Path to streamlit_temp directory
 streamlit_temp_dir = os.path.join(shm_dir, 'streamlit_temp')
 
-# streamlit_temp deirekutoriisexistatshinotplacematch、makebecomedo
+# Create streamlit_temp directory if it doesn't exist
 if not os.path.exists(streamlit_temp_dir):
     try:
         os.makedirs(streamlit_temp_dir)
@@ -29,10 +29,10 @@ if not os.path.exists(streamlit_temp_dir):
 else:
     print(f"Directory already exists: {streamlit_temp_dir}")
 
-# makebecomeshitadeirekutoriofpasutheuseusedo
+# Use the created directory path
 TMPFS_MOUNT = streamlit_temp_dir
 
-# newshiirelnum: oldiFilethedeleteremove
+# New function: delete old files
 def clean_old_files(directory: str, days: int = 2):
     current_time = time.time()
     for filename in os.listdir(directory):
@@ -46,11 +46,11 @@ def clean_old_files(directory: str, days: int = 2):
                 except Exception as e:
                     st.error(f"Error removing {file_path}: {e}")
 
-# apurike-shiyonofstarttimetooldiFilethedeleteremove
+# Delete old files at application startup
 clean_old_files(TMPFS_MOUNT)
 
 
-# burakurisutoFileofpasuthesetdef
+# Define blacklist file paths
 BLACKLIST_FILES = {
     'mm10': {
         'ChIP-seq': 'db/blacklist/mm10-blacklist.v2.bed',
@@ -201,7 +201,7 @@ def process_files(uploaded_files: List[UploadedFile], genome: str, seq_type: str
         else:
             input_file = original_file_path
 
-        # reberu1: anote-shiyon
+        # Level 1: Annotation
         if process_level >= 1:
             annotated_file = run_annotate_peaks(input_file, genome)
             if os.path.getsize(annotated_file) > 0:
@@ -211,7 +211,7 @@ def process_files(uploaded_files: List[UploadedFile], genome: str, seq_type: str
             else:
                 st.warning(f"The annotated file {annotated_file} is empty.")
 
-        # reberu2: burakurisutoFiltering
+        # Level 2: Blacklist filtering
         if process_level >= 2:
             blacklist_filtered_file = filter_blacklist(input_file, genome, seq_type)
             if os.path.getsize(blacklist_filtered_file) > 0:
@@ -229,7 +229,7 @@ def process_files(uploaded_files: List[UploadedFile], genome: str, seq_type: str
             else:
                 st.warning(f"The blacklist filtered file {blacklist_filtered_file} is empty.")
 
-        # reberu3isprocprocreberu2ofFiletheuseusedofor、kokowithisspectoprocproctherowimasen。
+        # Level 3 uses files from processing level 2, so no specific processing here.
 
     return processed_files
 
@@ -237,7 +237,7 @@ def process_files(uploaded_files: List[UploadedFile], genome: str, seq_type: str
 
 
 def is_index_row(row: List[str]) -> bool:
-    if len(row) < 4:  # BEDFileisfewnakuandmo3col（染colorbody、start、end）required
+    if len(row) < 4:  # BED file needs at least 3 columns (chromosome, start, end)
         return False
     if row[0].startswith('PeakID'):
         return True
@@ -254,10 +254,10 @@ def remove_index_from_bed(file_path: str) -> str:
         first_row = next(reader, None)
         if first_row:
             if not is_index_row(first_row):
-                # mostfirstofrowisindekusurowwithnotplacematch、writekiintomu
+                # Write if first row is not an index row
                 writer.writerow(first_row)
-            
-            # remainriofrowtheprocproc
+
+            # Process remaining rows
             for row in reader:
                 if not is_index_row(row):
                     writer.writerow(row)
@@ -272,7 +272,7 @@ def create_zip(files: List[str]) -> io.BytesIO:
                 no_index_file = remove_index_from_bed(file)
                 zip_file.write(file, os.path.basename(file))
                 zip_file.write(no_index_file, os.path.basename(no_index_file))
-                os.remove(no_index_file)  # onetimeFilethedeleteremove
+                os.remove(no_index_file)  # Delete temporary file
             else:
                 zip_file.write(file, os.path.basename(file))
     return zip_buffer
@@ -293,7 +293,7 @@ def filter_annotations(files: List[str], annotations_to_remove: List[str]) -> Li
             st.warning(f"Skipping empty file: {file}")
     return filtered_files
 
-# Streamlitapurike-shiyonofmeinpartdiv
+# Streamlit application main section
 st.title('Bed/Peak file annotator and filter')
 st.markdown('#### peak annotation, filtering of blacklisted peaks and specific class of peaks (e.g., simple repeats)')
 

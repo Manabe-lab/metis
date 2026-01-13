@@ -101,24 +101,24 @@ async def modify_item(item_path, item_type):
 async def create_directory_with_permissions(path):
     loop = asyncio.get_event_loop()
     try:
-        # deirekutorithemakebecome（lambdarelnumtheuseuse）
+        # Create directory (using lambda function)
         await loop.run_in_executor(executor, lambda: os.makedirs(path, exist_ok=True))
 
-        # yu-za-infoinfothegetget
+        # Get user information
         uid = os.getuid()
         user = pwd.getpwuid(uid).pw_name
 
-        # Groupinfoinfothegetget（Example: 'sftp'Group）
+        # Get group information (Example: 'sftp' group)
         try:
             gid = grp.getgrnam('sftp').gr_gid
         except KeyError:
-            # 'sftp'Groupisexistatshinotplacematch、yu-za-ofpuraimariGrouptheuseuse
+            # If 'sftp' group doesn't exist, use user's primary group
             gid = pwd.getpwuid(uid).pw_gid
 
-        # lochavepersonandGrouptheSettings
+        # Set owner and group
         await loop.run_in_executor(executor, os.chown, path, uid, gid)
 
-        # pa-mishiyontheSettings (770 = rwxrwx---)
+        # Set permissions (770 = rwxrwx---)
         await loop.run_in_executor(executor, os.chmod, path, 0o770)
 
         return f"Directory created successfully. Owner: {user}, Group: {grp.getgrgid(gid).gr_name}"
@@ -257,7 +257,7 @@ async def main():
             else:
                 st.error(result)
 
-            # deirekutorimakebecomeofdetailfineinfoinfotheDisplay
+            # Display detailed information about directory creation
             st.write("Debug Information:")
             st.write(f"Attempted to create directory: {new_dir_path}")
             st.write(f"Current working directory: {os.getcwd()}")
@@ -273,7 +273,7 @@ async def main():
             except Exception as e:
                 st.write(f"Error getting parent directory info: {e}")
 
-    # currentofdeirekutoriofauthlimitinfoinfotheDisplay
+    # Display current directory permission information
     current_path = st.session_state.current_path
     try:
         stat_info = os.stat(current_path)
@@ -282,7 +282,7 @@ async def main():
             group = grp.getgrgid(stat_info.st_gid).gr_name
         except KeyError:
             group = f"Unknown ({stat_info.st_gid})"
-        permissions = oct(stat_info.st_mode)[-3:]  # mostafterof3桁（8prognum）thegetget
+        permissions = oct(stat_info.st_mode)[-3:]  # Get last 3 digits (octal)
 
         st.write(f"Current directory: {current_path}")
         st.write(f"Owner: {owner}")

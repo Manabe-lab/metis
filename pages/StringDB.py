@@ -8,58 +8,58 @@ import io
 from urllib.parse import urlencode
 
 def process_gene_list(gene_input):
-    """Generisutoofprocprocrelnum"""
-    # mazureformrowthealltesupe-sutoplacechange
+    """Function to process gene list"""
+    # Replace all newlines with spaces
     genes = gene_input.replace('\n', ' ')
-    
-    # semikoronthesupe-sutoplacechange
+
+    # Replace semicolons with spaces
     genes = genes.replace(';', ' ')
-    
-    # connectcontinuedoemptywhitethesimpleoneofsupe-sutoplacechange
+
+    # Replace consecutive spaces with a single space
     genes = ' '.join(genes.split())
-    
-    # supe-suwithdivratioshiterisutoize
+
+    # Split by spaces to create list
     gene_list = [g.strip() for g in genes.split()]
-    
-    # emptyofneedelemtheremoverm
+
+    # Remove empty elements
     gene_list = [g for g in gene_list if g]
-    
-    # weightmultitheremovermshiteorderorderthe維hold
+
+    # Remove duplicates while maintaining order
     seen = set()
     unique_genes = []
     for gene in gene_list:
         if gene not in seen:
             seen.add(gene)
             unique_genes.append(gene)
-    
+
     return unique_genes
 
 def fetch_string_db_interactions(genes, species=10090, score_threshold=0):
-    """StringDBfromtanpakuqualitybetweenInteractionDatathegetget"""
+    """Get protein-protein interaction data from StringDB"""
     base_url = "https://string-db.org/api/json"
     endpoint = "network"
-    
-    # ParameterofSettings
+
+    # Set parameters
     params = {
         "identifiers": "\r".join(genes),
         "species": species,
-        "required_score": 0,  # sukoaThresholdisafterwithfituse
+        "required_score": 0,  # Score threshold applied later
         "caller_identity": "your_app_name"
     }
 
     try:
-        # APIrikuesutothesendtrust
+        # Send API request
         api_url = f"{base_url}/{endpoint}"
         st.write(f"Requesting URL: {api_url}")
-        
+
         response = requests.post(api_url, data=params)
         response.raise_for_status()
 
-        # debaguinfoinfoofDisplay
+        # Display debug information
         st.write("API Response Status:", response.status_code)
         st.write("API Response Content Type:", response.headers.get('content-type'))
-        
-        # JSONresuponsuofAnalysisthetrymiru
+
+        # Try to parse JSON response
         if response.text.strip():
             try:
                 data = response.json()
@@ -88,12 +88,12 @@ def fetch_string_db_interactions(genes, species=10090, score_threshold=0):
         return []
 
 def process_interactions(interactions, G, genes, score_threshold):
-    """intarakushiyonDatatheprocprocshiteejitheaddadd"""
+    """Process interaction data and add edges"""
     edge_count = 0
     skipped_edges = 0
     all_scores = []
 
-    # sukoaofdivdisttheConfirm
+    # Check score distribution
     scores = [float(interaction.get('score', 0)) for interaction in interactions]
     if scores:
         st.write(f"Score distribution - Min: {min(scores)}, Max: {max(scores)}, Mean: {np.mean(scores):.2f}")
@@ -107,7 +107,7 @@ def process_interactions(interactions, G, genes, score_threshold):
             all_scores.append(score)
             
             if score >= score_threshold:
-                # requiredtorespondjiteno-dotheaddadd
+                # Add nodes as needed
                 if source not in G:
                     G.add_node(source)
                 if target not in G:
@@ -123,8 +123,8 @@ def process_interactions(interactions, G, genes, score_threshold):
 
     st.write(f"Added {edge_count} edges to the network")
     st.write(f"Skipped {skipped_edges} edges due to score threshold")
-    
-    # sukoadivdistofhisutoguramutheDisplay
+
+    # Display histogram of score distribution
     if all_scores:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.hist(all_scores, bins=20, edgecolor='black')
@@ -139,44 +139,44 @@ def process_interactions(interactions, G, genes, score_threshold):
     return edge_count
 
 def visualize_network(G, minimum_score):
-    """NetworktheVisualizationdorelnum"""
+    """Function to visualize network"""
     plt.figure(figsize=(15, 10))
-    
-    # supuringureiautowithno-doofrankplacetheCalculation
+
+    # Calculate node positions with spring layout
     pos = nx.spring_layout(G, k=1.5/np.sqrt(len(G.nodes())), iterations=50)
-    
-    # ejiofplotdraw
+
+    # Draw edges
     if G.number_of_edges() > 0:
         edge_weights = [G[u][v]['weight'] for u, v in G.edges()]
         max_weight = max(edge_weights)
         min_weight = min(edge_weights)
-        
-        # ejiofboldsatheNormalization (0.5-5ofrangesurr)
+
+        # Normalize edge thickness (range 0.5-5)
         if max_weight != min_weight:
-            normalized_weights = [0.5 + 4.5 * (w - min_weight) / (max_weight - min_weight) 
+            normalized_weights = [0.5 + 4.5 * (w - min_weight) / (max_weight - min_weight)
                                 for w in edge_weights]
         else:
             normalized_weights = [1.0 for _ in edge_weights]
-        
-        nx.draw_networkx_edges(G, pos, 
+
+        nx.draw_networkx_edges(G, pos,
                              width=normalized_weights,
                              alpha=0.5,
                              edge_color='gray')
-    
-    # no-doofplotdraw
+
+    # Draw nodes
     degrees = dict(G.degree())
     max_degree = max(degrees.values()) if degrees else 1
-    
-    # no-dosaizutheadjustarrange (minimum1000、maximum3000)
+
+    # Adjust node size (minimum 1000, maximum 3000)
     node_sizes = [1000 + 2000 * (degrees[node] / max_degree) for node in G.nodes()]
-    
+
     nx.draw_networkx_nodes(G, pos,
                           node_size=node_sizes,
                           node_color='lightblue',
                           alpha=0.7)
-    
-    # raberuofplotdraw（no-doofnextnumtorespondjitefuontosaizutheadjustarrange）
-    font_sizes = {node: min(8 + 4 * (degrees[node] / max_degree), 14) 
+
+    # Draw labels (adjust font size based on node degree)
+    font_sizes = {node: min(8 + 4 * (degrees[node] / max_degree), 14)
                  for node in G.nodes()}
     
     nx.draw_networkx_labels(G, pos, 
@@ -189,11 +189,11 @@ def visualize_network(G, minimum_score):
     return plt.gcf()
 
 def find_optimal_threshold(interactions, min_edges=10):
-    """mostfitnasukoaThresholdtheviewtsukeru"""
+    """Find the optimal score threshold"""
     if not interactions:
-        return 400  # defuorutoval
-    
-    # useusepossiblenaallofsukoathegetget
+        return 400  # Default value
+
+    # Get all available scores
     scores = []
     for interaction in interactions:
         try:
@@ -201,23 +201,23 @@ def find_optimal_threshold(interactions, min_edges=10):
             scores.append(score)
         except (ValueError, TypeError):
             continue
-    
+
     if not scores:
         return 400
-    
-    # sukoathedescordertoso-to
+
+    # Sort scores in descending order
     scores.sort(reverse=True)
-    
-    # fewnakuandmomin_edgespieceofejithecertainkeepwithkirumaximumofsukoatheviewtsukeru
+
+    # Find the maximum score that guarantees at least min_edges edges
     for score in scores:
         edge_count = sum(1 for s in scores if s >= score)
         if edge_count >= min_edges:
             return score
-    
+
     return min(scores)
 
 def analyze_network(G):
-    """NetworktheAnalysisdorelnum"""
+    """Function to analyze network"""
     analysis_results = {
         "basic_stats": {
             "nodes": G.number_of_nodes(),
@@ -225,37 +225,37 @@ def analyze_network(G):
             "average_degree": 2 * G.number_of_edges() / G.number_of_nodes() if G.number_of_nodes() > 0 else 0
         }
     }
-    
+
     if G.number_of_nodes() > 0:
-        # midcenternatureofCalculation
+        # Calculate centrality
         analysis_results["centrality"] = {
             "degree": nx.degree_centrality(G),
             "betweenness": nx.betweenness_centrality(G) if G.number_of_edges() > 0 else {},
             "closeness": nx.closeness_centrality(G) if G.number_of_edges() > 0 else {}
         }
-        
-        # Clusterrelatenum（ejiisexistatdoplacematchofmi）
+
+        # Clustering coefficient (only if edges exist)
         if G.number_of_edges() > 0:
             analysis_results["clustering"] = nx.clustering(G)
         else:
             analysis_results["clustering"] = {node: 0 for node in G.nodes()}
-    
+
     return analysis_results
 
 def main():
     st.title("Protein-Protein Interaction Network Analysis using STRING-db")
     
-    # GenerisutoofInput
+    # Gene list input
     gene_input = st.text_area(
-        "Enter gene symbols (separated by spaces, newlines, or semicolons):", 
+        "Enter gene symbols (separated by spaces, newlines, or semicolons):",
         height=200,
         help="You can paste gene symbols separated by spaces, newlines, or semicolons"
     )
-    
-    # Generisutoofprocproc
+
+    # Process gene list
     genes = process_gene_list(gene_input)
-    
-    # procprocsaretaGenerisutoofDisplay
+
+    # Display processed gene list
     st.write(f"Number of unique genes: {len(genes)}")
     if st.checkbox("Show processed gene list"):
         st.write(", ".join(genes))
@@ -289,7 +289,7 @@ def main():
                 help="Higher values mean more stringent interaction criteria (0-1)"
             )
     
-    # FilteringOptionofaddadd
+    # Add filtering options
     with st.expander("Advanced Filtering Options"):
         max_edges = st.number_input(
             "Maximum number of edges to show",
@@ -307,34 +307,34 @@ def main():
     
     if st.button("Analyze Network"):
         with st.spinner("Fetching protein interaction data..."):
-            # sukoaThreshold0withallteofintarakushiyonthegetget
+            # Get all interactions with score threshold 0
             interactions = fetch_string_db_interactions(genes, species_id, 0)
             
             if not interactions:
                 st.error("No interactions found for the given parameters.")
                 return
             
-            # intarakushiyonDataofSampletheDisplay
+            # Display sample of interaction data
             with st.expander("Show raw interaction data sample"):
                 sample_df = pd.DataFrame(interactions[:5])
                 st.dataframe(sample_df)
-            
-            # NetworkxtheuseuseshitaNetworkofmakebecome
+
+            # Create network using NetworkX
             G = nx.Graph()
-            
-            # no-doofaddadd
+
+            # Add nodes
             for gene in genes:
                 G.add_node(gene)
-            
-            # intarakushiyonthesukoawithso-to
+
+            # Sort interactions by score
             if show_strongest:
                 interactions = sorted(
                     interactions,
                     key=lambda x: float(x.get('score', 0)),
                     reverse=True
                 )[:max_edges]
-            
-            # ejiofaddadd
+
+            # Add edges
             edge_count = process_interactions(interactions, G, genes, score_threshold)
             
             if edge_count == 0:
@@ -346,40 +346,40 @@ def main():
     
             if edge_count > 0:
                 try:
-                    # NetworkofVisualization
+                    # Network visualization
                     fig = visualize_network(G, score_threshold)
                     st.pyplot(fig)
-                    
-                    # NetworkAnalysis
+
+                    # Network analysis
                     analysis_results = analyze_network(G)
-                    
-                    # basemainStatisticalamountofDisplay
+
+                    # Display basic statistics
                     st.subheader("Network Statistics")
                     stats = analysis_results["basic_stats"]
                     st.write(f"Number of nodes: {stats['nodes']}")
                     st.write(f"Number of edges: {stats['edges']}")
                     st.write(f"Average degree: {stats['average_degree']:.2f}")
-                    
-                    # midcenternatureofAnalysisandDisplay
+
+                    # Centrality analysis and display
                     st.subheader("Centrality Analysis")
-                    
-                    # nextnummidcenternatureofTop 10
+
+                    # Top 10 by degree centrality
                     degree_df = pd.DataFrame.from_dict(
-                        analysis_results["centrality"]["degree"], 
-                        orient='index', 
+                        analysis_results["centrality"]["degree"],
+                        orient='index',
                         columns=['Degree Centrality']
                     )
                     degree_df = degree_df.sort_values('Degree Centrality', ascending=False)
-                    
-                    # mediumviamidcenternatureofTop 10
+
+                    # Top 10 by betweenness centrality
                     betweenness_df = pd.DataFrame.from_dict(
-                        analysis_results["centrality"]["betweenness"], 
-                        orient='index', 
+                        analysis_results["centrality"]["betweenness"],
+                        orient='index',
                         columns=['Betweenness Centrality']
                     )
                     betweenness_df = betweenness_df.sort_values('Betweenness Centrality', ascending=False)
-                    
-                    # midcenternatureofResulttheresultmatch
+
+                    # Combine centrality results
                     centrality_df = pd.concat([
                         degree_df['Degree Centrality'],
                         betweenness_df['Betweenness Centrality']
@@ -388,7 +388,7 @@ def main():
                     st.write("Top 10 genes by centrality measures:")
                     st.dataframe(centrality_df.head(10))
                     
-                    # ClusterrelatenumofDisplay
+                    # Display clustering coefficient
                     if "clustering" in analysis_results:
                         st.subheader("Clustering Analysis")
                         clustering_df = pd.DataFrame.from_dict(
@@ -397,14 +397,14 @@ def main():
                             columns=['Clustering Coefficient']
                         )
                         clustering_df = clustering_df.sort_values('Clustering Coefficient', ascending=False)
-                        
+
                         st.write("Top 10 genes by clustering coefficient:")
                         st.dataframe(clustering_df.head(10))
-                    
-                    # Resultofekusupo-to
+
+                    # Export results
                     st.subheader("Export Results")
-                    
-                    # ejiDataoflevelprep
+
+                    # Prepare edge data
                     edge_df = pd.DataFrame([
                         {
                             'Source': u,
@@ -413,12 +413,12 @@ def main():
                         }
                         for u, v, d in G.edges(data=True)
                     ])
-                    
-                    # no-doDataoflevelprep
+
+                    # Prepare node data
                     node_df = centrality_df.reset_index()
                     node_df.columns = ['Gene', 'Degree_Centrality', 'Betweenness_Centrality']
-                    
-                    # DataofDownloadbotantheprovideprovide
+
+                    # Provide download buttons for data
                     col1, col2 = st.columns(2)
                     with col1:
                         csv_edges = edge_df.to_csv(index=False)

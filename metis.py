@@ -262,6 +262,9 @@ def home():
     - __CellTypist annotation:__
     Automatic cell type annotation using machine learning. Supports 60 pre-trained models (Human/Mouse tissues)
 
+    - __COMPASS metabolic analysis:__
+    Single-cell metabolic flux analysis using flux balance analysis (FBA). Estimates metabolic reaction activity from gene expression. Requires Gurobi license (free for academic use)
+
     #### SCENIC
     - __SCENIC heatmap:__
     Heatmap visualization of SCENIC gene regulatory networks
@@ -452,6 +455,7 @@ pg = st.navigation({
         st.Page("pages/sccoda_analysis.py", title="scCODA compositional analysis"),
         st.Page("pages/add_metadata.py", title="Add metadata to h5ad"),
         st.Page("pages/celltypist.py", title="CellTypist annotation"),
+        st.Page("pages/compass_analysis.py", title="COMPASS metabolic analysis"),
     ],
     "SCENIC 🎭": [
         st.Page("pages/SCENICviewer.py", title="SCENIC heatmap"),

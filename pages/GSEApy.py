@@ -988,8 +988,8 @@ if Analysis_mode == "Over-representation":
                         bk_genes = bk_genes[1:]
 
                 else:
-                    df.columns = df.iloc[0,:].tolist()    # Don't transpose first, set columns after transpose
-                    df = df.drop(0, axis = 0) # Use first row as column names and remove
+                    df.columns = df.iloc[0,:].tolist()    # Set columns after transpose to avoid issues
+                    df = df.drop(0, axis = 0) # Use first row as column names then remove it
 
                     st.write(df.head())
                     content = df.columns.tolist()
@@ -1117,7 +1117,7 @@ if Analysis_mode == "Over-representation":
 elif Analysis_mode == "Prerank":
     st.markdown("### Prerank-GSEA mode")
 
-    # fgseaoptionadd
+    # Add fgsea option
     prerank_method = st.radio(
         "GSEA method:",
         ('GSEApy', 'fgsea (R)'),
@@ -1149,12 +1149,12 @@ elif Analysis_mode == "Prerank":
         if uploaded_file is not None:
             if input_file_type == "csv":
                 df = read_csv(uploaded_file, index_col = 0)
-                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
+                # If first column has no name (e.g., Unnamed: 0), set the index name
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
             elif input_file_type == 'tsv':
                 df = read_csv(uploaded_file, sep = '\t', index_col = 0)
-                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
+                # If first column has no name (e.g., Unnamed: 0), set the index name
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
             elif input_file_type == 'Seurat':
@@ -1198,7 +1198,7 @@ elif Analysis_mode == "Prerank":
                 st.write(f"Number of genes: {len(df)}")
             else:
                 df = read_xl(uploaded_file, index_col = 0)
-                # 1column has nameisnotplacematch（Unnamed: 0etc）、indextonamesettings
+                # If first column has no name (e.g., Unnamed: 0), set the index name
                 if df.index.name is None or df.index.name == '' or 'Unnamed' in str(df.index.name):
                     df.index.name = 'gene'
 
@@ -1228,12 +1228,12 @@ elif Analysis_mode == "Prerank":
                     "Ranking metric:",
                     ('sign(LFC) x -log10(P)', 'LFC x -log10(p)', "DESeq2 stat/limma t"), index = 0)
                     # calculate stat value
-                # indexGenecolumn copy
+                # Copy index to Gene column
                 df['Gene'] = df.index
-                # indexRemove name
+                # Remove index name
                 df.index.name = None
 
-                # GeneUpdate content after adding column
+                # Update content after adding Gene column
                 content = df.columns.tolist()
 
                 fc_patterns = ['log2fc', 'fold change', 'log2foldchange', 'coef', 'logfc', 'avg_log2fc']
@@ -1252,7 +1252,7 @@ elif Analysis_mode == "Prerank":
                 else:
                     st.write("Select pvalue and logFC")
                     P_column = st.selectbox('Select P-value column', pvalue)
-                    stat_column = re.match(r'([^\.]+)', P_column).group(1) #nameChange name
+                    stat_column = re.match(r'([^\.]+)', P_column).group(1) # Rename
                     # Jaro-Winkler distance method
                     JW_dist = [jaro_winkler_similarity(P_column, x) for x in fc]
                     try:
@@ -1287,7 +1287,7 @@ elif Analysis_mode == "Prerank":
                 st.session_state.rnk_name = rnk_name
 
             else:  # PCA loadings mode
-                # indexGenecolumn copy
+                # Copy index to Gene column
                 df['Gene'] = df.index
                 df.index.name = None
                 content = df.columns.tolist()
@@ -1314,9 +1314,9 @@ elif Analysis_mode == "Prerank":
 
                 inv_switch = st.checkbox('Invert the sign')
 
-                # loadingsvaluerank filetoconvert
+                # Convert loadings values to rank file
                 rnk = df[[Gene_column, Loading_column]].copy()
-                rnk = rnk.dropna()  # NAremoverm
+                rnk = rnk.dropna()  # Remove NA
                 rnk.columns = ['Gene', 'score']
                 rnk = rnk.set_index('Gene')
 
@@ -1471,7 +1471,7 @@ elif Analysis_mode == "Prerank":
             os.mkdir(gsea_dir + '/downregulated_enrichment')
 
 
-        if st.button('Run prerank GSEA test', type = 'primary') and GO: # statestatetokakawarazu、botanispushedracalculate。
+        if st.button('Run prerank GSEA test', type = 'primary') and GO: # Calculate when button is pressed, regardless of state.
             st.session_state.pre_res = None
 
             if list(rnk.index.duplicated()).count(True) > 0:

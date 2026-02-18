@@ -193,18 +193,18 @@ def add_stat_annotations(fig, test_results, y_pos, groups, bar_height=15, x_offs
     # Use the provided groups list to maintain X-axis order
     groups_list = list(groups)
 
-    # For calculating offsets to shift bar height for each group pair
+    # Calculate offsets to shift bar height for each group pair
     group_pairs = []
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
             if p_value < 0.05 or show_all_p:
-                # Store not only group pair but also index
+                # Store group pair along with index
                 x1_pos = groups_list.index(group1)
                 x2_pos = groups_list.index(group2)
                 span = abs(x2_pos - x1_pos)
                 group_pairs.append((group1, group2, span))
 
-    # Sort by span (place longer spans below)
+    # Sort by span (place shorter spans below)
     group_pairs.sort(key=lambda x: x[2], reverse=False)
 
     # Calculate offset according to number of bars (ensure sufficient spacing between bars)
@@ -255,7 +255,7 @@ def add_stat_annotations(fig, test_results, y_pos, groups, bar_height=15, x_offs
                 xref="x", yref="y"
             )
 
-            # Change p-value text to numbers only
+            # Display p-value as numbers only
             p_text = f"{p_value:.4g}"
             fig.add_annotation(
                 x=(x1_pos + x2_pos) / 2,
@@ -299,7 +299,12 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
     if color_split:
         fig = go.Figure()
 
-        for idx, color_group in enumerate(df_show.T['Color_group'].unique()):
+        # Use sorted order for traces if available, otherwise use data order
+        color_group_order = list(df_show.T['Color_group'].unique())
+        if st.session_state.get('sorted_groups') is not None:
+            color_group_order = st.session_state.sorted_groups
+
+        for idx, color_group in enumerate(color_group_order):
             group_data = df_show.T[df_show.T['Color_group'] == color_group]
 
             if plot_type == 'box':
@@ -331,7 +336,12 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
     else:
         fig = go.Figure()
 
-        for idx, group in enumerate(df_show.T['Group'].unique()):
+        # Use sorted order for traces if available, otherwise use data order
+        group_order = list(df_show.T['Group'].unique())
+        if st.session_state.get('sorted_groups') is not None:
+            group_order = st.session_state.sorted_groups
+
+        for idx, group in enumerate(group_order):
             group_data = df_show.T[df_show.T['Group'] == group]
 
             if plot_type == 'box':
@@ -404,12 +414,15 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
 
     # Add statistical annotations if test is specified
     if stat_test in ['t', 'student_t', 'u', 'wilcoxon']:
+        # Use sorted order for groups if available
         if color_split:
             # For color-split, we need to perform tests between colors within each condition
-            groups = df_show.T['Color_group'].unique()
+            groups = list(df_show.T['Color_group'].unique())
         else:
             # Otherwise, perform tests between groups
-            groups = df_show.T['Group'].unique()
+            groups = list(df_show.T['Group'].unique())
+        if st.session_state.get('sorted_groups') is not None:
+            groups = st.session_state.sorted_groups
 
         # Perform statistical tests
         test_results = perform_multiple_tests(df_show, gene, stat_test, groups, adjust_method)
@@ -422,7 +435,7 @@ def create_plot_with_points(df_show, gene, plot_type='box', color_split=False, p
             else:
                 max_y = np.max(y_values)
 
-            # Move bar position closer to box (1.15 → 1.05)
+            # Move bar position closer to box (1.15 -> 1.05)
             annotation_start_y = max_y * 1.05
 
             # Allow margin for multiple bars by considering bar height
@@ -465,7 +478,7 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
     # Use the provided groups list to maintain X-axis order
     groups_list = list(groups)
 
-    # For calculating offsets to shift bar height for each group pair
+    # Calculate offsets to shift bar height for each group pair
     group_pairs = []
     for (group1, group2), p_value in test_results.items():
         if not np.isnan(p_value):
@@ -503,11 +516,15 @@ def add_combined_stat_annotations(fig, test_results, idx, gene, df_show, y_max, 
             current_y_pos = y_max * 1.02 + current_offset
 
             # Get group information
-            if group1 in df_show.T['Group'].unique() and group2 in df_show.T['Group'].unique():
+            # Use sorted order for positions if available
+            position_groups = list(df_show.T['Group'].unique())
+            if st.session_state.get('sorted_groups') is not None:
+                position_groups = st.session_state.sorted_groups
+            if group1 in position_groups and group2 in position_groups:
                 # Get position information of groups within subplot
                 group_positions = {}
-                for i, g in enumerate(df_show.T['Group'].unique()):
-                    group_positions[g] = i / (len(df_show.T['Group'].unique()) - 1) if len(df_show.T['Group'].unique()) > 1 else 0.5
+                for i, g in enumerate(position_groups):
+                    group_positions[g] = i / (len(position_groups) - 1) if len(position_groups) > 1 else 0.5
 
                 # Calculate relative position of each group
                 x1_pos = group_positions.get(group1, 0)
@@ -623,6 +640,14 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
     # Store statistical bar information for each gene
     stat_annotations_info = []
 
+    # Use sorted order for traces if available, otherwise use data order
+    if color_split:
+        group_order_for_traces = list(df_show.T['Color_group'].unique())
+    else:
+        group_order_for_traces = list(df_show.T['Group'].unique())
+    if st.session_state.get('sorted_groups') is not None:
+        group_order_for_traces = st.session_state.sorted_groups
+
     for idx, gene in enumerate(genes):
         x_domain = [idx * plot_width, (idx + 1) * plot_width - 0.02]
 
@@ -630,7 +655,7 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
         gene_range = gene_y_ranges[gene]
 
         if color_split:
-            for color_idx, color_group in enumerate(df_show.T['Color_group'].unique()):
+            for color_idx, color_group in enumerate(group_order_for_traces):
                 group_data = df_show.T[df_show.T['Color_group'] == color_group]
                 group_data[gene] = pd.to_numeric(group_data[gene], errors='coerce')
 
@@ -665,7 +690,7 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
                         meanline_visible=True
                     ))
         else:
-            for group_idx, group in enumerate(df_show.T['Group'].unique()):
+            for group_idx, group in enumerate(group_order_for_traces):
                 group_data = df_show.T[df_show.T['Group'] == group]
                 group_data[gene] = pd.to_numeric(group_data[gene], errors='coerce')
 
@@ -726,23 +751,30 @@ def create_combined_plots(df_show, genes, plot_type='box', color_split=False, po
             if st.session_state.get('sorted_groups') is not None:
                 category_order = st.session_state.sorted_groups
 
+        # Calculate Y-axis range (allow space for statistical bars)
+        y_range = y_axis_max - y_axis_min
+        y_upper = y_axis_max + y_range * 0.25  # Add 25% of range to top
+
         fig.update_layout(**{
             f'xaxis{idx+1 if idx > 0 else ""}': xaxis_settings,
             f'yaxis{idx+1 if idx > 0 else ""}': {
                 'title': '',
                 'titlefont_size': gene_font_size,
                 'tickfont_size': y_font_size,
-                'range': [y_axis_min, y_axis_max * 1.25],  # Allow margin at top
+                'range': [y_axis_min, y_upper],
                 'tickfont_family': 'Arial'
             }
         })
 
         # Store statistical test information
         if stat_test in ['t', 'student_t', 'u', 'wilcoxon']:
+            # Use sorted order for groups if available
             if color_split:
-                groups = df_show.T['Color_group'].unique()
+                groups = list(df_show.T['Color_group'].unique())
             else:
-                groups = df_show.T['Group'].unique()
+                groups = list(df_show.T['Group'].unique())
+            if st.session_state.get('sorted_groups') is not None:
+                groups = st.session_state.sorted_groups
 
             test_results = perform_multiple_tests(df_show, gene, stat_test, groups, adjust_method)
 
@@ -846,6 +878,50 @@ if 'sorted_groups' not in st.session_state:
 
 st.markdown("## Box/Violin plot generator")
 
+# Data structure selection
+st.markdown("### Data Structure")
+data_structure = st.radio(
+    "Select data structure:",
+    ("Matrix (rows=genes, cols=samples)", "Long format (rows=observations)"),
+    horizontal=True,
+)
+is_long_format = data_structure.startswith("Long")
+
+# Show example data format
+with st.expander("Example data format", expanded=False):
+    if is_long_format:
+        st.markdown("**Long format example:**")
+        example_long = pd.DataFrame({
+            'Gene': ['GeneA', 'GeneA', 'GeneA', 'GeneB', 'GeneB', 'GeneB'],
+            'CellType': ['HSC', 'HSC', 'MPP', 'HSC', 'HSC', 'MPP'],
+            'Value': [0.85, 0.82, 0.91, 0.73, 0.75, 0.88]
+        })
+        st.dataframe(example_long, hide_index=True)
+        st.markdown("""
+        - **Category column** (optional): X-axis grouping (e.g., Gene, CellType)
+        - **Value column** (required): Numeric data
+        - **Group column** (optional): Color grouping axis (e.g., CellType, Condition)
+
+        **ISP result example:**
+        - 1 gene, multiple cell types -> Category: perturbed_gene or (None), Group: cell_type
+        - Multiple genes, multiple cell types -> Category: perturbed_gene, Group: cell_type
+        """)
+    else:
+        st.markdown("**Matrix format example:**")
+        example_matrix = pd.DataFrame({
+            'Gene': ['GeneA', 'GeneB', 'GeneC'],
+            'Control_1': [10.5, 5.2, 20.1],
+            'Control_2': [12.3, 6.1, 22.5],
+            'Treatment_1': [8.7, 4.8, 18.9],
+            'Treatment_2': [9.1, 5.0, 19.2]
+        })
+        st.dataframe(example_matrix, hide_index=True)
+        st.markdown("""
+        - **Rows**: Gene names
+        - **Columns**: Sample names (Group_Number)
+        - **Values**: Expression levels, etc.
+        """)
+
 use_upload = 'Yes'
 if 'df' in st.session_state:
     if st.session_state.df is not None:
@@ -857,7 +933,7 @@ if 'df' in st.session_state:
 
 if use_upload == 'Yes':
     input_file_type = st.radio(
-            "Data format:",
+            "File format:",
             ('auto', 'tsv','csv', 'excel'))
 
     uploaded_file = st.file_uploader(" ", type=['txt','tsv','csv','xls','xlsx'])
@@ -877,53 +953,218 @@ if use_upload == 'Yes':
 
         st.write('Data Dimension: ' + str(df.shape))
 
-        transpose_df = st.checkbox('Transpose the data?')
-        if transpose_df:
-            df = df.T
+        # ========================================
+        # Long format handling
+        # ========================================
+        if is_long_format:
+            # For Long format: first row is header
+            df.columns = df.iloc[0, :].tolist()
+            df = df.drop(0, axis=0).reset_index(drop=True)
 
-        df.columns = df.iloc[0,:].tolist()
-        df = df.drop(0, axis=0)
-        content = df.columns.tolist()
-        Gene_column = content[0]
+            st.write("**Preview (Long format):**")
+            st.write(df.head(5))
 
-        if "Annotation/Divergence" in content:
-            search_word = '([^\ \(]+).*'
-            for i in range(1, len(content)):
-                match = re.search(search_word, content[i])
-                if match:
-                    content[i] = match.group(1).replace(' ', '_')
-            df.columns = content
-            df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str)
-
-            df = df.loc[:,'Annotation/Divergence':]
             content = df.columns.tolist()
-            content[0] = 'Gene'
-            df.columns = content
-            Gene_column = "Gene"
-            st.write("Found Annotation/Divergence column.")
-        elif "Gene" in content:
-            Gene_column = "Gene"
+
+            st.markdown("#### Column Selection")
+
+            # Value column (numeric data) - Required
+            numeric_cols = []
+            for c in content:
+                try:
+                    pd.to_numeric(df[c], errors='raise')
+                    numeric_cols.append(c)
+                except:
+                    pass
+
+            # Try to find a good default for value column
+            default_value_cols = ['Value', 'value', 'Expression', 'expression', 'cosine_similarity', 'Score', 'score']
+            default_val_idx = 0
+            for dv in default_value_cols:
+                if dv in numeric_cols:
+                    default_val_idx = numeric_cols.index(dv)
+                    break
+
+            value_col = st.selectbox(
+                "Value column (required)",
+                numeric_cols if numeric_cols else content,
+                index=default_val_idx,
+                help="Numeric column to plot",
+                key="long_value_col"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # Category column (optional) - X-axis grouping
+                category_options = ["(None)"] + content
+                default_cat_cols = ['Gene', 'gene', 'perturbed_gene', 'Category', 'Name']
+                default_cat_idx = 0  # Default to "(None)"
+                for dc in default_cat_cols:
+                    if dc in content:
+                        default_cat_idx = category_options.index(dc)
+                        break
+
+                category_col = st.selectbox(
+                    "Category column (optional)",
+                    category_options,
+                    index=default_cat_idx,
+                    help="X-axis grouping (e.g., Gene, CellType)",
+                    key="long_category_col"
+                )
+
+            with col2:
+                # Group column (optional) - Color grouping
+                group_options = ["(None)"] + content
+                default_group_cols = ['Group', 'group', 'Condition', 'condition', 'cell_type', 'CellType', 'Treatment', 'treatment']
+                default_grp_idx = 0  # Default to "(None)"
+                for dg in default_group_cols:
+                    if dg in content:
+                        default_grp_idx = group_options.index(dg)
+                        break
+
+                group_col = st.selectbox(
+                    "Group column (optional)",
+                    group_options,
+                    index=default_grp_idx,
+                    help="Color grouping axis (e.g., CellType, Condition)",
+                    key="long_group_col"
+                )
+
+            # Handle "(None)" selections
+            if category_col == "(None)":
+                category_col = None
+            if group_col == "(None)":
+                group_col = None
+
+            # Validate: at least one of category or group must be specified
+            if category_col is None and group_col is None:
+                st.error("Please specify at least one of Category or Group.")
+                st.stop()
+
+            # Convert Long format to Matrix format for compatibility
+            st.markdown("#### Data Conversion")
+
+            # Ensure value column is numeric
+            df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
+
+            # Determine the effective category for X-axis
+            if category_col is None and group_col is not None:
+                # Use group as the X-axis (e.g., cell_type comparison)
+                effective_category = group_col
+                effective_group = None
+                st.info(f"X-axis: comparing by {group_col}")
+            elif category_col is not None and group_col is None:
+                # Use category as X-axis, no color grouping
+                effective_category = category_col
+                effective_group = None
+                st.info(f"X-axis: comparing by {category_col}")
+            else:
+                # Both specified
+                effective_category = category_col
+                effective_group = group_col
+                st.info(f"X-axis: {category_col}, Color: {group_col}")
+
+            # Get unique categories
+            unique_categories = df[effective_category].unique().tolist()
+
+            if effective_group is not None:
+                # With group column for color
+                unique_groups = df[effective_group].unique().tolist()
+                st.write(f"Categories: {len(unique_categories)}, Groups: {len(unique_groups)}")
+                # Create sample names: Group_Index
+                df['_sample_name'] = df[effective_group].astype(str) + '_' + df.groupby(effective_group).cumcount().add(1).astype(str)
+            else:
+                # Without group column
+                st.write(f"Categories: {len(unique_categories)}")
+                # Create sample names: Category_Index
+                df['_sample_name'] = df[effective_category].astype(str) + '_' + df.groupby(effective_category).cumcount().add(1).astype(str)
+
+            # Pivot to matrix format
+            if len(unique_categories) > 1:
+                # Multiple categories - traditional matrix
+                df_matrix = df.pivot_table(
+                    index=effective_category,
+                    columns='_sample_name',
+                    values=value_col,
+                    aggfunc='first'
+                )
+            else:
+                # Single category - create matrix with one row
+                single_cat = unique_categories[0]
+                df_matrix = pd.DataFrame(
+                    [df[value_col].tolist()],
+                    index=[single_cat],
+                    columns=df['_sample_name'].tolist()
+                )
+
+            df = df_matrix
+            st.success(f"Converted to Matrix format: {df.shape[0]} categories x {df.shape[1]} samples")
+
+            file_name_head = os.path.splitext(uploaded_file.name)[0]
+            st.session_state.df = df
+            st.session_state.uploaded_file_name = file_name_head
+            st.session_state.is_long_format = True
+            st.session_state.long_format_info = {
+                'category_col': category_col,
+                'value_col': value_col,
+                'group_col': group_col,
+                'effective_category': effective_category,
+                'effective_group': effective_group
+            }
+
+        # ========================================
+        # Matrix format handling (original logic)
+        # ========================================
         else:
-            Gene_column = st.selectbox(
-                'Select gene column',
-                content)
+            transpose_df = st.checkbox('Transpose the data?')
+            if transpose_df:
+                df = df.T
 
-        df = df.set_index(Gene_column)
+            df.columns = df.iloc[0,:].tolist()
+            df = df.drop(0, axis=0)
+            content = df.columns.tolist()
+            Gene_column = content[0]
 
-        pattern = "^([^|]*)"
-        repatter = re.compile(pattern)
-        f_annotation = lambda x: repatter.match(x).group(1) if repatter.match(x) else x
+            if "Annotation/Divergence" in content:
+                search_word = '([^\ \(]+).*'
+                for i in range(1, len(content)):
+                    match = re.search(search_word, content[i])
+                    if match:
+                        content[i] = match.group(1).replace(' ', '_')
+                df.columns = content
+                df['Annotation/Divergence'] = df['Annotation/Divergence'].astype(str)
 
-        original_index = list(df.index)
-        new_index = [f_annotation(x) for x in original_index]
-        df.index = new_index
+                df = df.loc[:,'Annotation/Divergence':]
+                content = df.columns.tolist()
+                content[0] = 'Gene'
+                df.columns = content
+                Gene_column = "Gene"
+                st.write("Found Annotation/Divergence column.")
+            elif "Gene" in content:
+                Gene_column = "Gene"
+            else:
+                Gene_column = st.selectbox(
+                    'Select gene column',
+                    content)
 
-        if original_index != new_index:
-            st.warning("Removed content after '|' from gene symbols.")
+            df = df.set_index(Gene_column)
 
-        file_name_head = os.path.splitext(uploaded_file.name)[0]
-        st.session_state.df = df
-        st.session_state.uploaded_file_name = file_name_head
+            pattern = "^([^|]*)"
+            repatter = re.compile(pattern)
+            f_annotation = lambda x: repatter.match(x).group(1) if repatter.match(x) else x
+
+            original_index = list(df.index)
+            new_index = [f_annotation(x) for x in original_index]
+            df.index = new_index
+
+            if original_index != new_index:
+                st.warning("Removed content after '|' from gene symbols.")
+
+            file_name_head = os.path.splitext(uploaded_file.name)[0]
+            st.session_state.df = df
+            st.session_state.uploaded_file_name = file_name_head
+            st.session_state.is_long_format = False
     else:
         sys.exit(1)
 
@@ -1138,25 +1379,14 @@ if df is not None:
             # Reset sorted_groups if checkbox is not checked
             st.session_state.sorted_groups = None
 
-        st.markdown("##### Genes (comma, space, CR separated):")
-        genes = st.text_input("genes", label_visibility='collapsed', value=st.session_state.user_input)
-        st.session_state.user_input = genes
-        gene_list = []
-        if len(genes) > 0:
-            gene_list = genes.split(' ')
-            gene_list = list(filter(lambda a: a != '', gene_list))
-            if ',' in genes:
-                gene_list = sum([x.split(',') for x in gene_list], [])
-            if '\t' in genes:
-                gene_list = sum([x.split('\t') for x in gene_list], [])
-            if '\n' in genes:
-                gene_list = sum([x.split('\n') for x in gene_list], [])
+        # For Long format, automatically use all categories
+        # For Matrix format, allow user to specify genes
+        is_long = st.session_state.get('is_long_format', False)
 
-            df_index_set = list(set(df.index.tolist()))
-            df_index_set_lower = [x.lower() for x in df_index_set]
-            gene_subset = [df_index_set[df_index_set_lower.index(x.lower())]
-                          for x in gene_list if (x.lower() in df_index_set_lower)]
-            gene_subset = sorted(set(gene_subset), key=gene_subset.index)
+        if is_long:
+            # Long format: use all categories from the data
+            gene_subset = df.index.tolist()
+            st.info(f"Long format: {len(gene_subset)} categories")
 
             if st.button('Make plot'):
                 if plot_type == 'Individual plots':
@@ -1236,3 +1466,104 @@ if df is not None:
                         file_name=file_name_head + ".Boxplot.zip",
                         mime="zip"
                     )
+
+        else:
+            # Matrix format: user specifies genes
+            st.markdown("##### Genes (comma, space, CR separated):")
+            genes = st.text_input("genes", label_visibility='collapsed', value=st.session_state.user_input)
+            st.session_state.user_input = genes
+            gene_list = []
+            if len(genes) > 0:
+                gene_list = genes.split(' ')
+                gene_list = list(filter(lambda a: a != '', gene_list))
+                if ',' in genes:
+                    gene_list = sum([x.split(',') for x in gene_list], [])
+                if '\t' in genes:
+                    gene_list = sum([x.split('\t') for x in gene_list], [])
+                if '\n' in genes:
+                    gene_list = sum([x.split('\n') for x in gene_list], [])
+
+                df_index_set = list(set(df.index.tolist()))
+                df_index_set_lower = [x.lower() for x in df_index_set]
+                gene_subset = [df_index_set[df_index_set_lower.index(x.lower())]
+                              for x in gene_list if (x.lower() in df_index_set_lower)]
+                gene_subset = sorted(set(gene_subset), key=gene_subset.index)
+
+                if st.button('Make plot', key='matrix_make_plot'):
+                    if plot_type == 'Individual plots':
+                        for i in gene_subset:
+                            gene_name = "___" + i + "___"
+                            gene_title = "<i>" + i + "</i>"
+                            st.markdown(gene_name)
+
+                            fig = create_plot_with_points(df_show, i,
+                                                        plot_type=plot_style,
+                                                        color_split=color_split,
+                                                        points=points,
+                                                        c_choice=c_choice,
+                                                        py_x_size=py_x_size,
+                                                        py_y_size=py_y_size,
+                                                        legend_font_size=legend_font_size,
+                                                        x_font_size=x_font_size,
+                                                        y_font_size=y_font_size,
+                                                        gene_font_size=gene_font_size,
+                                                        jitter=jitter,
+                                                        y_min=y_min,
+                                                        y_max=y_max,
+                                                        show_box=show_box,
+                                                        marker_size=marker_size,
+                                                        stat_test=stat_test,
+                                                        adjust_method=adjust_method,
+                                                        apply_logit=apply_logit,
+                                                        p_value_font_size=p_value_font_size,
+                                                        show_all_p=show_all_p,
+                                                        stat_bar_height=stat_bar_height)
+
+                            st.plotly_chart(fig, theme=None)
+                            if save_type == 'html':
+                                fig.write_html(res_dir + "/" + i + "." + save_type)
+                            else:
+                                fig.write_image(res_dir + "/" + i + "." + save_type, format=save_type)
+
+                    else:  # Combined plot
+                        combined_x_size = py_x_size * len(gene_subset)
+
+                        fig = create_combined_plots(df_show, gene_subset,
+                                                  plot_type=plot_style,
+                                                  color_split=color_split,
+                                                  points=points,
+                                                  c_choice=c_choice,
+                                                  py_x_size=combined_x_size,
+                                                  py_y_size=py_y_size,
+                                                  legend_font_size=legend_font_size,
+                                                  x_font_size=x_font_size,
+                                                  y_font_size=y_font_size,
+                                                  gene_font_size=gene_font_size,
+                                                  jitter=jitter,
+                                                  y_min=y_min,
+                                                  y_max=y_max,
+                                                  show_box=show_box,
+                                                  marker_size=marker_size,
+                                                  stat_test=stat_test,
+                                                  adjust_method=adjust_method,
+                                                  apply_logit=apply_logit,
+                                                  p_value_font_size=p_value_font_size,
+                                                  show_all_p=show_all_p,
+                                                  stat_bar_height=stat_bar_height)
+
+                        st.plotly_chart(fig, theme=None)
+
+                        if save_type == 'html':
+                            fig.write_html(res_dir + "/combined_plot." + save_type)
+                        else:
+                            fig.write_image(res_dir + "/combined_plot." + save_type, format=save_type)
+
+                    # Zip file creation and download button
+                    shutil.make_archive(temp_dir + "/Boxplot", format='zip', root_dir=res_dir)
+                    with open(temp_dir + "/Boxplot.zip", "rb") as fp:
+                        btn = st.download_button(
+                            label="Download plots?",
+                            data=fp,
+                            file_name=file_name_head + ".Boxplot.zip",
+                            mime="zip"
+                        )

@@ -89,40 +89,19 @@ def home():
     """
     #### ***M***olecular ***E***xploration and ***T***ranscriptomic ***I***nvestigation ***S***uite
 
-    #### RNA-seq workflow
-    1. Count Data Normalization → PCA, Heatmap (QC and data distribution check)
-    2. DESeq2 → Volcano plot
-    3. Gene set analysis: DESeq2 → GSEApy, decoupleR
-        - Alternatively, over-representation analysis using DEG lists (GSEApy, decoupleR)
-
-    #### Usage Examples
-    - __Creating data for Heatmap:__
-    Count Data Normalization. Or extract rlog data using "Homer to Data" from DESeq2 results.
-    Filter by expression levels or changes using "Filter Log Z-score". Basic filtering can also be done in Heatmap.
-
-    - __Updating gene names from Homer etc:__
-    Use "Update Gene Symbol". Since many gene names are updated, it's better to update depending on downstream analysis methods.
-
-    - __Converting gene names to Ensembl ID:__
-    Use "Homer to Ensembl". For example, DIANE uses Ensembl IDs, so convert using this tool.
-
-    - __Data file organization:__
-    Remove unnecessary columns/rows. Extract only needed columns. Change row/column names, reorder columns, transpose rows and columns using "Manipulate Data Table".
-
-
     #### Data Normalization/Manipulation
     - __Count Data Normalization:__
     RNA-seq count data normalization, QC PCA, heatmap, box plot and other preprocessing
 
     - __Homer or DEseq2 to Data:__
-    Convert Homer output files to data-only files
-    Extract only rlog data from DESeq2
+    Convert Homer output files to data-only files.
+    Extract only rlog data from DESeq2.
 
     - __Count to TPM:__
     Convert raw count data to TPM
 
     - __Manipulate Data Table:__
-    Delete/extract rows/columns from data table. Change column order, row names, column names
+    Delete/extract rows and columns from data table. Reorder columns, rename rows and columns.
 
     - __Merge Data Table:__
     Merge data files
@@ -218,6 +197,9 @@ def home():
     - __GSEApy:__
     GSEA
 
+    - __aPEAR Enrichment Network:__
+    Network visualization of pathway enrichment results. Auto-detection from GSEApy, decoupleR, PADOG output TSV. Clustering and labeling based on gene overlap between pathways
+
     - __PPI analysis:__
     Protein-protein interaction analysis using STRING-db
 
@@ -238,6 +220,9 @@ def home():
     Create gmt files from cluster results or WGCNA module genes
 
     #### scRNA-seq
+    - __Dimension reduction:__
+    Dimension reduction for scRNA-seq data (h5ad) (UMAP, t-SNE, Diffusion Map, PHATE, PaCMAP, TriMap, etc.)
+
     - __Pseudobulk:__
     Create pseudobulk data from anndata (h5ad)
 
@@ -246,6 +231,9 @@ def home():
 
     - __Random pseudo-replicates:__
     Create pseudo-replicates by random cell splitting
+
+    - __Pseudobulk DEA (RUV):__
+    Pseudobulk from h5ad -> RUV correction (RUVg/RUV2/RUVIII) -> Differential expression analysis with edgeR/DESeq2
 
     - __memento DE analysis:__
     Differential expression analysis using memento
@@ -263,7 +251,19 @@ def home():
     Automatic cell type annotation using machine learning. Supports 60 pre-trained models (Human/Mouse tissues)
 
     - __COMPASS metabolic analysis:__
-    Single-cell metabolic flux analysis using flux balance analysis (FBA). Estimates metabolic reaction activity from gene expression. Requires Gurobi license (free for academic use)
+    Single-cell metabolic flux analysis. Estimates metabolic reaction activity from gene expression using Flux Balance Analysis (FBA)
+
+    - __COMPASS postprocess:__
+    Differential analysis of COMPASS results (Wilcoxon test, Cohen's d, volcano plot, subsystem aggregation)
+
+    - __scFEA metabolic analysis:__
+    Fast metabolic flux estimation using Graph Neural Network. Significantly faster than COMPASS with no license required
+
+    - __scFEA postprocess:__
+    Differential analysis of scFEA results (Wilcoxon test, Cohen's d, volcano plot, supermodule aggregation). Supports both Flux/Balance modes
+
+    - __Geneformer perturbation:__
+    In silico perturbation analysis using Transformer foundation model. Predicts effects of gene knockout/overexpression
 
     #### SCENIC
     - __SCENIC heatmap:__
@@ -280,6 +280,9 @@ def home():
 
     - __SCENIC multinetwork analysis:__
     Network visualization of SCENIC regulons centered on multiple transcription factors and targets
+
+    - __SCENIC network analysis 2:__
+    SCENIC network analysis with Community Detection, Feed-Forward Loop detection, AUCell differential analysis, Feedback Loop detection, and TF family annotation
 
     #### RNA velocity
     - __Data filtering:__
@@ -298,7 +301,13 @@ def home():
     Visualization of CellRank analysis results (terminal states, fate probabilities, gene trends, etc.)
 
     - __DeepVelo analysis:__
-    Deep learning-based RNA velocity estimation (recommended to run in separate environment)
+    Deep learning-based RNA velocity estimation
+
+    - __UniTVelo analysis:__
+    Unified-time RNA velocity analysis. Uses scVelo analysis results as input. Selectable Unified-time/Independent mode
+
+    - __noSpliceVelo analysis:__
+    RNA velocity analysis without spliced/unspliced separation. Can analyze with standard scRNA-seq count data only
 
     - __Pseudotime gene expression:__
     Visualization of gene expression trends along pseudotime and cluster density
@@ -317,6 +326,9 @@ def home():
 
     - __TFvelo analysis:__
     Transcription factor velocity analysis
+
+    - __TFvelo to Dynamo:__
+    Convert TFvelo results to Dynamo format for Vector Field construction and perturbation analysis
 
     - __VeloViz:__
     2D embedding considering RNA velocity information. Unlike traditional UMAP/tSNE, differentiation direction is more clearly visualized
@@ -338,7 +350,7 @@ def home():
     Statistical testing of two-condition comparison using permutation test
 
     - __CellChat R qs to python:__
-    Convert SCALA CellChat analysis result qs files for use in metis
+    Convert SCALA CellChat analysis result qs files for use in METIS
 
     #### scRNA file operation
     - __Download public data for SCALA and cellxgene:__
@@ -352,6 +364,9 @@ def home():
 
     - __SCALA file browser:__
     Browse files accessible by SCALA
+
+    - __Data file browser:__
+    Browse and manage data files
 
     #### ChIP-seq
     - __Sort BAM file:__
@@ -371,7 +386,8 @@ def home():
     Annotation and annotation-based filtering of peak files and bed files
 
     - __Bed file filter for length score:__
-    Filtering by peak length and score. Peak length distribution is also displayed
+    Filtering by peak length and score.
+    \tPeak length distribution is also displayed
 
     - __Bam to DESeq2:__
     Normalize CUT&RUN peak counts based on greenlist counts for DESeq2 analysis
@@ -437,6 +453,8 @@ pg = st.navigation({
     "Pathway Analysis 🔀": [
         st.Page("pages/decoupler.py", title="decoupleR"),
         st.Page("pages/GSEApy.py", title="GSEApy"),
+        st.Page("pages/aPEAR.py", title="aPEAR Enrichment Network"),
+        st.Page("pages/PADOG.py", title="PADOG"),
         st.Page("pages/StringDB.py", title="PPI analysis"),
     ],
     "WGCNA 🥅": [
@@ -447,15 +465,21 @@ pg = st.navigation({
         st.Page("pages/cluster2gmt.py", title="Generate gmt from cluster info"),
     ],
     "scRNA-seq 🎡": [
+        st.Page("pages/dimension_reduction.py", title="Dimension reduction"),
         st.Page("pages/pseudobulk.py", title="Pseudobulk"),
         st.Page("pages/SEAcells.py", title="Metacells by SEACells"),
         st.Page("pages/pseudoreplicates.py", title="Random pseudo-replicates"),
+        st.Page("pages/pseudobulk_DEA.py", title="Pseudobulk DEA (RUV)"),
         st.Page("pages/Memento.py", title="memento DE analysis"),
         st.Page("pages/Memento2D.py", title="memento 2D analysis"),
         st.Page("pages/sccoda_analysis.py", title="scCODA compositional analysis"),
         st.Page("pages/add_metadata.py", title="Add metadata to h5ad"),
         st.Page("pages/celltypist.py", title="CellTypist annotation"),
         st.Page("pages/compass_analysis.py", title="COMPASS metabolic analysis"),
+        st.Page("pages/compass_postprocess.py", title="COMPASS postprocess"),
+        st.Page("pages/scFEA_analysis.py", title="scFEA metabolic analysis"),
+        st.Page("pages/scFEA_postprocess.py", title="scFEA postprocess"),
+        st.Page("pages/geneformer_analysis.py", title="Geneformer perturbation"),
     ],
     "SCENIC 🎭": [
         st.Page("pages/SCENICviewer.py", title="SCENIC heatmap"),
@@ -463,6 +487,7 @@ pg = st.navigation({
         st.Page("pages/SCENICcsi.py", title="SCENIC CSI"),
         st.Page("pages/SCENIC_network.py", title="SCENIC network analysis"),
         st.Page("pages/SCENIC_multinetwork.py", title="SCENIC multinetwork analysis"),
+        st.Page("pages/SCENIC_network2.py", title="SCENIC network analysis 2"),
     ],
     "RNA velocity 🚀": [
         st.Page("pages/velocity_filter.py", title="Data filtering"),
@@ -471,12 +496,15 @@ pg = st.navigation({
         st.Page("pages/cellrank_analysis.py", title="CellRank analysis"),
         st.Page("pages/cellrank_visualization.py", title="CellRank visualization"),
         st.Page("pages/deepvelo_analysis.py", title="DeepVelo analysis"),
+        st.Page("pages/unitvelo_analysis.py", title="UniTVelo analysis"),
+        st.Page("pages/nosplicevelo_analysis.py", title="noSpliceVelo analysis"),
         st.Page("pages/pseudotime_gene_expression.py", title="Pseudotime gene expression"),
         st.Page("pages/dynamo_analysis.py", title="Dynamo analysis"),
         st.Page("pages/dynamo_visualization.py", title="Dynamo visualization"),
         st.Page("pages/dynamo_perturbation_v2.py", title="Dynamo perturbation"),
         st.Page("pages/dynamo_lap_correct.py", title="Dynamo LAP"),
         st.Page("pages/TFvelo.py", title="TFvelo analysis"),
+        st.Page("pages/tfvelo_to_dynamo.py", title="TFvelo to Dynamo"),
         st.Page("pages/veloviz.py", title="VeloViz"),
     ],
     "Cell communication 💬": [
@@ -511,6 +539,10 @@ pg = st.navigation({
         st.Page("pages/merge_excel.py", title="Merge excel files"),
         st.Page("pages/union.py", title="Remove duplicates"),
         st.Page("pages/SplitonKey.py", title="Split data file on key in another file"),
+        st.Page("pages/paperqa2.py", title="PaperQA2"),
+        st.Page("pages/grants.py", title="Grants eval"),
+        st.Page("pages/tts_generator.py", title="TTS Generator"),
+        st.Page("pages/form408_to_ms_json.py", title="MS JSON converter"),
     ],
 })
 

@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+process_files_for_upload.py
+pages_sections.toml

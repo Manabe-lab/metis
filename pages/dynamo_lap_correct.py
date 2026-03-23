@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import time
+from pathlib import Path
 from helper_func import clear_old_directories, clear_old_files
 from streamlit_sortables import sort_items
 
@@ -110,8 +111,8 @@ def load_tfs(species="auto"):
     """
     # Try local file first (streamlit directory)
     local_tf_paths = [
-        "/home/ichiro/streamlit/human_tfs.txt",
-        "/home/ichiro/streamlit/mouse_tfs.txt",
+        str(Path(__file__).resolve().parent.parent / "human_tfs.txt"),
+        str(Path(__file__).resolve().parent.parent / "mouse_tfs.txt"),
         "./human_tfs.txt",
         "./mouse_tfs.txt",
     ]

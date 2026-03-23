@@ -34,11 +34,12 @@ from patsy import dmatrix
 import warnings
 import zipfile
 import io
+from pathlib import Path
 from datetime import datetime
 warnings.filterwarnings('ignore')
 
 # Import helper functions for sample name processing
-sys.path.insert(0, '/home/ichiro/streamlit')
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from helper_func import remove_after_space, remove_sample_num
 
 # Page configuration
@@ -2865,7 +2866,7 @@ else:
     ...
     ```
 
-    Test data is available at `/home/ichiro/streamlit/temp/pca_test_data.tsv`.
+    Test data can be generated from any PCA result with sample metadata.
     """)
 
 st.markdown("---")

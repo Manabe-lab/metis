@@ -13,6 +13,7 @@ import os
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 
 st.set_page_config(
     page_title="DeepVelo Analysis",
@@ -34,7 +35,7 @@ with st.sidebar:
     st.header("⚙️ Environment Settings")
 
     # DeepVelo environment Python path
-    default_deepvelo_python = "/home/ichiro/anaconda3/envs/deepvelo_env/bin/python"
+    default_deepvelo_python = str(Path.home() / "anaconda3" / "envs" / "deepvelo_env" / "bin" / "python")
 
     deepvelo_python = st.text_input(
         "DeepVelo Python path",

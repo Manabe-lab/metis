@@ -1848,7 +1848,7 @@ with tab_local:
         # SFTP browser
         remote_dir = st.text_input(
             "Remote directory path",
-            value=st.session_state.get("scrna_sftp_remote_dir", "/home/Aging/Nova-seq"),
+            value=st.session_state.get("scrna_sftp_remote_dir", "/data/sequencing"),
             key="scrna_remote_dir_input",
         )
 
@@ -1882,7 +1882,7 @@ with tab_local:
             "BCL run directory path",
             value=st.session_state.get("scrna_local_bcl_path", ""),
             key="scrna_local_bcl_path",
-            placeholder="/mnt/HDD5/Nova-seq/241121_A01935_...",
+            placeholder="/data/sequencing/run_directory/...",
         )
 
         if local_bcl_path:
@@ -2276,9 +2276,9 @@ with tab_local:
 
     local_work_dir = st.text_input(
         "Work directory",
-        value="/mnt/SSD2/",
+        value=str(Path.home() / "analysis"),
         key="local_work_dir",
-        placeholder="/mnt/SSD2/project_scRNA",
+        placeholder="/data/analysis/project_scRNA",
     )
 
     if local_mode != "mkfastq only":
@@ -2611,9 +2611,9 @@ with tab_azenta:
                     # Download start UI
                     dropbox_work_dir = st.text_input(
                         "Work directory (download destination)",
-                        value="/mnt/SSD2/",
+                        value=str(Path.home() / "analysis"),
                         key="dropbox_work_dir",
-                        placeholder="/mnt/SSD2/project_scRNA",
+                        placeholder="/data/analysis/project_scRNA",
                     )
                     if st.button("Download & Extract", type="primary", key="scrna_dropbox_dl"):
                         if not dropbox_work_dir:
@@ -2729,9 +2729,9 @@ with tab_azenta:
                 else:
                     gdrive_work_dir = st.text_input(
                         "Work directory (download destination)",
-                        value="/mnt/SSD2/",
+                        value=str(Path.home() / "analysis"),
                         key="gdrive_work_dir",
-                        placeholder="/mnt/SSD2/project_scRNA",
+                        placeholder="/data/analysis/project_scRNA",
                     )
                     if st.button("Download", type="primary", key="scrna_gdrive_dl"):
                         if not gdrive_work_dir:
@@ -2754,7 +2754,7 @@ with tab_azenta:
             "FASTQ directory path",
             value=st.session_state.get("scrna_local_folder_path", ""),
             key="scrna_local_folder_path",
-            placeholder="/mnt/HDD5/SSD1/project/run_dir",
+            placeholder="/data/sequencing/project/run_dir",
         )
 
         if local_folder_path and os.path.isdir(local_folder_path):
@@ -2972,7 +2972,7 @@ with tab_azenta:
     st.subheader("4. Output")
 
     # When Dropbox / Google Drive download is complete, default work_dir to the download destination
-    _default_work_dir = "/mnt/SSD2/"
+    _default_work_dir = str(Path.home() / "analysis")
     if dropbox_downloaded:
         _dl_fdir = st.session_state["scrna_dropbox_downloaded"]["fastq_dir"]
         _default_work_dir = os.path.dirname(_dl_fdir)
@@ -2984,7 +2984,7 @@ with tab_azenta:
         "Work directory",
         value=_default_work_dir,
         key="azenta_work_dir",
-        placeholder="/mnt/SSD2/project_scRNA",
+        placeholder="/data/analysis/project_scRNA",
     )
 
     az_scala_dest = scala_dir_browser("azenta")

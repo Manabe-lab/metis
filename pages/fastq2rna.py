@@ -387,7 +387,7 @@ def pipeline_config_ui(key_prefix, default_save_to_lab=False):
 
     if lab_ngs_available:
         save_to_lab = st.checkbox(
-            "Save to lab_NGS (shared storage)",
+            "Save to shared storage",
             value=default_save_to_lab,
             key=f"{key_prefix}_save_to_lab",
         )
@@ -404,9 +404,9 @@ def pipeline_config_ui(key_prefix, default_save_to_lab=False):
 
         rel = os.path.relpath(current_path, LAB_NGS_BASE)
         if rel == ".":
-            st.markdown("📁 **lab_NGS/**")
+            st.markdown("📁 **shared_storage/**")
         else:
-            st.markdown(f"📁 **lab_NGS/{rel}/**")
+            st.markdown(f"📁 **shared_storage/{rel}/**")
 
         # Folder tree display
         if current_path != LAB_NGS_BASE:
@@ -562,7 +562,7 @@ with tab_sftp:
     # SFTP browser
     remote_dir = st.text_input(
         "Remote directory path",
-        value=st.session_state.get("sftp_remote_dir", "/home/Aging/Nova-seq"),
+        value=st.session_state.get("sftp_remote_dir", "/data/sequencing"),
         key="remote_dir_input",
     )
 

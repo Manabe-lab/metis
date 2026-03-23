@@ -6,8 +6,9 @@ import re
 import multiprocessing
 import zipfile
 from functools import reduce
+from pathlib import Path
 
-ROOT_DIR = '/home/lab/sftp-data/METIS_data'
+ROOT_DIR = str(Path.home() / 'sftp-data' / 'METIS_data')
 
 def get_directory_structure(rootdir):
     dir_structure = {}

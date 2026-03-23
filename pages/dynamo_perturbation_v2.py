@@ -135,12 +135,22 @@ uploaded_h5ad = st.file_uploader(
 )
 
 if uploaded_h5ad is not None:
-    # Cache file hash in session_state to avoid recomputing on every rerun
-    current_file_id = f"{uploaded_h5ad.name}_{uploaded_h5ad.size}"
-    if st.session_state.get('pert_v2_file_id') != current_file_id:
-        st.session_state.pert_v2_file_id = current_file_id
-        st.session_state.pert_v2_file_hash = _get_file_hash(uploaded_h5ad)
-    file_hash = st.session_state.pert_v2_file_hash
+    # Always compute file hash to detect content changes (even with same filename/size)
+    file_hash = _get_file_hash(uploaded_h5ad)
+
+    # Clear session state and cache if file changed
+    prev_hash = st.session_state.get('pert_v2_file_hash')
+    if prev_hash != file_hash:
+        st.session_state.pert_v2_file_hash = file_hash
+        # Clear the @st.cache_resource cache for load_h5ad_file
+        load_h5ad_file.clear()
+        # Clear perturbation results when new file is loaded
+        st.session_state.perturbation_done = False
+        if 'pert_adata' in st.session_state:
+            del st.session_state.pert_adata
+        if 'pert_h5ad_bytes' in st.session_state:
+            del st.session_state.pert_h5ad_bytes
+        st.info("🔄 New file detected - cache cleared")
 
     # Load file with caching
     with st.spinner("Loading file..."):
@@ -189,13 +199,14 @@ if uploaded_h5ad is not None:
             available_pert_bases = [k.replace('X_', '').replace('_perturbation', '') for k in perturbation_keys]
 
             use_existing = st.checkbox(
-                "Use existing perturbation results",
-                value=True,
-                key="use_existing_perturbation"
+                "Visualize existing perturbation results (skip computation)",
+                value=False,
+                key="use_existing_perturbation",
+                help="Checked: Visualize saved results only (no new computation)\nUnchecked: Recompute from Jacobian"
             )
 
             if use_existing:
-                st.caption("💡 If you don't proceed to the next step after loading data, select the perturbation basis to use below")
+                st.caption("💡 If the next step does not proceed after loading data, please select the perturbation basis to use below")
                 if len(available_pert_bases) == 1:
                     selected_pert_basis = available_pert_bases[0]
                     st.info(f"Perturbation basis: **{selected_pert_basis}**")
@@ -227,11 +238,11 @@ if uploaded_h5ad is not None:
             st.error("""
             ❌ **Cannot proceed with perturbation analysis**
 
-            This file is missing required data for Dynamo analysis.
+            This file is missing essential data from Dynamo analysis.
 
             Required data:
             - ✅ Vector field (any basis)
-            - ✅ High-dimensional Vector field (PCA, MNN, etc. - excluding umap/tsne)
+            - ✅ High-dimensional Vector field (PCA, MNN, etc. - not umap/tsne)
             - ✅ Low-dimensional embedding (UMAP, etc.)
 
             Please run vector field computation in the Dynamo Analysis app first.
@@ -245,7 +256,7 @@ if uploaded_h5ad is not None:
             st.markdown("### Visualization Options")
 
             colormap_discrete = st.selectbox(
-                "Colormap (discrete):",
+                "Colormap (Discrete):",
                 ["tab10", "Set1", "Set2", "Set3", "tab20", "Paired", "Dark2",
                  "tab20b", "tab20c", "Pastel1", "Pastel2", "Accent"],
                 index=0,
@@ -253,7 +264,7 @@ if uploaded_h5ad is not None:
             )
 
             colormap_continuous = st.selectbox(
-                "Colormap (continuous):",
+                "Colormap (Continuous):",
                 ["viridis", "plasma", "inferno", "magma", "cividis",
                  "YlOrRd", "OrRd", "YlOrBr", "Oranges", "Reds", "Blues", "Greens", "Greys"],
                 index=0,
@@ -322,7 +333,7 @@ if uploaded_h5ad is not None:
             st.subheader("Vector Field Basis")
 
             st.info("""
-            **High-dimensional spaces** (PCA, MNN, etc.) are used for Jacobian calculation.
+            **High-dimensional spaces** (PCA, MNN, etc.) are used for Jacobian computation.
             Low-dimensional embeddings such as UMAP/tSNE are excluded.
             """)
 
@@ -430,12 +441,12 @@ if uploaded_h5ad is not None:
                                 - Available PCs: {PCs.shape[1]} dimensions
 
                                 **Cause**: PCA loadings for {jacobian_basis} are not saved.
-                                Vector Field was computed in {n_embedding_dims} dimensions,
-                                but only loadings with {PCs.shape[1]} dimensions are available for perturbation.
+                                The Vector Field was computed in {n_embedding_dims} dimensions,
+                                but the only available loadings for perturbation are {PCs.shape[1]}-dimensional.
                                 """)
                                 need_recompute = True
                         else:
-                            st.warning(f"⚠️ PCA loadings not found (in both uns and varm). Computing new loadings.")
+                            st.warning(f"⚠️ PCA loadings not found (neither in uns nor varm). Will recompute.")
                             need_recompute = True
 
                     # Find mean key (check both uns keys)
@@ -451,14 +462,25 @@ if uploaded_h5ad is not None:
                         st.info(f"""
                         🔄 **Recomputing PCA loadings with {default_n_pca} dimensions (dynamo default)...**
 
-                        PCA loadings for the selected basis ({jacobian_basis}) were not found
-                        or dimensions did not match, so computing new PCA.
+                        PCA loadings for the selected basis ({jacobian_basis}) were not found or
+                        dimensions did not match. Computing new PCA.
                         """)
 
                         from sklearn.decomposition import PCA as sklearn_PCA
 
                         # Get HVG genes
-                        hvg_mask = adata.var.use_for_pca.values
+                        if 'use_for_pca' in adata.var.columns:
+                            col = adata.var.use_for_pca
+                        elif 'highly_variable' in adata.var.columns:
+                            col = adata.var.highly_variable
+                        else:
+                            st.error("HVG column not found (use_for_pca or highly_variable)")
+                            st.stop()
+                        # Convert to boolean mask
+                        if col.dtype == 'category' or col.dtype == object:
+                            hvg_mask = col.astype(str).str.lower() == 'true'
+                        else:
+                            hvg_mask = col.astype(bool).values
                         n_hvg = hvg_mask.sum()
 
                         # Get expression data for HVG genes
@@ -480,7 +502,7 @@ if uploaded_h5ad is not None:
                         PCs_location = 'uns'
                         pca_mean_key = basis_mean_key
 
-                        st.success(f"✓ PCA loadings recomputed: {basis_pcs_key} ({PCs.shape})")
+                        st.success(f"✓ Recomputed PCA loadings: {basis_pcs_key} ({PCs.shape})")
 
                     # Get stored mean
                     if pca_mean_key is None:
@@ -566,7 +588,7 @@ if uploaded_h5ad is not None:
                         Expected key: `{vf_key_full}`
                         Available Vector Field keys: {vecfld_keys}
 
-                        Vector field key not found.
+                        Vector field key name not found.
                         """)
                         st.stop()
 
@@ -586,6 +608,18 @@ if uploaded_h5ad is not None:
                         - Target: `{vf_key_dynamo_expects}`
                         """)
                         adata.uns[vf_key_dynamo_expects] = adata.uns[vf_key_full].copy()
+
+                    # CRITICAL: Dynamo's jacobian() defaults to basis="pca" and looks for VecFld_pca
+                    # The perturbation() function calls jacobian() without passing basis parameter
+                    # So we must ALWAYS ensure VecFld_pca exists
+                    if 'VecFld_pca' not in adata.uns:
+                        st.info(f"""
+                        🔄 **Copying Vector Field for jacobian() compatibility:**
+                        - Source: `{vf_key_full}`
+                        - Target: `VecFld_pca`
+                        (dynamo's jacobian() defaults to basis='pca')
+                        """)
+                        adata.uns['VecFld_pca'] = adata.uns[vf_key_full].copy()
 
                     # CRITICAL FIX: Check for PC dimension mismatch between embedding and loadings
                     # X_<basis> might have more components than PCs loadings matrix
@@ -621,26 +655,51 @@ if uploaded_h5ad is not None:
 
                         st.success(f"✓ Embedding dimension adjusted: {n_pcs_embedding} → {n_pcs_loadings}")
 
-                    # Check if selected genes are in the HVG set (use_for_pca=True)
-                    hvg_genes = set(adata.var_names[adata.var.use_for_pca])
+                    # Check if selected genes are in the HVG set
+                    # Try different column names for HVG identification
+                    def get_bool_mask(col):
+                        """Convert column to boolean mask, handling various formats"""
+                        if col.dtype == bool:
+                            return col.values
+                        elif col.dtype == 'category':
+                            # Handle categorical with string values like 'True'/'False'
+                            return col.astype(str).str.lower() == 'true'
+                        else:
+                            # Try to convert to boolean
+                            return col.astype(bool).values
+
+                    if 'use_for_pca' in adata.var.columns:
+                        hvg_mask = get_bool_mask(adata.var.use_for_pca)
+                        hvg_genes = set(adata.var_names[hvg_mask])
+                        hvg_col_name = 'use_for_pca'
+                    elif 'highly_variable' in adata.var.columns:
+                        hvg_mask = get_bool_mask(adata.var.highly_variable)
+                        hvg_genes = set(adata.var_names[hvg_mask])
+                        hvg_col_name = 'highly_variable'
+                    else:
+                        # No HVG column found - use all genes
+                        hvg_genes = set(adata.var_names)
+                        hvg_col_name = None
+                        st.info("ℹ️ HVG column not found. Using all genes.")
+
                     n_hvg = len(hvg_genes)
                     missing_genes = [g for g in selected_genes if g not in hvg_genes]
 
-                    if missing_genes:
+                    if missing_genes and hvg_col_name is not None:
                         st.error(f"""
-                        ❌ **The following genes are not included in HVG (use_for_pca):**
+                        ❌ **The following genes are not included in HVG ({hvg_col_name}):**
                         {', '.join(missing_genes)}
 
                         Only HVG genes can be used for perturbation analysis.
                         Number of HVG genes: {n_hvg}
 
                         **Solutions:**
-                        1. Add to "Force include genes" in dynamo_analysis and re-run
+                        1. Add them to "Force include genes" in dynamo_analysis and re-run
                         2. Or select genes that are included in HVG
                         """)
                         st.stop()
                     else:
-                        st.success(f"✓ Selected genes ({', '.join(selected_genes)}) are all included in HVG ({n_hvg} genes)")
+                        st.success(f"✓ All selected genes ({', '.join(selected_genes)}) are included in HVG ({n_hvg} genes)")
 
                     # Check if selected genes are in use_for_dynamics (required for jacobian)
                     # If not, automatically add them
@@ -650,17 +709,17 @@ if uploaded_h5ad is not None:
 
                         if missing_in_dynamics:
                             st.warning(f"⚠️ The following genes are not included in `use_for_dynamics`: {', '.join(missing_in_dynamics)}")
-                            st.info("🔄 Automatically setting `use_for_dynamics=True` for Jacobian calculation...")
+                            st.info("🔄 Automatically setting `use_for_dynamics=True` for Jacobian computation...")
 
                             for gene in missing_in_dynamics:
                                 if gene in adata.var_names:
                                     adata.var.loc[gene, 'use_for_dynamics'] = True
 
-                            st.success(f"✓ Added {len(missing_in_dynamics)} genes to use_for_dynamics")
+                            st.success(f"✓ Added {len(missing_in_dynamics)} gene(s) to use_for_dynamics")
                         else:
                             st.success(f"✓ All selected genes are included in use_for_dynamics")
                     else:
-                        st.warning("⚠️ use_for_dynamics column not found. Errors may occur during Jacobian calculation.")
+                        st.warning("⚠️ use_for_dynamics column not found. Errors may occur during Jacobian computation.")
 
                     # If PCs are in varm, copy to uns for dynamo compatibility
                     # IMPORTANT: Dynamo expects PCs to have shape (n_hvg, n_components)
@@ -671,8 +730,18 @@ if uploaded_h5ad is not None:
                         full_PCs = adata.varm[PCs_key]
                         st.caption(f"Original PCs shape (all genes): {full_PCs.shape}")
 
-                        # Subset to HVG genes only (use_for_pca)
-                        hvg_mask = adata.var['use_for_pca'].values
+                        # Subset to HVG genes only (use_for_pca or highly_variable)
+                        if 'use_for_pca' in adata.var.columns:
+                            col = adata.var.use_for_pca
+                        elif 'highly_variable' in adata.var.columns:
+                            col = adata.var.highly_variable
+                        else:
+                            st.error("HVG column not found")
+                            st.stop()
+                        if col.dtype == 'category' or col.dtype == object:
+                            hvg_mask = (col.astype(str).str.lower() == 'true').values
+                        else:
+                            hvg_mask = col.astype(bool).values
                         hvg_PCs = full_PCs[hvg_mask, :]
                         st.caption(f"Subsetted PCs shape (HVG only): {hvg_PCs.shape}")
 
@@ -706,6 +775,38 @@ if uploaded_h5ad is not None:
                     - pca_mean_key: {pca_mean_key_to_use}
                     - HVG (use_for_pca) genes: {n_hvg}
                     """)
+
+                    # Ensure dynamo required columns exist
+                    # Reference: dynamo requires these boolean columns in adata.var:
+                    # - use_for_pca: genes used for PCA (from dyn.pp.pca)
+                    # - use_for_dynamics: genes with valid velocity (from dyn.tl.dynamics)
+                    # - use_for_transition: genes used for transition matrix (from dyn.tl.cell_velocities)
+                    def ensure_bool_column(adata, col_name, source_col='highly_variable'):
+                        """Ensure a boolean column exists in adata.var"""
+                        if col_name not in adata.var.columns:
+                            if source_col and source_col in adata.var.columns:
+                                src = adata.var[source_col]
+                                if src.dtype == 'category' or src.dtype == object:
+                                    adata.var[col_name] = src.astype(str).str.lower() == 'true'
+                                else:
+                                    adata.var[col_name] = src.astype(bool)
+                            else:
+                                adata.var[col_name] = True
+                            return True
+                        else:
+                            # Ensure it's boolean type
+                            col = adata.var[col_name]
+                            if col.dtype == 'category' or col.dtype == object:
+                                adata.var[col_name] = col.astype(str).str.lower() == 'true'
+                                return True
+                        return False
+
+                    created_cols = []
+                    for col_name in ['use_for_pca', 'use_for_dynamics', 'use_for_transition']:
+                        if ensure_bool_column(adata, col_name):
+                            created_cols.append(col_name)
+                    if created_cols:
+                        st.info(f"Created/converted dynamo columns: {', '.join(created_cols)}")
 
                     dyn.pd.perturbation(
                         adata,
@@ -830,7 +931,7 @@ if uploaded_h5ad is not None:
                             show_cluster_labels = st.checkbox(
                                 "Show cluster labels on plot",
                                 value=True,
-                                help="Display labels on each cluster (turn off to show legend only)"
+                                help="Show labels on each cluster (when OFF, only legend is displayed)"
                             )
 
                             sort_clusters = st.checkbox("Change cluster order?")
@@ -1012,11 +1113,14 @@ if uploaded_h5ad is not None:
                     else:
                         legend_setting = False
 
+                    # Use the renamed simple basis name (umap_perturbation)
+                    pert_basis = basis_display + "_perturbation"
+
                     if color_col:
                         plot_kwargs = {
                             'adata': adata_display,
                             'color': [color_col],
-                            'basis': basis_display + "_perturbation",
+                            'basis': pert_basis,
                             'show_legend': legend_setting,
                             'ax': ax_after,
                             'save_show_or_return': 'return'
@@ -1030,7 +1134,7 @@ if uploaded_h5ad is not None:
                     else:
                         dyn.pl.streamline_plot(
                             adata_display,
-                            basis=basis_display + "_perturbation",
+                            basis=pert_basis,
                             ax=ax_after,
                             save_show_or_return='return'
                         )
@@ -1135,12 +1239,12 @@ if uploaded_h5ad is not None:
                     type="primary"
                 )
             else:
-                st.warning("⚠️ h5ad file is not ready. Please run the perturbation analysis again.")
+                st.warning("⚠️ h5ad file is not prepared. Please run perturbation analysis again.")
 
             st.info("""
             ### Next Steps
 
-            The downloaded h5ad file contains post-perturbation results:
+            The downloaded h5ad file contains perturbation results:
             - Perturbation embedding (`X_{basis}_perturbation`)
 
             #### Additional analysis in Python:
@@ -1155,8 +1259,8 @@ if uploaded_h5ad is not None:
             dyn.pl.streamline_plot(adata, basis='umap_perturbation')
             ```
 
-            For details, see [Dynamo Documentation](https://dynamo-release.readthedocs.io/).
+            See the [Dynamo Documentation](https://dynamo-release.readthedocs.io/) for more details.
             """)
 
 else:
-    st.info("👆 Please upload a Dynamo-analyzed h5ad file to get started.")
+    st.info("👆 Please upload a Dynamo-analyzed h5ad file to begin.")

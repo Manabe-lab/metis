@@ -87,7 +87,7 @@ def optimized_checkbox_container(data, items_per_page=50):
     for i, item in enumerate(current_page_items):
         key = f"checkbox_{item}"
         
-        # chiekubokusutheDisplay（valueis selected_items fromdetset）
+        # Display checkbox (value is set from selected_items)
         is_checked = st.checkbox(
             item, 
             value=item in st.session_state.selected_items,
@@ -110,7 +110,7 @@ def turn_off_editing():
 if 'editing' not in st.session_state:
     st.session_state.editing = False
 
-#st.session_state.editingwitheditingmidtoissession_stateofdfischangefurthershinot。
+# While st.session_state.editing is True, the session_state df does not change further.
 
 use_upload = 'Yes'
 if 'df' in st.session_state:

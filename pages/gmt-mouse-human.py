@@ -179,7 +179,7 @@ if uploaded_file is not None:
     # GOofkauntonumofdictionarythemakeru
     GO_count_dic = dict.fromkeys(GO_names)
 
-    # ordernumthekeepholdshite、duplicatetheremoveku
+    # Preserve the original order and remove duplicates
     new_go = []
     for i in range(len(go)):
         if GO_count_dic[go[i][0]] == None:

@@ -45,8 +45,8 @@ EXCLUDE_PATTERNS = [
     "backup",
     ".bak",
     ".org",
-    "orgこれは動く",
-    "バッチが小さくなる",
+    "org_this_works",
+    "batch_becomes_smaller",
     "_old",
     "test_",
 ]

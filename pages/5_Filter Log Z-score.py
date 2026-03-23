@@ -136,7 +136,7 @@ if uploaded_file is not None:
             filename_add = '.min' + str(min_val) + filename_add
 
     if max_val != f_inf:
-        df =  df[df.apply(max, axis=1) > max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
+        df =  df[df.apply(max, axis=1) > max_val] # Filter: rows with max value <= threshold are removed.
         if "max" not in filename_add:
             filename_add = '.max' + str(max_val) + filename_add
 

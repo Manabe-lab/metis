@@ -236,7 +236,7 @@ if use_upload == 'Yes':
 
             df.set_index("Gene", inplace = True)
 
-        else: # excelwithisclearshowaltoshinot。
+        else: # Excel display may not show clearly.
             content = df.columns.tolist()
             if "Annotation/Divergence" in content:
                  # colnamesofchangechange
@@ -404,7 +404,7 @@ if df is not None:
 
 
         if max_val != f_inf:
-            df =  df[df.apply(max, axis=1) > max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
+            df =  df[df.apply(max, axis=1) > max_val] # Filter: rows with max value <= threshold are removed.
 
         if delta_val > 1:
             df = df[df.apply(max, axis=1) > df.apply(min, axis=1) + delta_val]
@@ -420,7 +420,7 @@ if df is not None:
             df = df[df.apply(max, axis=1) <= high_min_val]
 
         if high_max_val != p_inf:
-            df =  df[df.apply(min, axis=1) <= high_max_val] #kokoismindaand、0isonetsuwithmoarebadeleteremovesareru。
+            df =  df[df.apply(min, axis=1) <= high_max_val] # Filter: rows with min value > threshold are removed.
 
         if top_n != p_inf:
             top_ix = df.mean(axis = 1).sort_values(ascending=False).head(10).index

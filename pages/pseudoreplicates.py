@@ -49,7 +49,7 @@ def process_adata(adata, max_splits=3, sample_col=None, cell_type=None, dim_use=
         n_splits = min(max_splits, n_samples)
 
         if n_splits == 1:
-            # Sampleis1tsushikanotplacematch、divratiosezutosoofmamauseuse
+            # When there is only 1 sample, skip splitting and use it as-is
             split_adata = group_adata
             count_sum = np.sum(split_adata.raw.X.toarray(), axis=0)
             umap_mean = np.mean(split_adata.obsm[dim_use], axis=0)

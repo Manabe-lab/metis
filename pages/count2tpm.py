@@ -244,7 +244,7 @@ if uploaded_file is not None:
   #      st.write(tpm_data.head())
   #      st.write(len(tpm_data))
 
-        # newshiiDataFramethemakebecomeshi、orijinaruoforderorderwithfillmeteiku
+        # Create a new DataFrame and fill it in the original gene order
         reordered_tpm_data = pd.DataFrame(index=original_gene_order, columns=tpm_data.columns)
 
         # orijinaruoforderorderwithtpm_dataofvalthefillmeru

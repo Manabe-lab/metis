@@ -196,7 +196,7 @@ st.header("📁 Data Input")
 # Data source selection (moved from visualization section)
 data_source = st.radio(
     "Choose data source:",
-    ["Upload new data", "Load saved TFvelo analysis"],
+    ["Upload new data", "Load saved TFvelo analysis for visualization"],
     help="Upload a new h5ad file for analysis or load previously saved TFvelo results for visualization"
 )
 
@@ -207,7 +207,7 @@ if data_source == "Upload new data":
         type=['h5ad'],
         help="Upload a preprocessed AnnData object with RNA velocity information"
     )
-elif data_source == "Load saved TFvelo analysis":
+elif data_source == "Load saved TFvelo analysis for visualization":
     # Load saved analysis option - upload only
     st.subheader("📤 Upload TFvelo Analysis File")
     uploaded_file = st.file_uploader(
@@ -256,7 +256,7 @@ elif data_source == "Load saved TFvelo analysis":
 
             # Redirect to Visualization tab instead of showing duplicate visualization
             st.success("✅ TFvelo analysis loaded successfully!")
-            st.info("💡 **Scroll down** to view analysis tabs ('📊 Data Overview', '📈 Visualization', etc.).")
+            st.info("💡 **Scroll down** to see the analysis tabs ('📊 Data Overview', '📈 Visualization', etc.).")
 
             # Skip duplicate visualization - use Visualization tab instead
             if False:  # Disabled duplicate visualization
@@ -541,14 +541,13 @@ elif data_source == "Load saved TFvelo analysis":
                                 )
                         except Exception as e:
                             st.error(f"PDF export failed: {str(e)}")
-            else:
-                st.warning("No embeddings found in the uploaded data. Please ensure your TFvelo analysis includes UMAP/tSNE projections.")
+            # else block removed - was incorrectly always running due to "if False:"
 
         except Exception as e:
             st.error(f"Error loading TFvelo analysis file: {str(e)}")
 
 # Continue with new data upload processing only if "Upload new data" is selected
-uploaded_file = None if data_source == "Load saved TFvelo analysis" else uploaded_file
+uploaded_file = None if data_source == "Load saved TFvelo analysis for visualization" else uploaded_file
 
 if uploaded_file is not None:
     try:
@@ -826,19 +825,97 @@ if st.session_state.adata is not None:
                 help="Select transcription factor databases to combine"
             )
 
+            # General TF filtering parameters
+            st.markdown("**General TF Filtering**")
+            min_expression = st.number_input(
+                "Min expression threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.1,
+                step=0.01,
+                help="Minimum expression for TF-target correlation (default: 0.1)"
+            )
+            min_cells = st.number_input(
+                "Min cells (general)",
+                min_value=1,
+                max_value=50,
+                value=2,
+                help="Minimum cells where both TF and target are expressed (default: 2)"
+            )
+
+            # Important TF options
+            st.markdown("**Important TFs (Optional)**")
+            force_include_tfs_input = st.text_area(
+                "Force include TFs",
+                value="",
+                help="Enter important TF names (one per line or comma-separated). These TFs use separate filtering thresholds.",
+                placeholder="e.g., FOXP3\nBCL6\nGATA3"
+            )
+
+            # Parse force_include_tfs
+            if force_include_tfs_input.strip():
+                # Handle both comma and newline separated
+                force_include_tfs = [tf.strip() for tf in force_include_tfs_input.replace(',', '\n').split('\n') if tf.strip()]
+            else:
+                force_include_tfs = None
+
+            # Show filtering options for important TFs only if some are specified
+            if force_include_tfs:
+                st.info(f"Important TFs: {', '.join(force_include_tfs)}")
+                min_expression_force = st.number_input(
+                    "Min expression (important TFs)",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=0.0,
+                    step=0.01,
+                    help="Expression threshold for important TFs (default: 0.0 = any expression)"
+                )
+                min_cells_force = st.number_input(
+                    "Min cells (important TFs)",
+                    min_value=1,
+                    max_value=50,
+                    value=1,
+                    help="Minimum cells for important TF-target pairs (default: 1)"
+                )
+            else:
+                min_expression_force = 0.0
+                min_cells_force = 1
+
         with col2:
             st.subheader("TFvelo Parameters")
 
             # TFvelo demo parameters
-            # Optimal core usage for 64-core systems
-            optimal_cores = min(32, max(8, os.cpu_count() // 2))  # Use up to 32 cores, but at least 8
+            # Memory-aware core usage based on dataset size and available memory
+            try:
+                available_mem_gb = int(os.popen("free -g | awk '/^Mem:/{print $7}'").read().strip())
+            except:
+                available_mem_gb = 64  # Default assumption
+
+            # Estimate memory per worker based on adata size
+            n_cells = adata.n_obs
+            n_genes = adata.n_vars
+            # Each worker copies adata: ~5 layers × n_cells × n_genes × 8 bytes
+            # Plus varm matrices: ~5 × n_genes × n_genes × 8 bytes (before cleanup)
+            # Plus overhead
+            adata_mem_gb = (n_cells * n_genes * 5 * 8 + n_genes * n_genes * 5 * 8) / 1e9
+            worker_mem_gb = adata_mem_gb + 1  # +1GB overhead per worker
+
+            # Reserve memory for main process (result matrices + session state)
+            main_process_gb = (n_cells * n_genes * 8 * 4 / 1e9) + 10  # 8 result matrices (float32) + 10GB buffer
+
+            # Calculate optimal cores
+            usable_mem_gb = available_mem_gb - main_process_gb
+            mem_based_cores = max(1, int(usable_mem_gb / worker_mem_gb))
+            optimal_cores = min(32, mem_based_cores, os.cpu_count() // 2)
 
             n_jobs = st.number_input(
                 "Number of jobs",
                 min_value=1,
                 max_value=os.cpu_count(),
                 value=optimal_cores,
-                help=f"Number of CPUs. Optimal for {os.cpu_count()}-core system: {optimal_cores} cores"
+                help=f"Dataset: {n_cells:,} cells × {n_genes:,} genes | "
+                     f"Worker mem: ~{worker_mem_gb:.1f}GB | "
+                     f"Available: {available_mem_gb}GB → Recommended: {optimal_cores} cores"
             )
 
             # Always use all preprocessed genes
@@ -1059,9 +1136,19 @@ if st.session_state.adata is not None:
 
                     # Step 5: Get TFs (equivalent to demo line 80)
                     st.info(f"Loading TF databases: {tf_databases}")
+                    if force_include_tfs:
+                        st.info(f"Important TFs: {force_include_tfs} (min_expr={min_expression_force}, min_cells={min_cells_force})")
 
                     try:
-                        TFv.pp.get_TFs(adata_processed, databases=tf_databases)
+                        TFv.pp.get_TFs(
+                            adata_processed,
+                            databases=tf_databases,
+                            min_expression=min_expression,
+                            min_cells=min_cells,
+                            force_include_tfs=force_include_tfs,
+                            min_expression_force=min_expression_force,
+                            min_cells_force=min_cells_force
+                        )
                         st.success("✅ TF databases loaded successfully")
                     finally:
                         pass
@@ -1275,10 +1362,23 @@ if st.session_state.adata is not None:
                                 adata_processed = get_metric_pseudotime(adata_processed)
                                 st.success("✅ Pseudotime correlation metrics calculated")
 
+                        # Memory optimization: clear large varm matrices no longer needed
+                        # These are only used during get_TFs() and recover_dynamics()
+                        large_varm_keys = ['TFs', 'TFs_id', 'TFs_times', 'TFs_correlation', 'knockTF_Log2FC']
+                        cleared_size = 0
+                        for key in large_varm_keys:
+                            if key in adata_processed.varm:
+                                cleared_size += adata_processed.varm[key].nbytes if hasattr(adata_processed.varm[key], 'nbytes') else 0
+                                del adata_processed.varm[key]
+                        if cleared_size > 0:
+                            st.info(f"🧹 Cleared {cleared_size / 1e9:.1f}GB of intermediate TF matrices from memory")
+                        import gc
+                        gc.collect()
+
                         # Store unfiltered data in session_state for later filtering adjustment
                         st.session_state.adata_tfvelo_unfiltered = adata_processed.copy()
                         st.success("✅ TFvelo processing completed (before gene filtering)")
-                        st.info("📊 Unfiltered data saved to session_state. You can adjust filtering criteria later.")
+                        st.info("📊 Unfiltered data saved to session_state. You can adjust filtering parameters later.")
 
                         # Store results
                         st.session_state.adata_tfvelo = adata_processed
@@ -1296,6 +1396,13 @@ if st.session_state.adata is not None:
                                 'init_weight_method': init_weight_method,
                                 'n_time_points': n_time_points,
                                 'use_raw': 0
+                            },
+                            'tf_filtering': {
+                                'min_expression': min_expression,
+                                'min_cells': min_cells,
+                                'force_include_tfs': force_include_tfs,
+                                'min_expression_force': min_expression_force,
+                                'min_cells_force': min_cells_force
                             }
                         }
 
@@ -1329,160 +1436,160 @@ if st.session_state.adata is not None:
         # Check if unfiltered data is available
         if 'adata_tfvelo_unfiltered' not in st.session_state:
             st.warning("⚠️ No unfiltered data available. Please run the analysis in the 'TFvelo Setup & Analysis' tab first.")
-            st.stop()
+            st.info("If you loaded a saved analysis file, Gene Filtering is not available. Please use the Visualization tab.")
+            # Don't use st.stop() - it blocks other tabs from rendering
+        else:
+            adata_unfiltered = st.session_state.adata_tfvelo_unfiltered
 
-        adata_unfiltered = st.session_state.adata_tfvelo_unfiltered
+            st.info(f"📊 **Unfiltered data**: {adata_unfiltered.n_vars} genes, {adata_unfiltered.n_obs} cells")
 
-        st.info(f"📊 **Unfiltered data**: {adata_unfiltered.n_vars} genes, {adata_unfiltered.n_obs} cells")
+            st.markdown("""
+            **📝 About default values**: All filtering parameters below use the **official TFvelo default values**.
+            - `loss_percent_thres` = 50
+            - `cell_percent` = 10%
+            - `non_blank_gene` filter = ON
+            - `spearmanr_thres` = 0.8
 
-        st.markdown("""
-        **📝 About default values**: All filtering criteria below use **TFvelo official default values**.
-        - `loss_percent_thres` = 50
-        - `cell_percent` = 10%
-        - `non_blank_gene` filter = ON
-        - `spearmanr_thres` = 0.8
+            If the number of genes remaining is too low, consider relaxing `spearmanr_thres` in particular.
+            """)
 
-        If the number of genes is too small, we recommend relaxing the `spearmanr_thres` threshold in particular.
-        """)
+            # Filtering parameters
+            st.subheader("Filtering Parameters")
 
-        # Filtering parameters
-        st.subheader("Filtering Criteria")
+            col1, col2 = st.columns(2)
 
-        col1, col2 = st.columns(2)
+            with col1:
+                # Filter 1: Loss percentile
+                if 'min_loss' in adata_unfiltered.var:
+                    loss_percentile = st.slider(
+                        "Loss percentile threshold (loss_percent_thres) (%)",
+                        0, 100, 50,
+                        help="""TFvelo default=50.
 
-        with col1:
-            # Filter 1: Loss percentile
-            if 'min_loss' in adata_unfiltered.var:
-                loss_percentile = st.slider(
-                    "Loss percentile threshold (loss_percent_thres) (%)",
-                    0, 100, 50,
-                    help="""TFvelo default = 50.
-
-**Meaning**: Filtering based on each gene's TFvelo model fit (loss function value).
-Genes with smaller loss values indicate that the model better explains the gene dynamics.
-Genes with loss values below this percentile are retained.
+**Meaning**: Filters genes based on TFvelo model goodness-of-fit (loss function value).
+Genes with smaller loss have better model fit for gene dynamics.
+Retains genes with loss values below this percentile.
 
 Example: At 50%, genes with loss in the bottom 50% (= top 50% model fit) are retained."""
-                )
-                thres_loss = np.percentile(adata_unfiltered.var['min_loss'], loss_percentile)
-                genes_pass_loss = (adata_unfiltered.var['min_loss'] < thres_loss).sum()
-                st.metric("Loss filter", f"{genes_pass_loss} / {adata_unfiltered.n_vars} genes")
+                    )
+                    thres_loss = np.percentile(adata_unfiltered.var['min_loss'], loss_percentile)
+                    genes_pass_loss = (adata_unfiltered.var['min_loss'] < thres_loss).sum()
+                    st.metric("Loss filter", f"{genes_pass_loss} / {adata_unfiltered.n_vars} genes")
 
-            # Filter 2: Cell count threshold
-            if 'n_cells' in adata_unfiltered.var:
-                cell_percent = st.slider(
-                    "Minimum cell percentage (%) (cell_percent)",
-                    0, 100, 10,
-                    help="""TFvelo default = 10%.
+                # Filter 2: Cell count threshold
+                if 'n_cells' in adata_unfiltered.var:
+                    cell_percent = st.slider(
+                        "Minimum cell percentage (%) (cell_percent)",
+                        0, 100, 10,
+                        help="""TFvelo default=10%.
 
-**Meaning**: Filtering based on the percentage of cells expressing the gene.
+**Meaning**: Filters genes based on the proportion of cells expressing the gene.
 Genes expressed in too few cells are excluded due to low statistical reliability.
 
 Example: At 10%, only genes expressed in at least 10% of all cells are retained."""
-                )
-                thres_n_cells = adata_unfiltered.n_obs * (cell_percent / 100.0)
-                genes_pass_cells = (adata_unfiltered.var['n_cells'] > thres_n_cells).sum()
-                st.metric("Cell count filter", f"{genes_pass_cells} / {adata_unfiltered.n_vars} genes")
+                    )
+                    thres_n_cells = adata_unfiltered.n_obs * (cell_percent / 100.0)
+                    genes_pass_cells = (adata_unfiltered.var['n_cells'] > thres_n_cells).sum()
+                    st.metric("Cell count filter", f"{genes_pass_cells} / {adata_unfiltered.n_vars} genes")
 
-        with col2:
-            # Filter 3: Non-blank genes
-            apply_blank_filter = st.checkbox(
-                "Non-blank gene filter (non_blank_gene)",
-                value=True,
-                help="""TFvelo default = ON.
+            with col2:
+                # Filter 3: Non-blank genes
+                apply_blank_filter = st.checkbox(
+                    "Non-blank gene filter (non_blank_gene)",
+                    value=True,
+                    help="""TFvelo default=ON.
 
-**Meaning**: Filter to exclude genes with large gaps (blanks) in expression.
-Only genes with continuous expression changes along pseudotime are retained.
+**Meaning**: A filter that excludes genes with large gaps (blanks) in expression.
+Retains only genes with continuously changing expression along pseudotime.
 Genes with unnatural gaps in expression patterns have lower velocity estimation reliability.
 
 non_blank_gene == 0: High-quality genes with continuous expression
 non_blank_gene != 0: Genes with expression gaps (excluded)"""
-            )
-            if apply_blank_filter and 'non_blank_gene' in adata_unfiltered.var:
-                genes_pass_blank = (adata_unfiltered.var['non_blank_gene'] == 0).sum()
-                st.metric("Non-blank filter", f"{genes_pass_blank} / {adata_unfiltered.n_vars} genes")
+                )
+                if apply_blank_filter and 'non_blank_gene' in adata_unfiltered.var:
+                    genes_pass_blank = (adata_unfiltered.var['non_blank_gene'] == 0).sum()
+                    st.metric("Non-blank filter", f"{genes_pass_blank} / {adata_unfiltered.n_vars} genes")
 
-            # Filter 4: Pseudotime correlation (Spearman)
-            if 'spearmanr_pseudotime' in adata_unfiltered.var:
-                corr_threshold = st.slider(
-                    "Spearman correlation threshold (spearmanr_thres)",
-                    0.0, 1.0, 0.8,
-                    step=0.05,
-                    help="""TFvelo default = 0.8.
+                # Filter 4: Pseudotime correlation (Spearman)
+                if 'spearmanr_pseudotime' in adata_unfiltered.var:
+                    corr_threshold = st.slider(
+                        "Spearman correlation threshold (spearmanr_thres)",
+                        0.0, 1.0, 0.8,
+                        step=0.05,
+                        help="""TFvelo default=0.8.
 
-**Meaning**: Filtering based on Spearman correlation between gene-specific time and pseudotime.
-Genes with higher correlation show more regular expression changes along the cell differentiation trajectory.
+**Meaning**: Filters based on Spearman correlation between gene-specific time and pseudotime.
+Genes with higher correlation change expression more regularly along the cell differentiation trajectory.
 Only genes with correlation above this threshold are retained.
 
 Example: At 0.8, only genes strongly correlated with pseudotime are retained (strict condition).
-If the number of genes is too small, we recommend relaxing to around 0.5-0.6."""
-                )
-                genes_pass_corr = (adata_unfiltered.var['spearmanr_pseudotime'] > corr_threshold).sum()
-                st.metric("Correlation filter", f"{genes_pass_corr} / {adata_unfiltered.n_vars} genes")
+If the number of genes is too low, consider relaxing to around 0.5-0.6."""
+                    )
+                    genes_pass_corr = (adata_unfiltered.var['spearmanr_pseudotime'] > corr_threshold).sum()
+                    st.metric("Correlation filter", f"{genes_pass_corr} / {adata_unfiltered.n_vars} genes")
 
-        # Apply filters button
-        st.markdown("---")
-        if st.button("🔄 Apply Filtering", type="primary"):
-            with st.spinner("Applying filters..."):
-                adata_filtered = adata_unfiltered.copy()
+            # Apply filters button
+            st.markdown("---")
+            if st.button("🔄 Apply Filters", type="primary"):
+                with st.spinner("Applying filters..."):
+                    adata_filtered = adata_unfiltered.copy()
 
-                # Apply each filter
-                filter_log = []
+                    # Apply each filter
+                    filter_log = []
 
-                # Filter 1: Loss
-                if 'min_loss' in adata_filtered.var:
-                    n_before = adata_filtered.n_vars
-                    adata_filtered = adata_filtered[:, adata_filtered.var['min_loss'] < thres_loss]
-                    filter_log.append(f"Loss filter ({loss_percentile}%): {n_before} → {adata_filtered.n_vars} genes")
+                    # Filter 1: Loss
+                    if 'min_loss' in adata_filtered.var:
+                        n_before = adata_filtered.n_vars
+                        adata_filtered = adata_filtered[:, adata_filtered.var['min_loss'] < thres_loss]
+                        filter_log.append(f"Loss filter ({loss_percentile}%): {n_before} → {adata_filtered.n_vars} genes")
 
-                # Filter 2: Cell count
-                if 'n_cells' in adata_filtered.var:
-                    n_before = adata_filtered.n_vars
-                    adata_filtered = adata_filtered[:, adata_filtered.var['n_cells'] > thres_n_cells]
-                    filter_log.append(f"Cell count filter (>{cell_percent}%): {n_before} → {adata_filtered.n_vars} genes")
+                    # Filter 2: Cell count
+                    if 'n_cells' in adata_filtered.var:
+                        n_before = adata_filtered.n_vars
+                        adata_filtered = adata_filtered[:, adata_filtered.var['n_cells'] > thres_n_cells]
+                        filter_log.append(f"Cell count filter (>{cell_percent}%): {n_before} → {adata_filtered.n_vars} genes")
 
-                # Filter 3: Non-blank
-                if apply_blank_filter and 'non_blank_gene' in adata_filtered.var:
-                    n_before = adata_filtered.n_vars
-                    adata_filtered = adata_filtered[:, adata_filtered.var['non_blank_gene'] == 0]
-                    filter_log.append(f"Non-blank filter: {n_before} → {adata_filtered.n_vars} genes")
+                    # Filter 3: Non-blank
+                    if apply_blank_filter and 'non_blank_gene' in adata_filtered.var:
+                        n_before = adata_filtered.n_vars
+                        adata_filtered = adata_filtered[:, adata_filtered.var['non_blank_gene'] == 0]
+                        filter_log.append(f"Non-blank filter: {n_before} → {adata_filtered.n_vars} genes")
 
-                # Filter 4: Pseudotime correlation
-                if 'spearmanr_pseudotime' in adata_filtered.var:
-                    n_before = adata_filtered.n_vars
-                    adata_filtered = adata_filtered[:, adata_filtered.var['spearmanr_pseudotime'] > corr_threshold]
-                    filter_log.append(f"Correlation filter (>{corr_threshold}): {n_before} → {adata_filtered.n_vars} genes")
+                    # Filter 4: Pseudotime correlation
+                    if 'spearmanr_pseudotime' in adata_filtered.var:
+                        n_before = adata_filtered.n_vars
+                        adata_filtered = adata_filtered[:, adata_filtered.var['spearmanr_pseudotime'] > corr_threshold]
+                        filter_log.append(f"Correlation filter (>{corr_threshold}): {n_before} → {adata_filtered.n_vars} genes")
 
-                # Display filtering results
-                st.subheader("Filtering Results")
-                for log in filter_log:
-                    st.info(log)
+                    # Display filtering results
+                    st.subheader("Filtering Results")
+                    for log in filter_log:
+                        st.info(log)
 
-                # Check if genes remain
-                if adata_filtered.n_vars == 0:
-                    st.error("❌ **No genes remaining after filtering!**")
-                    st.error("Please relax the filtering criteria.")
-                    st.stop()
-                else:
-                    st.success(f"✅ **Final result**: {adata_filtered.n_vars} genes, {adata_filtered.n_obs} cells")
+                    # Check if genes remain
+                    if adata_filtered.n_vars == 0:
+                        st.error("❌ **No genes remaining after filtering!**")
+                        st.error("Please relax the filtering parameters.")
+                    else:
+                        st.success(f"✅ **Final result**: {adata_filtered.n_vars} genes, {adata_filtered.n_obs} cells")
 
-                    # Re-compute velocity graph
-                    with st.spinner("Re-computing velocity graph..."):
-                        try:
-                            import TFvelo as TFv
-                            TFv.tl.velocity_graph(adata_filtered, basis=None, vkey='velocity', xkey='M_total')
-                            st.success("✅ Velocity graph computed successfully")
+                        # Re-compute velocity graph
+                        with st.spinner("Re-computing velocity graph..."):
+                            try:
+                                import TFvelo as TFv
+                                TFv.tl.velocity_graph(adata_filtered, basis=None, vkey='velocity', xkey='M_total')
+                                st.success("✅ Velocity graph computed successfully")
 
-                            # Store filtered data
-                            st.session_state.adata_tfvelo = adata_filtered
-                            st.session_state.tfvelo_results['completed'] = True
+                                # Store filtered data
+                                st.session_state.adata_tfvelo = adata_filtered
+                                st.session_state.tfvelo_results['completed'] = True
 
-                            st.balloons()
-                            st.success("🎉 Filtering complete! Check the results in the Visualization tab.")
+                                st.balloons()
+                                st.success("🎉 Filtering complete! Check the results in the Visualization tab.")
 
-                        except Exception as e:
-                            st.error(f"❌ Failed to compute velocity graph: {str(e)}")
-                            st.text(traceback.format_exc())
+                            except Exception as e:
+                                st.error(f"❌ Velocity graph computation failed: {str(e)}")
+                                st.text(traceback.format_exc())
 
     # Tab 4: Visualization (renamed from tab3)
     with tab4:
@@ -1492,7 +1599,7 @@ If the number of genes is too small, we recommend relaxing to around 0.5-0.6."""
         if 'adata_tfvelo' not in st.session_state or 'completed' not in st.session_state.tfvelo_results:
             st.warning("🔍 No TFvelo analysis available for visualization.")
             st.info("Please either:")
-            st.markdown("1. **Load saved analysis**: Go to Data Input → 'Load saved TFvelo analysis'")
+            st.markdown("1. **Load saved analysis**: Go to Data Input → 'Load saved TFvelo analysis for visualization'")
             st.markdown("2. **Run new analysis**: Upload data → Complete analysis in 'TFvelo Setup & Analysis' tab")
             st.markdown("3. **Apply gene filtering**: Go to 'Gene Filtering' tab")
             st.stop()
@@ -1959,11 +2066,32 @@ If the number of genes is too small, we recommend relaxing to around 0.5-0.6."""
         if 'adata_tfvelo' not in st.session_state or 'completed' not in st.session_state.tfvelo_results:
             st.warning("🔍 No TFvelo analysis available for download.")
             st.info("Please either:")
-            st.markdown("1. **Load saved analysis**: Go to Data Input → 'Load saved TFvelo analysis'")
+            st.markdown("1. **Load saved analysis**: Go to Data Input → 'Load saved TFvelo analysis for visualization'")
             st.markdown("2. **Run new analysis**: Upload data → Complete analysis in 'TFvelo Setup & Analysis' tab")
             st.stop()
 
-        adata_tfvelo = st.session_state.adata_tfvelo
+        # Option to select filtered or unfiltered data
+        data_options = []
+        if 'adata_tfvelo' in st.session_state:
+            data_options.append("Filtered (adata_tfvelo)")
+        if 'adata_tfvelo_unfiltered' in st.session_state:
+            data_options.append("Unfiltered (adata_tfvelo_unfiltered)")
+
+        if len(data_options) > 1:
+            selected_data = st.radio(
+                "Select data to download",
+                data_options,
+                index=0,  # Default to filtered
+                horizontal=True,
+                help="Filtered: after gene filtering | Unfiltered: before gene filtering"
+            )
+            if "Unfiltered" in selected_data:
+                adata_tfvelo = st.session_state.adata_tfvelo_unfiltered
+                st.info("📋 Using **unfiltered** data (before gene filtering)")
+            else:
+                adata_tfvelo = st.session_state.adata_tfvelo
+        else:
+            adata_tfvelo = st.session_state.adata_tfvelo
 
         if 'completed' in st.session_state.tfvelo_results:
             # Analysis summary

@@ -3,20 +3,20 @@ from collections import defaultdict
 
 def tri_to_gmt(input_file, output_file):
     """
-    TRIフォーマットのTSVファイルをGMTフォーマットに変換する
-    Positive/Negative の制御関係を別々の遺伝子セットとして出力する
-    
+    Convert a TRI format TSV file to GMT format.
+    Output positive/negative regulatory relationships as separate gene sets.
+
     Parameters:
     -----------
     input_file : str
-        入力のTRIファイルパス（TSV形式）
+        Input TRI file path (TSV format)
     output_file : str
-        出力するGMTファイルパス
+        Output GMT file path
     """
-    # TRIファイルを読み込む
+    # Read the TRI file
     tri_df = pd.read_csv(input_file, sep='\t')
     
-    # sourceごとにtargetをグループ化（正と負で別々に）
+    # Group targets by source (separately for positive and negative)
     positive_regulons = defaultdict(list)
     negative_regulons = defaultdict(list)
     
@@ -30,11 +30,11 @@ def tri_to_gmt(input_file, output_file):
         elif weight < 0:
             negative_regulons[source].append(target)
     
-    # GMTファイルを書き出す
+    # Write the GMT file
     with open(output_file, 'w') as f:
         # Positive targets
         for source, targets in positive_regulons.items():
-            if targets:  # ターゲットが存在する場合のみ出力
+            if targets:  # Only output if targets exist
                 description = f"{source}_positive_targets"
                 target_genes = '\t'.join(targets)
                 line = f"{source}_pos\t{description}\t{target_genes}\n"
@@ -42,27 +42,27 @@ def tri_to_gmt(input_file, output_file):
         
         # Negative targets
         for source, targets in negative_regulons.items():
-            if targets:  # ターゲットが存在する場合のみ出力
+            if targets:  # Only output if targets exist
                 description = f"{source}_negative_targets"
                 target_genes = '\t'.join(targets)
                 line = f"{source}_neg\t{description}\t{target_genes}\n"
                 f.write(line)
 
-    # 統計情報を表示
-    print(f"変換が完了しました。出力ファイル: {output_file}")
-    print(f"\n統計情報:")
-    print(f"Positive 制御の遺伝子セット数: {len(positive_regulons)}")
-    print(f"Negative 制御の遺伝子セット数: {len(negative_regulons)}")
+    # Display statistics
+    print(f"Conversion complete. Output file: {output_file}")
+    print(f"\nStatistics:")
+    print(f"Number of positive regulatory gene sets: {len(positive_regulons)}")
+    print(f"Number of negative regulatory gene sets: {len(negative_regulons)}")
     
     if positive_regulons:
         avg_pos = sum(len(targets) for targets in positive_regulons.values()) / len(positive_regulons)
-        print(f"Positive 制御の平均ターゲット遺伝子数: {avg_pos:.1f}")
+        print(f"Average target genes per positive regulatory set: {avg_pos:.1f}")
     
     if negative_regulons:
         avg_neg = sum(len(targets) for targets in negative_regulons.values()) / len(negative_regulons)
-        print(f"Negative 制御の平均ターゲット遺伝子数: {avg_neg:.1f}")
+        print(f"Average target genes per negative regulatory set: {avg_neg:.1f}")
 
-# 使用例
+# Usage example
 if __name__ == "__main__":
     input_file = "TRI.mouse.tsv"
     output_file = "TRI.mouse.gmt"

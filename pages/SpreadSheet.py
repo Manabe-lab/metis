@@ -207,7 +207,7 @@ if df is not None:
 
 
 
-#　DatathesendrubeforetoallzeroofDataisremovekubeki
+# All-zero rows should be removed before sending data
 
 
 # refispointsetsareteexistandkiisFilenametheadjustarrangedo?

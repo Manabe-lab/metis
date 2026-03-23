@@ -109,7 +109,7 @@ if uploaded_file is not None:
     st.write(df_convert.head(10))
     csv_convert = convert_df(df_convert)
 
-    st.markdown("### Duplicated symbols") #koreisupdateshitamoofdakenaofwith、realoccofduplicatesismoandmanyi
+    st.markdown("### Duplicated symbols") # This only shows updated symbols; actual duplicate occurrences may be higher
     df_convert_dup = df_convert.loc[df_convert.duplicated(subset = 'New', keep=False),:].sort_values('New')
     st.write(df_convert_dup)
     csv_dup = convert_df(df_convert_dup)
